@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+
+class AuthController extends Controller
+{
+    /**
+     * Endpoint API Login (Fitur 1)[cite: 1]
+     */
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        $user = User::with(['organization', 'roles'])->where('email', $request->email)->first();
+
+        // Cek email dan password
+        if (! $user || ! Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['Kredensial yang diberikan tidak cocok.'],
+            ]);
+        }
+
+        // Cek jika akun nonaktif (Fitur 9)[cite: 1]
+        if ($user->status !== 'active') {
+            return response()->json([
+                'message' => 'Akun Anda dinonaktifkan. Silakan hubungi admin.',
+            ], 403);
+        }
+
+        // Generate Sanctum Token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login berhasil!',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->getRoleNames()->first(), // Spatie Role[cite: 1]
+                'organization' => $user->organization,    // Data Organisasi terkait[cite: 1]
+            ]
+        ]);
+    }
+
+    /**
+     * Endpoint Cek User Login Saat Ini
+     */
+    public function me(Request $request)
+    {
+        $user = User::with(['organization', 'roles'])->find($request->user()->id);
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->getRoleNames()->first(),
+                'organization' => $user->organization,
+            ]
+        ]);
+    }
+
+    /**
+     * Endpoint Logout
+     */
+    public function logout(Request $request)
+    {
+        // Hapus token yang sedang digunakan
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Berhasil logout'
+        ]);
+    }
+}

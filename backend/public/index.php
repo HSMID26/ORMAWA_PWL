@@ -1,5 +1,6 @@
 <?php
 
+ini_set('upload_tmp_dir', 'C:\temp');
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
