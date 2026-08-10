@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Endpoint API Login (Fitur 1)[cite: 1]
+     * Endpoint API Login (Fitur 1)
      */
     public function login(Request $request)
     {
@@ -29,7 +29,7 @@ class AuthController extends Controller
             ]);
         }
 
-        // Cek jika akun nonaktif (Fitur 9)[cite: 1]
+        // Cek jika akun nonaktif (Fitur 9)
         if ($user->status !== 'active') {
             return response()->json([
                 'message' => 'Akun Anda dinonaktifkan. Silakan hubungi admin.',
@@ -47,8 +47,8 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->getRoleNames()->first(), // Spatie Role[cite: 1]
-                'organization' => $user->organization,    // Data Organisasi terkait[cite: 1]
+                'role' => $user->getRoleNames()->first(), // Spatie Role
+                'organization' => $user->organization,    // Data Organisasi terkait
             ]
         ]);
     }

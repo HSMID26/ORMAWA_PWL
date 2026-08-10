@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             // Multi-tenancy & User Relationship
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organization_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
             // Content Details

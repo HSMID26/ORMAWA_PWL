@@ -27,7 +27,15 @@ trait BelongsToOrganization
             if (Auth::check() && empty($model->organization_id)) {
                 /** @var \App\Models\User $user */
                 $user = Auth::user();
-                $model->organization_id = $user->organization_id;
+                if (!empty($user->organization_id)) {
+                    $model->organization_id = $user->organization_id;
+                } else {
+                    // Fallback jika user tidak terikat organisasi spesifik (misal: Super Admin PKA)
+                    $firstOrg = Organization::first();
+                    if ($firstOrg) {
+                        $model->organization_id = $firstOrg->id;
+                    }
+                }
             }
         });
     }

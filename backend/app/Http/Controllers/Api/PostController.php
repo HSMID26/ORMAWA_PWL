@@ -37,7 +37,7 @@ class PostController extends Controller
             'konten'      => $request->konten,
             'cover_image' => $request->cover_image,
             'status'      => $request->status,
-            'user_id'     => $request->user()->id, // Otomatis id user yang login
+            'user_id'     => Auth::id() ?? $request->user()?->id, // Otomatis id user yang login
             // organization_id terisi otomatis via Trait BelongsToOrganization!
         ]);
 
