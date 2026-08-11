@@ -1,151 +1,298 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  scrollBehavior(to, from, savedPosition) {
-    return savedPosition || { left: 0, top: 0 }
+  scrollBehavior() {
+    return { top: 0 }
   },
   routes: [
+    // ─── Public Website ─────────────────────────────────────────
     {
       path: '/',
-      name: 'Ecommerce',
-      component: () => import('../views/Ecommerce.vue'),
-      meta: {
-        title: 'eCommerce Dashboard',
-      },
+      name: 'portal-home',
+      component: () => import('@/views/portal/PortalHomePage.vue'),
+      alias: ['/portal'],
+      meta: { title: 'Portal Ormawa', public: true },
     },
     {
-      path: '/calendar',
-      name: 'Calendar',
-      component: () => import('../views/Others/Calendar.vue'),
-      meta: {
-        title: 'Calendar',
-      },
+      path: '/org/:slug',
+      name: 'organization-landing',
+      component: () => import('@/views/public/HomePage.vue'),
+      meta: { title: 'Website Organisasi', public: true },
     },
     {
-      path: '/profile',
-      name: 'Profile',
-      component: () => import('../views/Others/UserProfile.vue'),
-      meta: {
-        title: 'Profile',
-      },
+      path: '/org/:slug/profile',
+      name: 'organization-profile',
+      component: () => import('@/views/public/ProfilePage.vue'),
+      meta: { title: 'Profil', public: true },
     },
     {
-      path: '/form-elements',
-      name: 'Form Elements',
-      component: () => import('../views/Forms/FormElements.vue'),
-      meta: {
-        title: 'Form Elements',
-      },
+      path: '/org/:slug/structure',
+      name: 'organization-structure',
+      component: () => import('@/views/public/StructurePage.vue'),
+      meta: { title: 'Struktur', public: true },
     },
     {
-      path: '/basic-tables',
-      name: 'Basic Tables',
-      component: () => import('../views/Tables/BasicTables.vue'),
-      meta: {
-        title: 'Basic Tables',
-      },
+      path: '/news',
+      name: 'news-list',
+      component: () => import('@/views/public/NewsListPage.vue'),
+      meta: { title: 'Berita', public: true },
     },
     {
-      path: '/line-chart',
-      name: 'Line Chart',
-      component: () => import('../views/Chart/LineChart/LineChart.vue'),
+      path: '/org/:slug/news',
+      name: 'organization-news-list',
+      component: () => import('@/views/public/NewsListPage.vue'),
+      meta: { title: 'Berita Organisasi', public: true },
     },
     {
-      path: '/bar-chart',
-      name: 'Bar Chart',
-      component: () => import('../views/Chart/BarChart/BarChart.vue'),
+      path: '/news/:slug',
+      name: 'news-detail',
+      component: () => import('@/views/public/NewsDetailPage.vue'),
+      meta: { title: 'Detail Berita', public: true },
     },
     {
-      path: '/alerts',
-      name: 'Alerts',
-      component: () => import('../views/UiElements/Alerts.vue'),
-      meta: {
-        title: 'Alerts',
-      },
+      path: '/org/:slug/news/:slug',
+      name: 'organization-news-detail',
+      component: () => import('@/views/public/NewsDetailPage.vue'),
+      meta: { title: 'Detail Berita Organisasi', public: true },
     },
     {
-      path: '/avatars',
-      name: 'Avatars',
-      component: () => import('../views/UiElements/Avatars.vue'),
-      meta: {
-        title: 'Avatars',
-      },
+      path: '/agenda',
+      name: 'agenda',
+      component: () => import('@/views/public/AgendaPage.vue'),
+      meta: { title: 'Agenda', public: true },
     },
     {
-      path: '/badge',
-      name: 'Badge',
-      component: () => import('../views/UiElements/Badges.vue'),
-      meta: {
-        title: 'Badge',
-      },
-    },
-
-    {
-      path: '/buttons',
-      name: 'Buttons',
-      component: () => import('../views/UiElements/Buttons.vue'),
-      meta: {
-        title: 'Buttons',
-      },
-    },
-
-    {
-      path: '/images',
-      name: 'Images',
-      component: () => import('../views/UiElements/Images.vue'),
-      meta: {
-        title: 'Images',
-      },
+      path: '/org/:slug/agenda',
+      name: 'organization-agenda',
+      component: () => import('@/views/public/AgendaPage.vue'),
+      meta: { title: 'Agenda Organisasi', public: true },
     },
     {
-      path: '/videos',
-      name: 'Videos',
-      component: () => import('../views/UiElements/Videos.vue'),
-      meta: {
-        title: 'Videos',
-      },
+      path: '/gallery',
+      name: 'gallery',
+      component: () => import('@/views/public/GalleryPage.vue'),
+      meta: { title: 'Galeri', public: true },
     },
     {
-      path: '/blank',
-      name: 'Blank',
-      component: () => import('../views/Pages/BlankPage.vue'),
-      meta: {
-        title: 'Blank',
-      },
+      path: '/org/:slug/gallery',
+      name: 'organization-gallery',
+      component: () => import('@/views/public/GalleryPage.vue'),
+      meta: { title: 'Galeri Organisasi', public: true },
     },
-
     {
-      path: '/error-404',
-      name: '404 Error',
-      component: () => import('../views/Errors/FourZeroFour.vue'),
-      meta: {
-        title: '404 Error',
-      },
+      path: '/documents',
+      name: 'documents',
+      component: () => import('@/views/public/DocumentsPage.vue'),
+      meta: { title: 'Dokumen', public: true },
+    },
+    {
+      path: '/org/:slug/documents',
+      name: 'organization-documents',
+      component: () => import('@/views/public/DocumentsPage.vue'),
+      meta: { title: 'Dokumen Organisasi', public: true },
+    },
+    {
+      path: '/contact',
+      name: 'contact',
+      component: () => import('@/views/public/ContactPage.vue'),
+      meta: { title: 'Kontak', public: true },
+    },
+    {
+      path: '/org/:slug/contact',
+      name: 'organization-contact',
+      component: () => import('@/views/public/ContactPage.vue'),
+      meta: { title: 'Kontak Organisasi', public: true },
+    },
+    {
+      path: '/search',
+      name: 'search',
+      component: () => import('@/views/public/SearchPage.vue'),
+      meta: { title: 'Pencarian', public: true },
+    },
+    {
+      path: '/org/:slug/search',
+      name: 'organization-search',
+      component: () => import('@/views/public/SearchPage.vue'),
+      meta: { title: 'Pencarian Organisasi', public: true },
     },
 
+    // ─── Main Portal ────────────────────────────────────────────
     {
-      path: '/signin',
-      name: 'Signin',
-      component: () => import('../views/Auth/Signin.vue'),
-      meta: {
-        title: 'Signin',
-      },
+      path: '/portal/organizations',
+      name: 'portal-organizations',
+      component: () => import('@/views/portal/OrganizationsPage.vue'),
+      meta: { title: 'Organisasi', public: true },
+    },
+    {
+      path: '/portal/news',
+      name: 'portal-news',
+      component: () => import('@/views/portal/NewsPage.vue'),
+      meta: { title: 'Berita Portal', public: true },
+    },
+    {
+      path: '/portal/events',
+      name: 'portal-events',
+      component: () => import('@/views/portal/EventsPage.vue'),
+      meta: { title: 'Agenda Portal', public: true },
+    },
+    {
+      path: '/portal/about',
+      name: 'portal-about',
+      component: () => import('@/views/portal/AboutPage.vue'),
+      meta: { title: 'Tentang Portal', public: true },
+    },
+    {
+      path: '/portal/contact',
+      name: 'portal-contact',
+      component: () => import('@/views/portal/ContactPage.vue'),
+      meta: { title: 'Kontak Portal', public: true },
+    },
+
+    // ─── Auth ───────────────────────────────────────────────────
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/Auth/Login.vue'),
+      meta: { title: 'Login', public: true },
     },
     {
       path: '/signup',
-      name: 'Signup',
-      component: () => import('../views/Auth/Signup.vue'),
-      meta: {
-        title: 'Signup',
-      },
+      name: 'signup',
+      component: () => import('@/views/Auth/Signup.vue'),
+      meta: { title: 'Sign Up', public: true },
+    },
+
+    // ─── Super Admin ──────────────────────────────────────────────
+    {
+      path: '/dashboard',
+      name: 'super-admin-dashboard',
+      component: () => import('@/views/dashboard/SuperAdminDashboard.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'], title: 'Dashboard' },
+    },
+    {
+      path: '/super-admin/organizations',
+      name: 'super-admin-organizations',
+      component: () => import('@/views/super-admin/organizations/List.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'], title: 'Organizations' },
+    },
+    {
+      path: '/super-admin/users',
+      name: 'super-admin-users',
+      component: () => import('@/views/super-admin/users/List.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'], title: 'Users' },
+    },
+    {
+      path: '/super-admin/approvals',
+      name: 'super-admin-approvals',
+      component: () => import('@/views/super-admin/approvals/OrganizationApproval.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'], title: 'Approvals' },
+    },
+    {
+      path: '/super-admin/settings',
+      name: 'super-admin-settings',
+      component: () => import('@/views/super-admin/settings/PlatformSettings.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'], title: 'Platform Settings' },
+    },
+    {
+      path: '/super-admin/logs',
+      name: 'super-admin-logs',
+      component: () => import('@/views/super-admin/logs/ActivityLog.vue'),
+      meta: { requiresAuth: true, roles: ['super_admin'], title: 'Activity Logs' },
+    },
+
+    // ─── Organization (Admin / Editor / Contributor) ─────────────
+    {
+      path: '/organization/dashboard',
+      name: 'organization-dashboard',
+      component: () => import('@/views/dashboard/OrganizationDashboard.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'editor', 'contributor'], title: 'Dashboard' },
+    },
+    {
+      path: '/organization/posts',
+      name: 'organization-posts',
+      component: () => import('@/views/organization/posts/List.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'editor', 'contributor'], title: 'Posts' },
+    },
+    {
+      path: '/organization/agenda',
+      name: 'organization-agenda',
+      component: () => import('@/views/organization/agenda/List.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'editor'], title: 'Agenda' },
+    },
+    {
+      path: '/organization/announcements',
+      name: 'organization-announcements',
+      component: () => import('@/views/organization/announcements/List.vue'),
+      meta: { requiresAuth: true, roles: ['admin'], title: 'Announcements' },
+    },
+    {
+      path: '/organization/gallery',
+      name: 'organization-gallery',
+      component: () => import('@/views/organization/gallery/List.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'editor'], title: 'Gallery' },
+    },
+    {
+      path: '/organization/documents',
+      name: 'organization-documents',
+      component: () => import('@/views/organization/documents/List.vue'),
+      meta: { requiresAuth: true, roles: ['admin'], title: 'Documents' },
+    },
+    {
+      path: '/organization/users',
+      name: 'organization-users',
+      component: () => import('@/views/organization/users/List.vue'),
+      meta: { requiresAuth: true, roles: ['admin'], title: 'Organization Users' },
+    },
+    {
+      path: '/organization/settings',
+      name: 'organization-settings',
+      component: () => import('@/views/organization/settings/OrganizationSettings.vue'),
+      meta: { requiresAuth: true, roles: ['admin'], title: 'Settings' },
+    },
+
+    // ─── Errors ──────────────────────────────────────────────────
+    {
+      path: '/404',
+      name: 'not-found',
+      component: () => import('@/views/public/NotFoundPage.vue'),
+      meta: { title: 'Page Not Found', public: true },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/404',
     },
   ],
 })
 
-export default router
+router.beforeEach((to, _from, next) => {
+  document.title = `CMS Ormawa | ${to.meta.title ?? 'App'}`
 
-router.beforeEach((to, from, next) => {
-  document.title = `Vue.js ${to.meta.title} | TailAdmin - Vue.js Tailwind CSS Dashboard Template`
+  const authStore = useAuthStore()
+
+  if (to.meta.public) {
+    // Already logged in → redirect to appropriate dashboard
+    if (authStore.token) {
+      if (authStore.role === 'super_admin') return next({ name: 'super-admin-dashboard' })
+      return next({ name: 'organization-dashboard' })
+    }
+    return next()
+  }
+
+  if (to.meta.requiresAuth) {
+    if (!authStore.token) return next({ name: 'login' })
+
+    const allowedRoles = to.meta.roles as string[] | undefined
+    if (allowedRoles && authStore.role && !allowedRoles.includes(authStore.role)) {
+      // Unauthorized role → send to their dashboard
+      if (authStore.role === 'super_admin') return next({ name: 'super-admin-dashboard' })
+      return next({ name: 'organization-dashboard' })
+    }
+    return next()
+  }
+
   next()
 })
+
+export default router

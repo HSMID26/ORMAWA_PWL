@@ -46,3 +46,4 @@ import CheckboxInput from '@/components/forms/FormElements/CheckboxInput.vue'
 
 const currentPageTitle = ref('Form Elements')
 </script>
+

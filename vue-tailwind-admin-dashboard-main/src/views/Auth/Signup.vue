@@ -280,7 +280,7 @@
                 >
                   Already have an account?
                   <router-link
-                    to="/signin"
+                    to="/login"
                     class="text-brand-500 hover:text-brand-600 dark:text-brand-400"
                     >Sign In</router-link
                   >

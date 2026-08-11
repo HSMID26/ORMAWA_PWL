@@ -43,3 +43,4 @@ const currentPageTitle = ref('Avatars')
 const avatarSrc = '/images/user/user-01.jpg'
 const sizes = ['xsmall', 'small', 'medium', 'large', 'xlarge', 'xxlarge'] as const
 </script>
+

@@ -80,3 +80,4 @@ const currentPageTitle = ref('Alerts')
 </script>
 
 <style></style>
+

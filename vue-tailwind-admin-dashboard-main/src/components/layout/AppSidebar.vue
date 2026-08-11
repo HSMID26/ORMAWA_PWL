@@ -211,8 +211,9 @@
   </aside>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from "vue";
+import { useAuthStore } from '@/stores/auth';
 import { useRoute } from "vue-router";
 
 import {
@@ -238,93 +239,96 @@ const route = useRoute();
 
 const { isExpanded, isMobileOpen, isHovered, openSubmenu } = useSidebar();
 
-const menuGroups = [
-  {
-    title: "Menu",
-    items: [
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface MenuItem {
+  icon?: unknown
+  name: string
+  path?: string
+  subItems?: { name: string; path: string; new?: boolean; pro?: boolean }[]
+}
+interface MenuGroup {
+  title: string
+  items: MenuItem[]
+}
+
+const authStore = useAuthStore()
+
+const menuGroups = computed<MenuGroup[]>(() => {
+  const role = authStore.role
+
+  if (role === 'super_admin') {
+    return [
       {
-        icon: GridIcon,
-        name: "Dashboard",
-        path: "/",
-      },
-      // {
-      //   icon: CalenderIcon,
-      //   name: "Calendar",
-      //   path: "/calendar",
-      // },
-      // {
-      //   icon: UserCircleIcon,
-      //   name: "User Profile",
-      //   path: "/profile",
-      // },
+        title: 'Super Admin Menu',
+        items: [
+          { icon: GridIcon, name: 'Dashboard', path: '/dashboard' },
+          { icon: BoxCubeIcon, name: 'Organizations', path: '/super-admin/organizations' },
+          { icon: UserCircleIcon, name: 'Users', path: '/super-admin/users' },
+          { icon: ListIcon, name: 'Organization Approval', path: '/super-admin/approvals' },
+          { icon: PlugInIcon, name: 'Platform Settings', path: '/super-admin/settings' },
+          { icon: DocsIcon, name: 'Activity Log', path: '/super-admin/logs' },
+        ]
+      }
+    ]
+  }
 
-      // {
-      //   name: "Forms",
-      //   icon: ListIcon,
-      //   subItems: [
-      //     { name: "Form Elements", path: "/form-elements", pro: false },
-      //   ],
-      // },
-      // {
-      //   name: "Tables",
-      //   icon: TableIcon,
-      //   subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-      // },
-      // {
-      //   name: "Pages",
-      //   icon: PageIcon,
-      //   subItems: [
-      //     { name: "Black Page", path: "/blank", pro: false },
-      //     { name: "404 Page", path: "/error-404", pro: false },
-      //   ],
-      // },
-    ],
-  },
-  {
-    title: "",
-    items: [
-      // {
-      //   icon: PieChartIcon,
-      //   name: "Charts",
-      //   subItems: [
-      //     { name: "Line Chart", path: "/line-chart", pro: false },
-      //     { name: "Bar Chart", path: "/bar-chart", pro: false },
-      //   ],
-      // },
-      // {
-      //   icon: BoxCubeIcon,
-      //   name: "Ui Elements",
-      //   subItems: [
-      //     { name: "Alerts", path: "/alerts", pro: false },
-      //     { name: "Avatars", path: "/avatars", pro: false },
-      //     { name: "Badge", path: "/badge", pro: false },
-      //     { name: "Buttons", path: "/buttons", pro: false },
-      //     { name: "Images", path: "/images", pro: false },
-      //     { name: "Videos", path: "/videos", pro: false },
-      //   ],
-      // },
-      // {
-      //   icon: PlugInIcon,
-      //   name: "Authentication",
-      //   subItems: [
-      //     { name: "Signin", path: "/signin", pro: false },
-      //     { name: "Signup", path: "/signup", pro: false },
-      //   ],
-      // },
-      // ... Add other menu items here
-    ],
-  },
-];
+  if (role === 'admin') {
+    return [
+      {
+        title: 'Organization Admin Menu',
+        items: [
+          { icon: GridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+          { icon: PageIcon, name: 'Posts', path: '/organization/posts' },
+          { icon: CalenderIcon, name: 'Agenda', path: '/organization/agenda' },
+          { icon: ChatIcon, name: 'Announcements', path: '/organization/announcements' },
+          { icon: PieChartIcon, name: 'Gallery', path: '/organization/gallery' },
+          { icon: DocsIcon, name: 'Documents', path: '/organization/documents' },
+          { icon: UserCircleIcon, name: 'Organization Users', path: '/organization/users' },
+          { icon: PlugInIcon, name: 'Organization Settings', path: '/organization/settings' },
+        ]
+      }
+    ]
+  }
 
-const isActive = (path) => route.path === path;
+  if (role === 'editor') {
+    return [
+      {
+        title: 'Editor Menu',
+        items: [
+          { icon: GridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+          { icon: PageIcon, name: 'Posts', path: '/organization/posts' },
+          { icon: CalenderIcon, name: 'Agenda', path: '/organization/agenda' },
+          { icon: PieChartIcon, name: 'Gallery', path: '/organization/gallery' },
+        ]
+      }
+    ]
+  }
 
-const toggleSubmenu = (groupIndex, itemIndex) => {
+  if (role === 'contributor') {
+    return [
+      {
+        title: 'Contributor Menu',
+        items: [
+          { icon: GridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+          { icon: DocsIcon, name: 'My Drafts', path: '/organization/posts' },
+          { icon: PageIcon, name: 'Posts', path: '/organization/posts' },
+        ]
+      }
+    ]
+  }
+
+  return []
+});
+
+const isActive = (path: string) => route.path === path;
+
+const toggleSubmenu = (groupIndex: number, itemIndex: number) => {
   const key = `${groupIndex}-${itemIndex}`;
   openSubmenu.value = openSubmenu.value === key ? null : key;
 };
 
 const isAnySubmenuRouteActive = computed(() => {
-  return menuGroups.some((group) =>
+  return menuGroups.value.some((group) =>
     group.items.some(
       (item) =>
         item.subItems && item.subItems.some((subItem) => isActive(subItem.path))
@@ -332,26 +336,27 @@ const isAnySubmenuRouteActive = computed(() => {
   );
 });
 
-const isSubmenuOpen = (groupIndex, itemIndex) => {
+const isSubmenuOpen = (groupIndex: number, itemIndex: number) => {
   const key = `${groupIndex}-${itemIndex}`;
   return (
     openSubmenu.value === key ||
     (isAnySubmenuRouteActive.value &&
-      menuGroups[groupIndex].items[itemIndex].subItems?.some((subItem) =>
+      menuGroups.value[groupIndex]?.items[itemIndex]?.subItems?.some((subItem) =>
         isActive(subItem.path)
       ))
   );
 };
 
-const startTransition = (el) => {
-  el.style.height = "auto";
-  const height = el.scrollHeight;
-  el.style.height = "0px";
-  el.offsetHeight; // force reflow
-  el.style.height = height + "px";
+const startTransition = (el: Element) => {
+  const htmlEl = el as HTMLElement;
+  htmlEl.style.height = "auto";
+  const height = htmlEl.scrollHeight;
+  htmlEl.style.height = "0px";
+  htmlEl.offsetHeight; // force reflow
+  htmlEl.style.height = height + "px";
 };
 
-const endTransition = (el) => {
-  el.style.height = "";
+const endTransition = (el: Element) => {
+  (el as HTMLElement).style.height = "";
 };
 </script>
