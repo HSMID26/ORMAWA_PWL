@@ -256,7 +256,7 @@ const authStore = useAuthStore()
 const menuGroups = computed<MenuGroup[]>(() => {
   const role = authStore.role
 
-  if (role === 'super_admin') {
+  if (role === 'Super Admin') {
     return [
       {
         title: 'Super Admin Menu',
@@ -272,7 +272,7 @@ const menuGroups = computed<MenuGroup[]>(() => {
     ]
   }
 
-  if (role === 'admin') {
+  if (role === 'Admin Organisasi') {
     return [
       {
         title: 'Organization Admin Menu',
@@ -290,7 +290,7 @@ const menuGroups = computed<MenuGroup[]>(() => {
     ]
   }
 
-  if (role === 'editor') {
+  if (role === 'Editor') {
     return [
       {
         title: 'Editor Menu',
@@ -304,7 +304,7 @@ const menuGroups = computed<MenuGroup[]>(() => {
     ]
   }
 
-  if (role === 'contributor') {
+  if (role === 'Kontributor') {
     return [
       {
         title: 'Contributor Menu',

@@ -42,8 +42,14 @@
         </div>
       </div>
 
+      <div v-if="isLoading" class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        Memuat artikel...
+      </div>
+      <div v-else-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        {{ errorMessage }}
+      </div>
       <!-- Tabel Data Artikel -->
-      <div class="overflow-x-auto">
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -66,16 +72,16 @@
                   {{ post.judul }}
                 </p>
                 <div class="mt-1 flex gap-1">
-                  <span v-for="tag in post.tags" :key="tag" class="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
-                    #{{ tag }}
+                  <span class="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                    {{ post.status === 'published' ? 'Published' : 'Draft' }}
                   </span>
                 </div>
               </td>
               <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-                {{ post.kategori }}
+                -
               </td>
               <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">
-                {{ post.penulis }}
+                {{ post.user?.name ?? '-' }}
               </td>
               <td class="px-4 py-4">
                 <span 
@@ -90,7 +96,7 @@
                 </span>
               </td>
               <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {{ post.tanggal }}
+                {{ post.created_at ? new Date(post.created_at).toLocaleDateString('id-ID') : '-' }}
               </td>
               <td class="px-4 py-4 text-center">
                 <div class="flex justify-center items-center gap-3">
@@ -112,64 +118,42 @@
   </AdminLayout>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import { postService } from '@/services/postService'
+import type { Post } from '@/types/api'
 
-// Title Halaman
 const currentPageTitle = ref('Berita & Artikel')
-
-// State Pencarian dan Filter
 const searchQuery = ref('')
 const filterStatus = ref('')
+const posts = ref<Post[]>([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-// Simulasi Data Post/Artikel
-const posts = ref([
-  {
-    id: 1,
-    judul: 'Recap: National Hackathon 2026',
-    kategori: 'Liputan Kegiatan',
-    tags: ['Prestasi', 'Lomba'],
-    penulis: 'Nadia Prameswari',
-    status: 'Published',
-    tanggal: '03 Ags 2026'
-  },
-  {
-    id: 2,
-    judul: 'Panduan Instalasi Laravel 11 untuk Pemula',
-    kategori: 'Tutorial Edukasi',
-    tags: ['Akademik', 'WebDev'],
-    penulis: 'Yoga Ardiansyah',
-    status: 'Published',
-    tanggal: '01 Ags 2026'
-  },
-  {
-    id: 3,
-    judul: 'Open Recruitment Staff Muda HMIF 2026',
-    kategori: 'Pengumuman',
-    tags: ['Oprec', 'Internal'],
-    penulis: 'Bagas Wicaksono',
-    status: 'Review',
-    tanggal: '-'
-  },
-  {
-    id: 4,
-    judul: 'Draft: Laporan Pertanggungjawaban Seminar IT',
-    kategori: 'Dokumentasi',
-    tags: ['LPJ'],
-    penulis: 'Dimas Prasetyo',
-    status: 'Draft',
-    tanggal: '-'
+onMounted(async () => {
+  await loadPosts()
+})
+
+const loadPosts = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    posts.value = await postService.list()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Gagal memuat artikel.'
+  } finally {
+    isLoading.value = false
   }
-])
+}
 
-// Logika Pencarian dan Filter Reaktif
 const filteredPosts = computed(() => {
-  return posts.value.filter(post => {
-    const matchSearch = post.judul.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-                        post.penulis.toLowerCase().includes(searchQuery.value.toLowerCase())
-    
+  return posts.value.filter((post) => {
+    const matchSearch = post.judul.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      (post.user?.name ?? '').toLowerCase().includes(searchQuery.value.toLowerCase())
+
     const matchStatus = filterStatus.value === '' || post.status === filterStatus.value
 
     return matchSearch && matchStatus

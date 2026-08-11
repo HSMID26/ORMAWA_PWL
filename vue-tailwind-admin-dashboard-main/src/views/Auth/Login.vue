@@ -184,16 +184,6 @@ const togglePasswordVisibility = () => {
 }
 
 const handleSubmit = async () => {
-  // Mock login based on email
-  let role = 'contributor'
-  if (email.value.includes('super_admin')) {
-    role = 'super_admin'
-  } else if (email.value.includes('admin')) {
-    role = 'admin'
-  } else if (email.value.includes('editor')) {
-    role = 'editor'
-  }
-  
-  await authStore.login(role)
+  await authStore.login(email.value, password.value)
 }
 </script>

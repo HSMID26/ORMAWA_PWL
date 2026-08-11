@@ -29,8 +29,14 @@
         />
       </div>
 
+      <div v-if="isLoading" class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        Memuat agenda...
+      </div>
+      <div v-else-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        {{ errorMessage }}
+      </div>
       <!-- Tabel Data Agenda -->
-      <div class="overflow-x-auto">
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -49,17 +55,19 @@
               class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
             >
               <td class="px-4 py-3">
-                <img :src="agenda.poster" alt="Poster" class="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700" />
+                <div class="flex h-16 w-16 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  {{ agenda.judul.charAt(0) }}
+                </div>
               </td>
               <td class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">
-                {{ agenda.nama }}
+                {{ agenda.judul }}
               </td>
               <td class="px-4 py-3">
-                <div class="text-sm font-medium text-brand-600 dark:text-brand-400">{{ agenda.tanggal }}</div>
-                <div class="text-xs text-gray-500">{{ agenda.waktu }}</div>
+                <div class="text-sm font-medium text-brand-600 dark:text-brand-400">{{ new Date(agenda.tanggal_pelaksanaan).toLocaleDateString('id-ID') }}</div>
+                <div class="text-xs text-gray-500">{{ agenda.status }}</div>
               </td>
               <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                {{ agenda.lokasi }}
+                -
               </td>
               <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[200px] truncate">
                 {{ agenda.deskripsi }}
@@ -84,57 +92,44 @@
   </AdminLayout>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import { activityService } from '@/services/activityService'
+import type { Activity } from '@/types/api'
 
-// Title Halaman
 const currentPageTitle = ref('Manajemen Agenda')
-
-// State Pencarian
 const searchQuery = ref('')
+const agendas = ref<Activity[]>([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-// Simulasi Data Agenda (Mewakili entitas Event/Agenda)
-const agendas = ref([
-  {
-    id: 1,
-    poster: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=300&h=300&fit=crop',
-    nama: 'Tech Fair Kampus 2026',
-    tanggal: '12 Agustus 2026',
-    waktu: '09:00 - 17:00 WIB',
-    lokasi: 'Auditorium Utama ITI',
-    deskripsi: 'Pameran teknologi karya mahasiswa dan seminar nasional.'
-  },
-  {
-    id: 2,
-    poster: 'https://images.unsplash.com/photo-1515169067868-5387ec356754?w=300&h=300&fit=crop',
-    nama: 'Upgrading Pengurus Harian',
-    tanggal: '19 Agustus 2026',
-    waktu: '13:00 - 16:00 WIB',
-    lokasi: 'Ruang Rapat Gedung B',
-    deskripsi: 'Pelatihan internal untuk peningkatan kapasitas pengurus HMIF periode baru.'
-  },
-  {
-    id: 3,
-    poster: 'https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=300&h=300&fit=crop',
-    nama: 'Webinar Karier Data & AI',
-    tanggal: '27 Agustus 2026',
-    waktu: '19:00 - 21:00 WIB',
-    lokasi: 'Zoom Meeting (Online)',
-    deskripsi: 'Diskusi panel bersama pakar industri mengenai peluang karier di bidang kecerdasan buatan.'
+onMounted(async () => {
+  await loadAgendas()
+})
+
+const loadAgendas = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    agendas.value = await activityService.list()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Gagal memuat agenda.'
+  } finally {
+    isLoading.value = false
   }
-])
+}
 
-// Logika Pencarian Reaktif
 const filteredAgendas = computed(() => {
   if (!searchQuery.value) return agendas.value
-  
+
   const lowerCaseQuery = searchQuery.value.toLowerCase()
-  return agendas.value.filter(agenda => 
-    agenda.nama.toLowerCase().includes(lowerCaseQuery) ||
-    agenda.lokasi.toLowerCase().includes(lowerCaseQuery) ||
-    agenda.tanggal.toLowerCase().includes(lowerCaseQuery)
+  return agendas.value.filter((agenda) =>
+    agenda.judul.toLowerCase().includes(lowerCaseQuery) ||
+    agenda.deskripsi.toLowerCase().includes(lowerCaseQuery) ||
+    agenda.tanggal_pelaksanaan.toLowerCase().includes(lowerCaseQuery),
   )
 })
 </script>

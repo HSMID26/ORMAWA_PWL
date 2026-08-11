@@ -1,35 +1,119 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import router from '@/router'
+import { authService } from '@/services/authService'
+import type { UserProfile } from '@/types/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<string | null>(null)
+  const user = ref<UserProfile | null>(null)
   const role = ref<string | null>(null)
   const organization_id = ref<number | null>(null)
-  const token = ref<string | null>(null)
+  const token = ref<string | null>(localStorage.getItem('auth_token'))
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
 
-  const login = async (mockRole: string) => {
-    // Mock login logic
-    user.value = 'John Doe'
-    role.value = mockRole
-    organization_id.value = mockRole === 'super_admin' ? null : 1
-    token.value = 'mock-jwt-token'
+  const persistAuth = (authToken: string, authUser: UserProfile) => {
+    token.value = authToken
+    user.value = authUser
+    role.value = authUser.role ?? null
+    organization_id.value = authUser.organization?.id ?? null
+    localStorage.setItem('auth_token', authToken)
+    localStorage.setItem('auth_user', JSON.stringify(authUser))
+    localStorage.setItem('auth_role', authUser.role ?? '')
+    localStorage.setItem('auth_organization', authUser.organization?.id?.toString() ?? '')
+  }
 
-    // Redirect based on role
-    if (role.value === 'super_admin') {
-      await router.push('/dashboard')
-    } else {
-      await router.push('/organization/dashboard')
+  const clearAuth = async () => {
+    token.value = null
+    user.value = null
+    role.value = null
+    organization_id.value = null
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user')
+    localStorage.removeItem('auth_role')
+    localStorage.removeItem('auth_organization')
+    error.value = null
+    await router.replace('/login')
+  }
+
+  const restoreSession = async () => {
+    const storedToken = localStorage.getItem('auth_token')
+    const storedUser = localStorage.getItem('auth_user')
+
+    if (!storedToken) {
+      return false
+    }
+
+    if (storedUser) {
+      try {
+        user.value = JSON.parse(storedUser) as UserProfile
+        role.value = user.value?.role ?? null
+        organization_id.value = user.value?.organization?.id ?? null
+      } catch {
+        localStorage.removeItem('auth_user')
+      }
+    }
+
+    try {
+      isLoading.value = true
+      const currentUser = await authService.me()
+      user.value = currentUser
+      role.value = currentUser.role ?? null
+      organization_id.value = currentUser.organization?.id ?? null
+      localStorage.setItem('auth_user', JSON.stringify(currentUser))
+      localStorage.setItem('auth_role', currentUser.role ?? '')
+      localStorage.setItem('auth_organization', currentUser.organization?.id?.toString() ?? '')
+      isLoading.value = false
+      return true
+    } catch (err) {
+      isLoading.value = false
+      await clearAuth()
+      return false
+    }
+  }
+
+  const login = async (email: string, password: string) => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await authService.login(email, password)
+      persistAuth(response.access_token, response.user)
+      isLoading.value = false
+
+      if (role.value === 'Super Admin') {
+        await router.push('/dashboard')
+      } else {
+        await router.push('/organization/dashboard')
+      }
+
+      return true
+    } catch (err) {
+      isLoading.value = false
+      error.value = err instanceof Error ? err.message : 'Login failed'
+      return false
     }
   }
 
   const logout = async () => {
-    user.value = null
-    role.value = null
-    organization_id.value = null
-    token.value = null
-    await router.push('/login')
+    try {
+      await authService.logout()
+    } catch {
+      // Ignore API errors and clear local session
+    }
+    await clearAuth()
   }
 
-  return { user, role, organization_id, token, login, logout }
+  return {
+    user,
+    role,
+    organization_id,
+    token,
+    isLoading,
+    error,
+    login,
+    logout,
+    restoreSession,
+    clearAuth,
+  }
 })

@@ -25,8 +25,14 @@
         />
       </div>
 
+      <div v-if="isLoading" class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        Memuat pengguna...
+      </div>
+      <div v-else-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        {{ errorMessage }}
+      </div>
       <!-- Tabel Data -->
-      <div class="overflow-x-auto">
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -44,20 +50,17 @@
               :key="user.id"
               class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
             >
-              <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">{{ user.nama }}</td>
+              <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">{{ user.name }}</td>
               <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</td>
               <td class="px-4 py-3">
                 <span class="inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                   {{ user.role }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ user.organisasi }}</td>
+              <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ user.organization?.nama ?? '-' }}</td>
               <td class="px-4 py-3">
-                <span 
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  :class="user.status === 'Aktif' ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400'"
-                >
-                  {{ user.status }}
+                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400">
+                  Aktif
                 </span>
               </td>
               <td class="px-4 py-3 text-center">
@@ -80,55 +83,45 @@
   </AdminLayout>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import { userService } from '@/services/userService'
+import type { UserProfile } from '@/types/api'
 
-// Title Halaman
 const currentPageTitle = ref('Manajemen Pengguna')
-
-// State Pencarian
 const searchQuery = ref('')
+const users = ref<UserProfile[]>([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-// Simulasi Data User (Nantinya diintegrasikan dengan API Laravel, menggunakan relasi tabel User dan Organisasi)
-const users = ref([
-  {
-    id: 1,
-    nama: 'Nadia Prameswari',
-    email: 'nadia@hmif.iti.ac.id',
-    role: 'Admin Organisasi',
-    organisasi: 'HMPS Teknik Informatika',
-    status: 'Aktif'
-  },
-  {
-    id: 2,
-    nama: 'Bagas Wicaksono',
-    email: 'bagas@basket.iti.ac.id',
-    role: 'Editor',
-    organisasi: 'UKM Basket',
-    status: 'Aktif'
-  },
-  {
-    id: 3,
-    nama: 'Yoga Ardiansyah',
-    email: 'yoga@hmif.iti.ac.id',
-    role: 'Kontributor',
-    organisasi: 'HMPS Teknik Informatika',
-    status: 'Nonaktif'
+onMounted(async () => {
+  await loadUsers()
+})
+
+const loadUsers = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    users.value = await userService.list()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Gagal memuat pengguna.'
+  } finally {
+    isLoading.value = false
   }
-])
+}
 
-// Logika Pencarian Reaktif
 const filteredUsers = computed(() => {
   if (!searchQuery.value) return users.value
-  
+
   const lowerCaseQuery = searchQuery.value.toLowerCase()
-  return users.value.filter(user => 
-    user.nama.toLowerCase().includes(lowerCaseQuery) ||
+  return users.value.filter((user) =>
+    user.name.toLowerCase().includes(lowerCaseQuery) ||
     user.email.toLowerCase().includes(lowerCaseQuery) ||
-    user.role.toLowerCase().includes(lowerCaseQuery) ||
-    user.organisasi.toLowerCase().includes(lowerCaseQuery)
+    (user.role ?? '').toLowerCase().includes(lowerCaseQuery) ||
+    (user.organization?.nama ?? '').toLowerCase().includes(lowerCaseQuery),
   )
 })
 </script>

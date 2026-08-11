@@ -25,7 +25,13 @@
       </div>
 
       <!-- Tabel Data -->
-      <div class="overflow-x-auto">
+      <div v-if="isLoading" class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        Memuat organisasi...
+      </div>
+      <div v-else-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
+        {{ errorMessage }}
+      </div>
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -44,17 +50,16 @@
               class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
             >
               <td class="px-4 py-3">
-                <img :src="org.logo" alt="Logo" class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
+                <div class="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  {{ org.nama.charAt(0) }}
+                </div>
               </td>
               <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ org.nama }}</td>
               <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ org.jenis }}</td>
               <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ org.subdomain }}</td>
               <td class="px-4 py-3">
-                <span 
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  :class="org.status === 'Aktif' ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400'"
-                >
-                  {{ org.status }}
+                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400">
+                  Aktif
                 </span>
               </td>
               <td class="px-4 py-3 text-center">
@@ -77,46 +82,44 @@
   </AdminLayout>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import { organizationService } from '@/services/organizationService'
+import type { Organization } from '@/types/api'
 
-// Title Halaman
 const currentPageTitle = ref('Organisasi')
-
-// State Pencarian
 const searchQuery = ref('')
+const organizations = ref<Organization[]>([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-// Simulasi Data (Integrasi dengan Laravel backend nantinya)
-const organizations = ref([
-  {
-    id: 1,
-    logo: 'https://ui-avatars.com/api/?name=HMPS+TI&background=random',
-    nama: 'HMPS Teknik Informatika',
-    jenis: 'HMPS',
-    subdomain: 'hmif.iti.ac.id',
-    status: 'Aktif'
-  },
-  {
-    id: 2,
-    logo: 'https://ui-avatars.com/api/?name=UKM+Basket&background=random',
-    nama: 'UKM Basket',
-    jenis: 'UKM',
-    subdomain: 'basket.iti.ac.id',
-    status: 'Aktif'
+onMounted(async () => {
+  await loadOrganizations()
+})
+
+const loadOrganizations = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    organizations.value = await organizationService.list()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Gagal memuat organisasi.'
+  } finally {
+    isLoading.value = false
   }
-])
+}
 
-// Logika Pencarian Reaktif
 const filteredOrganizations = computed(() => {
   if (!searchQuery.value) return organizations.value
-  
+
   const lowerCaseQuery = searchQuery.value.toLowerCase()
-  return organizations.value.filter(org => 
+  return organizations.value.filter((org) =>
     org.nama.toLowerCase().includes(lowerCaseQuery) ||
     org.jenis.toLowerCase().includes(lowerCaseQuery) ||
-    org.subdomain.toLowerCase().includes(lowerCaseQuery)
+    org.subdomain.toLowerCase().includes(lowerCaseQuery),
   )
 })
 </script>
