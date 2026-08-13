@@ -14,9 +14,9 @@
             Kelola jadwal acara organisasi yang akan tampil di halaman publik.
           </p>
         </div>
-        <button class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto shadow-theme-xs">
+        <router-link to="/organization/agenda/create" class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto shadow-theme-xs transition-colors">
           + Tambah Agenda
-        </button>
+        </router-link>
       </div>
 
       <!-- Search Bar -->
@@ -64,7 +64,17 @@
               </td>
               <td class="px-4 py-3">
                 <div class="text-sm font-medium text-brand-600 dark:text-brand-400">{{ new Date(agenda.tanggal_pelaksanaan).toLocaleDateString('id-ID') }}</div>
-                <div class="text-xs text-gray-500">{{ agenda.status }}</div>
+                <div class="mt-2">
+                  <ToggleSwitch
+                    :modelValue="agenda.status"
+                    trueValue="published"
+                    falseValue="draft"
+                    activeLabel="Aktif"
+                    inactiveLabel="Draft"
+                    :disabled="togglingId === agenda.id"
+                    @change="(val) => toggleStatus(agenda, val)"
+                  />
+                </div>
               </td>
               <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                 -
@@ -74,8 +84,10 @@
               </td>
               <td class="px-4 py-3 text-center">
                 <div class="flex justify-center items-center gap-3">
-                  <button class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors">Edit</button>
-                  <button class="text-sm font-medium text-error-500 hover:text-error-600 dark:text-error-400 transition-colors">Delete</button>
+                  <router-link :to="`/organization/agenda/edit/${agenda.id}`" class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors">Edit</router-link>
+                  <button @click="deleteAgenda(agenda.id)" class="text-sm font-medium text-error-500 hover:text-error-600 dark:text-error-400 transition-colors" :disabled="deletingId === agenda.id">
+                    {{ deletingId === agenda.id ? 'Menghapus...' : 'Delete' }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -96,14 +108,19 @@
 import { computed, onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import ToggleSwitch from '@/components/forms/FormElements/ToggleSwitch.vue'
 import { activityService } from '@/services/activityService'
+import { useToastStore } from '@/stores/toast'
 import type { Activity } from '@/types/api'
 
+const toastStore = useToastStore()
 const currentPageTitle = ref('Manajemen Agenda')
 const searchQuery = ref('')
 const agendas = ref<Activity[]>([])
 const isLoading = ref(false)
 const errorMessage = ref('')
+const deletingId = ref<number | null>(null)
+const togglingId = ref<number | null>(null)
 
 onMounted(async () => {
   await loadAgendas()
@@ -119,6 +136,40 @@ const loadAgendas = async () => {
     errorMessage.value = error instanceof Error ? error.message : 'Gagal memuat agenda.'
   } finally {
     isLoading.value = false
+  }
+}
+
+const toggleStatus = async (agenda: Activity, newStatus: string) => {
+  togglingId.value = agenda.id
+  try {
+    const payload = {
+      judul: agenda.judul,
+      deskripsi: agenda.deskripsi,
+      tanggal_pelaksanaan: agenda.tanggal_pelaksanaan,
+      status: newStatus
+    }
+    await activityService.update(agenda.id, payload)
+    agenda.status = newStatus
+    toastStore.success('Status agenda berhasil diperbarui.')
+  } catch (error: any) {
+    toastStore.error(error.response?.data?.message || 'Gagal memperbarui status.')
+  } finally {
+    togglingId.value = null
+  }
+}
+
+const deleteAgenda = async (id: number) => {
+  if (confirm('Apakah Anda yakin ingin menghapus agenda ini?')) {
+    deletingId.value = id
+    try {
+      await activityService.remove(id)
+      toastStore.success('Data berhasil dihapus.')
+      await loadAgendas()
+    } catch (error: any) {
+      toastStore.error(error.response?.data?.message || 'Data gagal dihapus.')
+    } finally {
+      deletingId.value = null
+    }
   }
 }
 

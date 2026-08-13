@@ -20,29 +20,7 @@
       ]"
     >
       <router-link to="/">
-        <img
-          v-if="isExpanded || isHovered || isMobileOpen"
-          class="dark:hidden"
-          src="/images/logo/logo.svg"
-          alt="Logo"
-          width="150"
-          height="40"
-        />
-        <img
-          v-if="isExpanded || isHovered || isMobileOpen"
-          class="hidden dark:block"
-          src="/images/logo/logo-dark.svg"
-          alt="Logo"
-          width="150"
-          height="40"
-        />
-        <img
-          v-else
-          src="/images/logo/logo-icon.svg"
-          alt="Logo"
-          width="32"
-          height="32"
-        />
+        <AppLogo :collapsed="!isExpanded && !isHovered && !isMobileOpen" />
       </router-link>
     </div>
     <div
@@ -62,7 +40,7 @@
               <template v-if="isExpanded || isHovered || isMobileOpen">
                 {{ menuGroup.title }}
               </template>
-              <HorizontalDots v-else />
+              <MoreHorizontalIcon v-else />
             </h2>
             <ul class="flex flex-col gap-4">
               <li v-for="(item, index) in menuGroup.items" :key="item.name">
@@ -212,27 +190,30 @@
 </template>
 
 <script setup lang="ts">
+import AppLogo from '@/components/common/AppLogo.vue'
 import { ref, computed } from "vue";
 import { useAuthStore } from '@/stores/auth';
 import { useRoute } from "vue-router";
 
 import {
-  GridIcon,
-  CalenderIcon,
+  LayoutGridIcon,
+  CalendarIcon,
   UserCircleIcon,
-  ChatIcon,
+  MessageSquareIcon,
   MailIcon,
-  DocsIcon,
+  FileTextIcon,
   PieChartIcon,
   ChevronDownIcon,
-  HorizontalDots,
-  PageIcon,
+  MoreHorizontalIcon,
+  FileIcon,
   TableIcon,
   ListIcon,
-  PlugInIcon,
-} from "../../icons";
+  PlugIcon,
+  BoxIcon,
+  SettingsIcon,
+  CalendarClockIcon
+} from 'lucide-vue-next';
 import SidebarWidget from "./SidebarWidget.vue";
-import BoxCubeIcon from "@/icons/BoxCubeIcon.vue";
 import { useSidebar } from "@/composables/useSidebar";
 
 const route = useRoute();
@@ -261,12 +242,12 @@ const menuGroups = computed<MenuGroup[]>(() => {
       {
         title: 'Super Admin Menu',
         items: [
-          { icon: GridIcon, name: 'Dashboard', path: '/dashboard' },
-          { icon: BoxCubeIcon, name: 'Organizations', path: '/super-admin/organizations' },
+          { icon: LayoutGridIcon, name: 'Dashboard', path: '/dashboard' },
+          { icon: BoxIcon, name: 'Pendaftaran Organisasi', path: '/super-admin/organization-registrations' },
+          { icon: BoxIcon, name: 'Organizations', path: '/super-admin/organizations' },
           { icon: UserCircleIcon, name: 'Users', path: '/super-admin/users' },
-          { icon: ListIcon, name: 'Organization Approval', path: '/super-admin/approvals' },
-          { icon: PlugInIcon, name: 'Platform Settings', path: '/super-admin/settings' },
-          { icon: DocsIcon, name: 'Activity Log', path: '/super-admin/logs' },
+          { icon: PlugIcon, name: 'Platform Settings', path: '/super-admin/settings' },
+          { icon: FileTextIcon, name: 'Activity Log', path: '/super-admin/activity-logs' },
         ]
       }
     ]
@@ -277,14 +258,15 @@ const menuGroups = computed<MenuGroup[]>(() => {
       {
         title: 'Organization Admin Menu',
         items: [
-          { icon: GridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-          { icon: PageIcon, name: 'Posts', path: '/organization/posts' },
-          { icon: CalenderIcon, name: 'Agenda', path: '/organization/agenda' },
-          { icon: ChatIcon, name: 'Announcements', path: '/organization/announcements' },
+          { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+          { icon: FileIcon, name: 'Posts', path: '/organization/posts' },
+          { icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' },
+          { icon: MessageSquareIcon, name: 'Announcements', path: '/organization/announcements' },
           { icon: PieChartIcon, name: 'Gallery', path: '/organization/gallery' },
-          { icon: DocsIcon, name: 'Documents', path: '/organization/documents' },
+          { icon: FileTextIcon, name: 'Documents', path: '/organization/documents' },
           { icon: UserCircleIcon, name: 'Organization Users', path: '/organization/users' },
-          { icon: PlugInIcon, name: 'Organization Settings', path: '/organization/settings' },
+          { icon: PlugIcon, name: 'Organization Settings', path: '/organization/settings' },
+          { icon: FileTextIcon, name: 'Activity Log', path: '/organization/activity-logs' },
         ]
       }
     ]
@@ -295,9 +277,9 @@ const menuGroups = computed<MenuGroup[]>(() => {
       {
         title: 'Editor Menu',
         items: [
-          { icon: GridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-          { icon: PageIcon, name: 'Posts', path: '/organization/posts' },
-          { icon: CalenderIcon, name: 'Agenda', path: '/organization/agenda' },
+          { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+          { icon: FileIcon, name: 'Posts', path: '/organization/posts' },
+          { icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' },
           { icon: PieChartIcon, name: 'Gallery', path: '/organization/gallery' },
         ]
       }
@@ -309,9 +291,9 @@ const menuGroups = computed<MenuGroup[]>(() => {
       {
         title: 'Contributor Menu',
         items: [
-          { icon: GridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-          { icon: DocsIcon, name: 'My Drafts', path: '/organization/posts' },
-          { icon: PageIcon, name: 'Posts', path: '/organization/posts' },
+          { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+          { icon: FileTextIcon, name: 'My Drafts', path: '/organization/posts' },
+          { icon: FileIcon, name: 'Posts', path: '/organization/posts' },
         ]
       }
     ]

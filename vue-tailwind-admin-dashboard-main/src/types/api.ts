@@ -1,12 +1,30 @@
 export interface Organization {
   id: number
   nama: string
-  jenis: string
+  jenis: 'HMPS' | 'UKM' | 'BEM'
   subdomain: string
-  warna_tema?: string
-  modul_aktif?: Record<string, boolean>
-  created_at?: string
-  updated_at?: string
+  logo: string | null
+  warna_tema: string
+  modul_aktif: Record<string, boolean>
+  status: 'active' | 'inactive'
+  current_period?: OrganizationPeriod
+  created_at: string
+  updated_at: string
+}
+
+export interface OrganizationPeriod {
+  id: number
+  organization_id: number
+  period_name: string
+  start_date: string
+  end_date: string
+  status: 'pending' | 'active' | 'expired' | 'rejected'
+  notes?: string
+  rejection_reason?: string
+  approved_by?: number
+  approved_at?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface UserProfile {
@@ -14,6 +32,7 @@ export interface UserProfile {
   name: string
   email: string
   role: string
+  status?: string
   organization?: Organization | null
 }
 
@@ -41,7 +60,10 @@ export interface Post {
   judul: string
   slug?: string
   konten: string
+  excerpt?: string | null
   cover_image?: string | null
+  meta_title?: string | null
+  meta_description?: string | null
   status: string
   user_id?: number
   organization_id?: number

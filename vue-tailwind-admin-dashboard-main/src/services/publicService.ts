@@ -37,5 +37,20 @@ export const publicService = {
   // Expected: GET /api/public/organizations/{slug}/activities
   async getActivitiesByTenant(slug: string): Promise<Activity[]> {
     throw new EndpointUnavailableError('Kegiatan organisasi belum dapat dimuat.')
+  },
+
+  // Expected: GET /api/public/organizations/{slug}/posts/{postSlug}
+  async getPostBySlug(slug: string, postSlug: string): Promise<Post> {
+    throw new EndpointUnavailableError('Detail berita publik belum dapat dimuat.')
+  },
+
+  // Expected: GET /api/public/organizations/{slug}/activities/{id}
+  async getActivityById(slug: string, id: string | number): Promise<Activity> {
+    throw new EndpointUnavailableError('Detail kegiatan publik belum dapat dimuat.')
+  },
+
+  // Expected: GET /api/public/organizations/{slug}/structure
+  async getStructureByTenant(slug: string): Promise<any[]> {
+    throw new EndpointUnavailableError('Struktur kepengurusan organisasi belum dapat dimuat.')
   }
 }

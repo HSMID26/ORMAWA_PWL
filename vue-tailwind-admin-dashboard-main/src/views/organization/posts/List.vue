@@ -14,9 +14,9 @@
             Kelola publikasi tulisan, pengumuman, dan liputan kegiatan organisasi.
           </p>
         </div>
-        <button class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto shadow-theme-xs transition-colors">
+        <router-link to="/organization/posts/create" class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto shadow-theme-xs transition-colors">
           + Tulis Artikel Baru
-        </button>
+        </router-link>
       </div>
 
       <!-- Search & Filter Bar -->
@@ -84,24 +84,25 @@
                 {{ post.user?.name ?? '-' }}
               </td>
               <td class="px-4 py-4">
-                <span 
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  :class="{
-                    'bg-success-100 text-success-800 dark:bg-success-500/20 dark:text-success-400': post.status === 'Published',
-                    'bg-warning-100 text-warning-800 dark:bg-warning-500/20 dark:text-warning-400': post.status === 'Review',
-                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': post.status === 'Draft'
-                  }"
-                >
-                  {{ post.status }}
-                </span>
+                <ToggleSwitch
+                  :modelValue="post.status"
+                  trueValue="published"
+                  falseValue="draft"
+                  activeLabel="Published"
+                  inactiveLabel="Draft"
+                  :disabled="togglingId === post.id"
+                  @change="(val) => toggleStatus(post, val)"
+                />
               </td>
               <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 {{ post.created_at ? new Date(post.created_at).toLocaleDateString('id-ID') : '-' }}
               </td>
               <td class="px-4 py-4 text-center">
                 <div class="flex justify-center items-center gap-3">
-                  <button class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors">Edit</button>
-                  <button class="text-sm font-medium text-error-500 hover:text-error-600 dark:text-error-400 transition-colors">Hapus</button>
+                  <router-link :to="`/organization/posts/edit/${post.id}`" class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors">Edit</router-link>
+                  <button @click="deletePost(post.id)" class="text-sm font-medium text-error-500 hover:text-error-600 dark:text-error-400 transition-colors" :disabled="deletingId === post.id">
+                    {{ deletingId === post.id ? 'Menghapus...' : 'Hapus' }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -122,15 +123,20 @@
 import { computed, onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import ToggleSwitch from '@/components/forms/FormElements/ToggleSwitch.vue'
 import { postService } from '@/services/postService'
+import { useToastStore } from '@/stores/toast'
 import type { Post } from '@/types/api'
 
+const toastStore = useToastStore()
 const currentPageTitle = ref('Berita & Artikel')
 const searchQuery = ref('')
 const filterStatus = ref('')
 const posts = ref<Post[]>([])
 const isLoading = ref(false)
 const errorMessage = ref('')
+const deletingId = ref<number | null>(null)
+const togglingId = ref<number | null>(null)
 
 onMounted(async () => {
   await loadPosts()
@@ -146,6 +152,39 @@ const loadPosts = async () => {
     errorMessage.value = error instanceof Error ? error.message : 'Gagal memuat artikel.'
   } finally {
     isLoading.value = false
+  }
+}
+
+const toggleStatus = async (post: Post, newStatus: string) => {
+  togglingId.value = post.id
+  try {
+    await postService.update(post.id, { status: newStatus })
+    post.status = newStatus
+    toastStore.success('Status artikel berhasil diperbarui.')
+  } catch (error: any) {
+    toastStore.error(error.response?.data?.message || 'Gagal memperbarui status.')
+    // Rollback visual is handled automatically because the model is bound to `post.status`
+    // but the `@change` event might update a local ref if we were using v-model directly.
+    // However, since we emit `change` and pass `val`, we ONLY update `post.status` if the API succeeds.
+    // Wait, the toggle emits `update:modelValue` before `change`, so `ToggleSwitch` doesn't mutate `post.status` internally. It just emits.
+    // Ah, wait, if I don't use `v-model` but `:modelValue`, it won't update `post.status` unless I manually update it! Which is perfect!
+  } finally {
+    togglingId.value = null
+  }
+}
+
+const deletePost = async (id: number) => {
+  if (confirm('Apakah Anda yakin ingin menghapus berita ini?')) {
+    deletingId.value = id
+    try {
+      await postService.remove(id)
+      toastStore.success('Data berhasil dihapus.')
+      await loadPosts()
+    } catch (error: any) {
+      toastStore.error(error.response?.data?.message || 'Data gagal dihapus.')
+    } finally {
+      deletingId.value = null
+    }
   }
 }
 

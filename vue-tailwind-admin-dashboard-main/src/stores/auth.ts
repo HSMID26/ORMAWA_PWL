@@ -88,9 +88,23 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       return true
-    } catch (err) {
+    } catch (err: any) {
       isLoading.value = false
-      error.value = err instanceof Error ? err.message : 'Login failed'
+      let msg = 'Gagal melakukan login. Silakan coba lagi.'
+      if (err && typeof err === 'object') {
+        if (err.status === 401 || err.status === 422) {
+          msg = 'Email atau kata sandi yang Anda masukkan salah.'
+        } else if (err.status === 403) {
+          msg = 'Akun Anda tidak memiliki akses ke sistem.'
+        } else if (err.status === 500) {
+          msg = 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'
+        } else if (err.status === undefined && err.message) {
+          msg = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.'
+        }
+      } else if (err instanceof Error) {
+        msg = err.message
+      }
+      error.value = msg
       return false
     }
   }

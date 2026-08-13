@@ -16,8 +16,16 @@ class Post extends Model
         'judul',
         'slug',
         'konten',
+        'excerpt',
         'cover_image',
         'status',
+        'published_at',
+        'meta_title',
+        'meta_description',
+    ];
+
+    protected $casts = [
+        'published_at' => 'datetime',
     ];
 
     public function user()

@@ -20,4 +20,14 @@ export const organizationService = {
   async remove(id: number) {
     await api.delete(`/organizations/${id}`)
   },
+
+  async activate(id: number) {
+    const { data } = await api.post<ApiSingleResponse<Organization>>(`/organizations/${id}/activate`)
+    return data.data
+  },
+
+  async deactivate(id: number) {
+    const { data } = await api.post<ApiSingleResponse<Organization>>(`/organizations/${id}/deactivate`)
+    return data.data
+  },
 }

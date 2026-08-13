@@ -16,9 +16,52 @@ const router = createRouter({
     },
     {
       path: '/org/:slug',
-      name: 'organization-home',
-      component: () => import('@/views/public/OrganizationHome.vue'),
-      meta: { title: 'Organisasi', public: true },
+      component: () => import('@/components/public/OrganizationLayout.vue'),
+      meta: { public: true },
+      children: [
+        {
+          path: '',
+          name: 'organization-home',
+          component: () => import('@/views/public/OrganizationHome.vue'),
+          meta: { title: 'Organisasi' }
+        },
+        {
+          path: 'profil',
+          name: 'organization-profile',
+          component: () => import('@/views/public/organization/Profile.vue'),
+          meta: { title: 'Profil Organisasi' }
+        },
+        {
+          path: 'struktur',
+          name: 'organization-structure',
+          component: () => import('@/views/public/organization/Structure.vue'),
+          meta: { title: 'Struktur Organisasi' }
+        },
+        {
+          path: 'berita',
+          name: 'organization-news-list',
+          component: () => import('@/views/public/organization/NewsList.vue'),
+          meta: { title: 'Berita & Artikel' }
+        },
+        {
+          path: 'berita/:postSlug',
+          name: 'organization-news-detail',
+          component: () => import('@/views/public/organization/NewsDetail.vue'),
+          meta: { title: 'Detail Berita' }
+        },
+        {
+          path: 'kegiatan',
+          name: 'organization-activity-list',
+          component: () => import('@/views/public/organization/ActivityList.vue'),
+          meta: { title: 'Kegiatan & Agenda' }
+        },
+        {
+          path: 'kegiatan/:id',
+          name: 'organization-activity-detail',
+          component: () => import('@/views/public/organization/ActivityDetail.vue'),
+          meta: { title: 'Detail Kegiatan' }
+        }
+      ]
     },
     // Keep other existing public routes as fallbacks if needed, but route / dynamically
     // ─── Auth ───────────────────────────────────────────────────
@@ -29,10 +72,22 @@ const router = createRouter({
       meta: { title: 'Login', public: true },
     },
     {
-      path: '/signup',
-      name: 'signup',
-      component: () => import('@/views/Auth/Signup.vue'),
-      meta: { title: 'Sign Up', public: true },
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/Auth/OrganizationRegistration.vue'),
+      meta: {
+        title: 'Pendaftaran Organisasi',
+        public: true
+      },
+    },
+    {
+      path: '/register/success',
+      name: 'register-success',
+      component: () => import('@/views/Auth/RegistrationSuccess.vue'),
+      meta: {
+        title: 'Pendaftaran Berhasil',
+        public: true
+      },
     },
 
     // ─── Super Admin ──────────────────────────────────────────────
@@ -52,13 +107,23 @@ const router = createRouter({
       path: '/super-admin/users',
       name: 'super-admin-users',
       component: () => import('@/views/super-admin/users/List.vue'),
-      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Users' },
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Users' }
+    },
+    {
+      path: '/super-admin/organization-registrations',
+      name: 'super-admin-organization-registrations',
+      component: () => import('@/views/super-admin/organization-registrations/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Pendaftaran Organisasi' }
+    },
+    {
+      path: '/super-admin/activity-logs',
+      name: 'activity-logs',
+      component: () => import('@/views/super-admin/activity-logs/List.vue'),
+      meta: { title: 'Activity Log', requiresAuth: true, roles: ['Super Admin'] }
     },
     {
       path: '/super-admin/approvals',
-      name: 'super-admin-approvals',
-      component: () => import('@/views/super-admin/approvals/OrganizationApproval.vue'),
-      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Approvals' },
+      redirect: '/dashboard',
     },
     {
       path: '/super-admin/settings',
@@ -72,6 +137,12 @@ const router = createRouter({
       component: () => import('@/views/super-admin/logs/ActivityLog.vue'),
       meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Activity Logs' },
     },
+    {
+      path: '/super-admin/organizations/:id/periods',
+      name: 'super-admin-organizations-periods',
+      component: () => import('@/views/super-admin/organizations/Periods.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Manage Periods' },
+    },
 
     // ─── Organization (Admin / Editor / Contributor) ─────────────
     {
@@ -80,23 +151,60 @@ const router = createRouter({
       component: () => import('@/views/dashboard/OrganizationDashboard.vue'),
       meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Dashboard' },
     },
+    // ─── Unified Content Routes ──────────────────────────────
+    {
+      path: '/organization/content',
+      name: 'organization-content',
+      component: () => import('@/views/organization/content/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Konten' },
+    },
+    {
+      path: '/organization/content/create',
+      name: 'organization-content-create',
+      component: () => import('@/views/organization/content/Create.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Buat Konten' },
+    },
+    {
+      path: '/organization/content/edit/:type/:id',
+      name: 'organization-content-edit',
+      component: () => import('@/views/organization/content/Edit.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Edit Konten' },
+    },
+
+    // ─── Legacy Routes (Redirected) ─────────────────────────
+    {
+      path: '/organization/activity-logs',
+      name: 'organization-activity-logs',
+      component: () => import('@/views/organization/activity-logs/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Activity Logs' },
+    },
     {
       path: '/organization/posts',
-      name: 'organization-posts',
-      component: () => import('@/views/organization/posts/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Posts' },
+      redirect: to => ({ path: '/organization/content', query: { type: 'post' } }),
+    },
+    {
+      path: '/organization/posts/create',
+      redirect: to => ({ path: '/organization/content/create', query: { type: 'post' } }),
+    },
+    {
+      path: '/organization/posts/edit/:id',
+      redirect: to => ({ path: `/organization/content/edit/post/${to.params.id}` }),
     },
     {
       path: '/organization/agenda',
-      name: 'organization-agenda',
-      component: () => import('@/views/organization/agenda/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Agenda' },
+      redirect: to => ({ path: '/organization/content', query: { type: 'activity' } }),
+    },
+    {
+      path: '/organization/agenda/create',
+      redirect: to => ({ path: '/organization/content/create', query: { type: 'activity' } }),
+    },
+    {
+      path: '/organization/agenda/edit/:id',
+      redirect: to => ({ path: `/organization/content/edit/activity/${to.params.id}` }),
     },
     {
       path: '/organization/announcements',
-      name: 'organization-announcements',
-      component: () => import('@/views/organization/announcements/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Announcements' },
+      redirect: to => ({ path: '/organization/content', query: { type: 'announcement' } }),
     },
     {
       path: '/organization/gallery',
@@ -121,6 +229,12 @@ const router = createRouter({
       name: 'organization-settings',
       component: () => import('@/views/organization/settings/OrganizationSettings.vue'),
       meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Settings' },
+    },
+    {
+      path: '/organization/period',
+      name: 'organization-period',
+      component: () => import('@/views/organization/period/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Manage Period' },
     },
 
     // ─── Shared Admin Routes ──────────────────────────────────────
@@ -169,7 +283,7 @@ router.beforeEach(async (to, _from, next) => {
   if (to.meta.public) {
     // Note: Do NOT auto-redirect to dashboard if accessing public pages, 
     // unless they hit /login while logged in.
-    if (authStore.token && (to.name === 'login' || to.name === 'signup')) {
+    if (authStore.token && (to.name === 'login' || to.name === 'register' || to.name === 'signup')) {
       if (authStore.role === 'Super Admin') return next({ name: 'super-admin-dashboard' })
       return next({ name: 'organization-dashboard' })
     }
