@@ -10,11 +10,11 @@ use App\Services\ActivityLogService;
 class ActivityController extends Controller
 {
     /**
-     * Tampilkan semua kegiatan (Otomatis terfilter sesuai organisasi user yang login!)
+     * Tampilkan semua kegiatan
      */
     public function index()
     {
-        $activities = Activity::with('user')->latest()->get();
+        $activities = Activity::latest()->get();
 
         return response()->json([
             'status' => 'success',
@@ -23,21 +23,24 @@ class ActivityController extends Controller
     }
 
     /**
-     * Tambah kegiatan baru
+     * Tambah kegiatan baru (API)
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'judul'              => 'required|string|max:255',
-            'deskripsi'          => 'required|string',
-            'tanggal_pelaksanaan'=> 'required|date',
-            'status'             => 'nullable|in:draft,review,published,rejected',
-        ]);
+        $title       = $request->title ?? $request->judul;
+        $description = $request->description ?? $request->deskripsi;
+        $startTime   = $request->start_time ?? $request->tanggal_pelaksanaan;
+
+        if (!$title || !$startTime) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Judul dan Waktu Mulai wajib diisi!'
+            ], 422);
+        }
 
         /** @var \App\Models\User $user */
-        $user = $request->user(); // Atau auth()->user()
-        
-        $status = $request->status ?? 'draft';
+        $user = $request->user();
+        $status = $request->status ?? 'upcoming';
 
         if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
             if ($user->hasRole('Kontributor') && $status === 'published') {
@@ -46,27 +49,20 @@ class ActivityController extends Controller
         }
 
         $activity = Activity::create([
-            'user_id'            => $user->id,
-            // organization_id terisi otomatis via Trait BelongsToOrganization!
-            'judul'              => $request->judul,
-            'deskripsi'          => $request->deskripsi,
-            'tanggal_pelaksanaan'=> $request->tanggal_pelaksanaan,
-            'status'             => $status,
-            'published_at'       => $status === 'published' ? now() : null,
+            'user_id'             => $user->id,
+            'title'               => $title,
+            'judul'               => $title,
+            'description'         => $description,
+            'deskripsi'           => $description,
+            'location'            => $request->location ?? $request->lokasi,
+            'start_time'          => $startTime,
+            'tanggal_pelaksanaan' => $startTime,
+            'end_time'            => $request->end_time,
+            'status'              => $status,
+            'published_at'        => $status === 'published' ? now() : null,
         ]);
 
-        ActivityLogService::log('create', 'activities', 'Membuat agenda baru: ' . $activity->judul . ' (Status: ' . $activity->status . ')', $activity);
-
-        if ($status === 'review') {
-            \App\Services\NotificationService::sendToOrganizationAdmins(
-                $activity->organization_id,
-                'content_review',
-                'Konten Menunggu Review',
-                "{$user->name} mengirim Agenda untuk direview.",
-                '/organization/activities',
-                ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id]
-            );
-        }
+        ActivityLogService::log('create', 'activities', 'Membuat agenda baru: ' . $activity->title . ' (Status: ' . $activity->status . ')', $activity);
 
         return response()->json([
             'status'  => 'success',
@@ -87,83 +83,29 @@ class ActivityController extends Controller
     }
 
     /**
-     * Update kegiatan
+     * Update kegiatan (API)
      */
     public function update(Request $request, string $id)
     {
         $activity = Activity::findOrFail($id);
 
-        $request->validate([
-            'judul'                => 'required|string|max:255',
-            'deskripsi'            => 'required|string',
-            'tanggal_pelaksanaan'  => 'required|date',
-            'status'               => 'required|in:draft,review,published,rejected',
+        $title       = $request->title ?? $request->judul ?? $activity->title;
+        $description = $request->description ?? $request->deskripsi ?? $activity->description;
+        $startTime   = $request->start_time ?? $request->tanggal_pelaksanaan ?? $activity->start_time;
+
+        $activity->update([
+            'title'               => $title,
+            'judul'               => $title,
+            'description'         => $description,
+            'deskripsi'           => $description,
+            'location'            => $request->location ?? $request->lokasi ?? $activity->location,
+            'start_time'          => $startTime,
+            'tanggal_pelaksanaan' => $startTime,
+            'end_time'            => $request->end_time ?? $activity->end_time,
+            'status'              => $request->status ?? $activity->status,
         ]);
 
-        $data = $request->only(['judul', 'deskripsi', 'tanggal_pelaksanaan', 'status']);
-        
-        if ($request->has('status')) {
-            /** @var \App\Models\User $user */
-            $user = $request->user();
-            $newStatus = $request->status;
-
-            if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-                 if ($user->hasRole('Kontributor') && $newStatus === 'published') {
-                    $newStatus = 'review';
-                 }
-            }
-            $data['status'] = $newStatus;
-
-            if ($newStatus === 'published' && $activity->status !== 'published') {
-                $data['published_at'] = now();
-            }
-        }
-
-        $activity->update($data);
-
-        $action = 'update';
-        $desc = 'Memperbarui agenda: ' . $activity->judul;
-        if (isset($data['status'])) {
-            $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
-            $desc .= ' (Status: ' . $data['status'] . ')';
-
-            /** @var \App\Models\User $user */
-            $user = $request->user();
-
-            if ($action === 'submit_review') {
-                \App\Services\NotificationService::sendToOrganizationAdmins(
-                    $activity->organization_id,
-                    'content_review',
-                    'Konten Menunggu Review',
-                    "{$user->name} mengirim Agenda untuk direview.",
-                    '/organization/activities',
-                    ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id]
-                );
-            } elseif ($action === 'publish' && $activity->user_id !== $user->id) {
-                if ($activity->user) {
-                    \App\Services\NotificationService::send(
-                        $activity->user,
-                        'content_published',
-                        'Konten Dipublikasikan',
-                        "Konten '{$activity->judul}' berhasil dipublikasikan.",
-                        '/organization/activities',
-                        ['content_id' => $activity->id, 'content_type' => 'activity']
-                    );
-                }
-            } elseif ($action === 'reject' && $activity->user_id !== $user->id) {
-                if ($activity->user) {
-                    \App\Services\NotificationService::send(
-                        $activity->user,
-                        'content_rejected',
-                        'Konten Ditolak',
-                        "Konten '{$activity->judul}' ditolak.",
-                        '/organization/activities',
-                        ['content_id' => $activity->id, 'content_type' => 'activity']
-                    );
-                }
-            }
-        }
-        ActivityLogService::log($action, 'activities', $desc, $activity);
+        ActivityLogService::log('update', 'activities', 'Memperbarui agenda: ' . $activity->title, $activity);
 
         return response()->json([
             'status'  => 'success',
@@ -173,14 +115,14 @@ class ActivityController extends Controller
     }
 
     /**
-     * Hapus kegiatan
+     * Hapus kegiatan (API)
      */
     public function destroy(string $id)
     {
         $activity = Activity::findOrFail($id);
         $activity->delete();
 
-        ActivityLogService::log('delete', 'activities', 'Menghapus agenda: ' . $activity->judul, clone $activity);
+        ActivityLogService::log('delete', 'activities', 'Menghapus agenda: ' . $activity->title, clone $activity);
 
         return response()->json([
             'status'  => 'success',

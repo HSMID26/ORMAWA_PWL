@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommitteeController;
 use App\Http\Controllers\CommitteeWebController;
+use App\Http\Controllers\ActivityWebController;
 use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +56,16 @@ Route::middleware('auth')->group(function () {
 
     // Halaman Blade Management Pengurus
     Route::get('/committees-view', [CommitteeWebController::class, 'index'])->name('committees.index');
+
+    // Halaman Blade Dashboard Agenda Kegiatan & CRUD Web
+    Route::get('/activities-view', [ActivityWebController::class, 'index']);
+    Route::get('/activities', [ActivityWebController::class, 'index'])->name('activities.index');
+    Route::post('/activities', [ActivityWebController::class, 'store'])->name('activities.store');
+    Route::put('/activities/{activity}', [ActivityWebController::class, 'update'])->name('activities.update');
+    Route::delete('/activities/{activity}', [ActivityWebController::class, 'destroy'])->name('activities.destroy');
 });
+
+// Public iCal Feed Route (Google / Apple Calendar Sync)
+Route::get('/calendar.ics', [ActivityWebController::class, 'icalFeed'])->name('calendar.ics');
 
 require __DIR__.'/auth.php';
