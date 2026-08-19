@@ -17,6 +17,12 @@ class Activity extends Model
         'deskripsi',
         'tanggal_pelaksanaan',
         'status',
+        'published_at',
+    ];
+
+    protected $casts = [
+        'tanggal_pelaksanaan' => 'date',
+        'published_at' => 'datetime',
     ];
 
     public function user()

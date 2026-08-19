@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Services\ActivityLogService;
 
 class AuthController extends Controller
 {
@@ -24,6 +25,9 @@ class AuthController extends Controller
 
         // Cek email dan password
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            if ($user) {
+                ActivityLogService::log('login_failed', 'authentication', 'Login gagal: Kredensial tidak cocok', $user, null, clone $user);
+            }
             throw ValidationException::withMessages([
                 'email' => ['Kredensial yang diberikan tidak cocok.'],
             ]);
@@ -38,6 +42,8 @@ class AuthController extends Controller
 
         // Generate Sanctum Token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        ActivityLogService::log('login', 'authentication', 'User berhasil login', $user, null, clone $user);
 
         return response()->json([
             'message' => 'Login berhasil!',
@@ -76,6 +82,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        // Log the logout activity BEFORE deleting the token so the authenticated user is known
+        ActivityLogService::log('logout', 'authentication', 'User melakukan logout');
+
         // Hapus token yang sedang digunakan
         $request->user()->currentAccessToken()->delete();
 

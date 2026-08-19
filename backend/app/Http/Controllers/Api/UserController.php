@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Services\ActivityLogService;
 
 class UserController extends Controller
 {
@@ -15,7 +16,10 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with('organization')->latest()->get();
+        $users = User::with(['organization', 'roles'])->latest()->get()->map(function ($user) {
+            $user->role = $user->roles->first()?->name ?? '-';
+            return $user;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -32,20 +36,26 @@ class UserController extends Controller
             'name'            => 'required|string|max:255',
             'email'           => 'required|string|email|max:255|unique:users,email',
             'password'        => 'required|string|min:8',
-            'role'            => 'required|string|in:Admin Organisasi,Editor,Kontributor',
+            'role'            => 'required|string|in:Super Admin,Admin Organisasi,Editor,Kontributor',
             'organization_id' => 'required|exists:organizations,id',
+            'status'          => 'nullable|in:active,inactive',
         ]);
 
         $user = User::create([
             'name'            => $request->name,
             'email'           => $request->email,
             'password'        => Hash::make($request->password),
-            'role'            => $request->role,
             'organization_id' => $request->organization_id,
+            'status'          => $request->status ?? 'active',
         ]);
 
-        // Load relasi organisasinya untuk response JSON
-        $user->load('organization');
+        // Assign Spatie Role
+        $user->assignRole($request->role);
+
+        $user->load(['organization', 'roles']);
+        $user->role = $user->roles->first()?->name;
+
+        ActivityLogService::log('create', 'users', 'Membuat user baru: ' . $user->name, $user);
 
         return response()->json([
             'status'  => 'success',
@@ -59,7 +69,8 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::with('organization')->findOrFail($id);
+        $user = User::with(['organization', 'roles'])->findOrFail($id);
+        $user->role = $user->roles->first()?->name ?? '-';
 
         return response()->json([
             'status' => 'success',
@@ -75,27 +86,46 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $request->validate([
-            'name'            => 'required|string|max:255',
-            'email'           => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'name'            => 'sometimes|required|string|max:255',
+            'email'           => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password'        => 'nullable|string|min:8',
-            'role'            => 'required|string|in:Super Admin,Admin Organisasi,Editor,Kontributor',
-            'organization_id' => 'nullable|exists:organizations,id',
+            'role'            => 'sometimes|required|string|in:Super Admin,Admin Organisasi,Editor,Kontributor',
+            'organization_id' => 'sometimes|nullable|exists:organizations,id',
+            'status'          => 'sometimes|required|in:active,inactive',
         ]);
 
-        $userData = [
-            'name'            => $request->name,
-            'email'           => $request->email,
-            'role'            => $request->role,
-            'organization_id' => $request->organization_id,
-        ];
+        $userData = $request->only(['name', 'email', 'organization_id', 'status']);
 
         // Update password hanya jika diisi
         if ($request->filled('password')) {
             $userData['password'] = Hash::make($request->password);
         }
 
+        $oldStatus = $user->status;
+
         $user->update($userData);
-        $user->load('organization');
+
+        if ($request->has('role')) {
+            $user->syncRoles([$request->role]);
+        }
+
+        if (isset($userData['status']) && $userData['status'] !== $oldStatus) {
+            $statusTitle = $userData['status'] === 'active' ? 'Akun Diaktifkan' : 'Akun Dinonaktifkan';
+            $statusMessage = $userData['status'] === 'active' ? 'Akun Anda telah diaktifkan kembali.' : 'Akun Anda telah dinonaktifkan.';
+            
+            \App\Services\NotificationService::send(
+                $user,
+                'user_status_changed',
+                $statusTitle,
+                $statusMessage,
+                null
+            );
+        }
+
+        $user->load(['organization', 'roles']);
+        $user->role = $user->roles->first()?->name ?? '-';
+
+        ActivityLogService::log('update', 'users', 'Memperbarui data user: ' . $user->name, $user);
 
         return response()->json([
             'status'  => 'success',
@@ -111,6 +141,8 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $user->delete();
+
+        ActivityLogService::log('delete', 'users', 'Menghapus user: ' . $user->name, clone $user);
 
         return response()->json([
             'status'  => 'success',

@@ -14,7 +14,7 @@
         </div>
         <div>
           <DropdownMenu :menu-items="menuItems">
-            <template #icon>
+            <template>
               <svg
                 width="24"
                 height="24"

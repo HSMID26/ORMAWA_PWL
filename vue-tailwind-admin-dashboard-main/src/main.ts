@@ -11,9 +11,17 @@ import App from './App.vue'
 import router from './router'
 import VueApexCharts from 'vue3-apexcharts'
 
+import { createPinia } from 'pinia'
+import { useAuthStore } from './stores/auth'
+
 const app = createApp(App)
+const pinia = createPinia()
 
-app.use(router)
-app.use(VueApexCharts)
+app.use(pinia)
 
-app.mount('#app')
+const authStore = useAuthStore()
+authStore.restoreSession().finally(() => {
+  app.use(router)
+  app.use(VueApexCharts)
+  app.mount('#app')
+})

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogService;
 
 class OrganizationController extends Controller
 {
@@ -13,7 +14,12 @@ class OrganizationController extends Controller
      */
     public function index()
     {
-        $organizations = Organization::latest()->get();
+        $organizations = Organization::with('periods')->latest()->get();
+
+        $organizations = $organizations->map(function ($org) {
+            $org->current_period = $org->currentPeriod();
+            return $org;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -42,6 +48,8 @@ class OrganizationController extends Controller
             'modul_aktif' => $request->modul_aktif ?? ['galeri' => true, 'proker' => true],
 
         ]);
+
+        ActivityLogService::log('create', 'organizations', 'Membuat organisasi baru: ' . $organization->nama, $organization);
 
         return response()->json([
             'status'  => 'success',
@@ -86,6 +94,8 @@ class OrganizationController extends Controller
             'modul_aktif' => $request->modul_aktif ?? $organization->modul_aktif,
         ]);
 
+        ActivityLogService::log('update', 'organizations', 'Memperbarui data organisasi: ' . $organization->nama, $organization);
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Data organisasi berhasil diperbarui!',
@@ -93,17 +103,66 @@ class OrganizationController extends Controller
         ]);
     }
 
-    /**
-     * Hapus organisasi
-     */
     public function destroy($id)
     {
         $organization = Organization::findOrFail($id);
         $organization->delete();
 
+        ActivityLogService::log('delete', 'organizations', 'Menghapus organisasi: ' . $organization->nama, clone $organization);
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Organisasi berhasil dihapus!'
+        ]);
+    }
+
+    /**
+     * Activate Organization
+     */
+    public function activate($id)
+    {
+        if (!auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Hanya Super Admin yang dapat mengaktifkan organisasi.');
+        }
+
+        $organization = Organization::findOrFail($id);
+
+        if ($organization->periods()->count() > 0 && !$organization->currentPeriod()) {
+            return response()->json([
+                'message' => 'Organisasi belum memiliki periode aktif. Aktivasi ditolak.'
+            ], 422);
+        }
+
+        $organization->update(['status' => 'active']);
+
+        ActivityLogService::log('activate', 'organizations', 'Mengaktifkan kembali organisasi: ' . $organization->nama, clone $organization);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Organisasi berhasil diaktifkan.',
+            'data' => $organization
+        ]);
+    }
+
+    /**
+     * Deactivate Organization
+     */
+    public function deactivate($id)
+    {
+        if (!auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Hanya Super Admin yang dapat menonaktifkan organisasi.');
+        }
+
+        $organization = Organization::findOrFail($id);
+        
+        $organization->update(['status' => 'inactive']);
+
+        ActivityLogService::log('deactivate', 'organizations', 'Menonaktifkan organisasi: ' . $organization->nama, clone $organization);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Organisasi berhasil dinonaktifkan.',
+            'data' => $organization
         ]);
     }
 }
