@@ -38,6 +38,17 @@
                         <input type="file" id="image-input" class="hidden" accept="image/*">
                     </div>
 
+                    <div id="upload-status" class="hidden mb-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"></div>
+
+                    <div id="upload-preview" class="hidden mb-4 overflow-hidden rounded-lg border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
+                        <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Pratinjau file</div>
+                            <button type="button" id="clear-upload-preview" class="text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300">Hapus</button>
+                        </div>
+                        <img id="upload-preview-image" alt="Pratinjau upload" class="hidden h-52 w-full object-cover">
+                        <div id="upload-preview-meta" class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300"></div>
+                    </div>
+
                     <!-- Area Editor TipTap -->
                     <div id="editor" class="min-h-[250px] p-4 border rounded-b-lg bg-white dark:bg-gray-900 dark:text-white prose dark:prose-invert max-w-none focus:outline-none mb-4"></div>
 
@@ -95,6 +106,53 @@
         // Event Upload Gambar Ke Backend
         const imageInput = document.getElementById('image-input');
         const btnImage = document.getElementById('btn-image');
+        const uploadStatus = document.getElementById('upload-status');
+        const uploadPreview = document.getElementById('upload-preview');
+        const uploadPreviewImage = document.getElementById('upload-preview-image');
+        const uploadPreviewMeta = document.getElementById('upload-preview-meta');
+        const clearUploadPreviewButton = document.getElementById('clear-upload-preview');
+        const maxImageSizeMb = 5;
+        let previewObjectUrl = null;
+
+        const formatFileSize = (bytes) => {
+            const mb = bytes / (1024 * 1024);
+            return mb >= 1 ? `${mb.toFixed(2)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+        };
+
+        const setUploadState = (message, variant = 'info') => {
+            const styles = {
+                info: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200',
+                error: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200',
+                success: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200',
+            };
+
+            uploadStatus.className = `mb-3 rounded-lg border px-4 py-3 text-sm ${styles[variant]}`;
+            uploadStatus.textContent = message;
+            uploadStatus.classList.remove('hidden');
+        };
+
+        const clearUploadState = () => {
+            uploadStatus.classList.add('hidden');
+            uploadStatus.textContent = '';
+        };
+
+        const clearUploadPreview = () => {
+            if (previewObjectUrl) {
+                URL.revokeObjectURL(previewObjectUrl);
+                previewObjectUrl = null;
+            }
+
+            uploadPreview.classList.add('hidden');
+            uploadPreviewImage.classList.add('hidden');
+            uploadPreviewImage.src = '';
+            uploadPreviewMeta.textContent = '';
+        };
+
+        clearUploadPreviewButton.addEventListener('click', () => {
+            imageInput.value = '';
+            clearUploadState();
+            clearUploadPreview();
+        });
 
         btnImage.addEventListener('click', () => {
             imageInput.click();
@@ -104,9 +162,31 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            clearUploadState();
+            clearUploadPreview();
+
+            if (!file.type.startsWith('image/')) {
+                setUploadState('File harus berupa gambar.', 'error');
+                imageInput.value = '';
+                return;
+            }
+
+            if (file.size > maxImageSizeMb * 1024 * 1024) {
+                setUploadState(`Ukuran gambar maksimal ${maxImageSizeMb} MB. File ini ${formatFileSize(file.size)}.`, 'error');
+                imageInput.value = '';
+                return;
+            }
+
+            previewObjectUrl = URL.createObjectURL(file);
+            uploadPreviewImage.src = previewObjectUrl;
+            uploadPreviewImage.classList.remove('hidden');
+            uploadPreviewMeta.textContent = `${file.name} • ${formatFileSize(file.size)} • akan dikompresi otomatis sebelum disimpan`;
+            uploadPreview.classList.remove('hidden');
+
             const originalBtnText = btnImage.innerText;
-            btnImage.innerText = '⏳ Uploading...';
+            btnImage.innerText = '⏳ Mengunggah...';
             btnImage.disabled = true;
+            setUploadState('Sedang mengompresi dan mengunggah gambar...', 'info');
 
             const formData = new FormData();
             formData.append('image', file);
@@ -122,16 +202,18 @@
                     body: formData
                 });
 
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
                 if (response.ok && data.status === 'success') {
                     // Sisipkan Gambar Ke Dalam TipTap Editor!
                     editor.chain().focus().setImage({ src: data.url }).run();
+                    setUploadState('Gambar berhasil diunggah dan dikompresi otomatis.', 'success');
+                    clearUploadPreview();
                 } else {
-                    alert('Upload gambar gagal: ' + (data.message || 'Terjadi kesalahan'));
+                    setUploadState(`Upload gambar gagal: ${data.message || 'Terjadi kesalahan'}`, 'error');
                 }
             } catch (err) {
                 console.error(err);
-                alert('Terjadi kesalahan saat upload!');
+                setUploadState('Terjadi kesalahan saat upload. Coba lagi beberapa saat.', 'error');
             } finally {
                 btnImage.innerText = originalBtnText;
                 btnImage.disabled = false;
@@ -149,6 +231,16 @@
             const judul = document.getElementById('judul').value;
             const status = document.getElementById('status').value;
             const konten = editor.getHTML();
+
+            if (!judul.trim()) {
+                alert('Judul artikel wajib diisi.');
+                return;
+            }
+
+            if (!konten || konten === '<p></p>') {
+                alert('Konten artikel masih kosong.');
+                return;
+            }
 
             try {
                 const response = await fetch('{{ route("posts.update", $post) }}', {
@@ -170,7 +262,7 @@
                     alert('Artikel berhasil diperbarui!');
                     window.location.href = '{{ route("posts.index") }}';
                 } else {
-                    const errorData = await response.json();
+                    const errorData = await response.json().catch(() => ({}));
                     alert('Gagal memperbarui artikel: ' + (errorData.message || 'Terjadi kesalahan'));
                 }
             } catch (err) {

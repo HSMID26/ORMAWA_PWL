@@ -5,18 +5,20 @@ namespace App\Models;
 use App\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
-class Post extends Model
+class Committee extends Model
 {
     use HasFactory, BelongsToOrganization;
 
     protected $fillable = [
         'organization_id',
         'user_id',
-        'judul',
-        'slug',
-        'konten',
-        'cover_image',
+        'name',
+        'position',
+        'department',
+        'period',
+        'photo',
         'status',
     ];
 
@@ -25,15 +27,9 @@ class Post extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Relasi Ke Category (One-to-Many)
-    public function category()
+    // Accessor untuk dapetin full URL foto
+    public function getPhotoUrlAttribute()
     {
-        return $this->belongsTo(Category::class);
-    }
-
-    // Relasi Ke Tag (Many-to-Many)
-    public function tags()
-    {
-        return $this->belongsToMany(Tag::class);
+        return $this->photo ? url(Storage::url($this->photo)) : null;
     }
 }

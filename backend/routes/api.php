@@ -13,8 +13,12 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login']);
 
 // Protected Routes 
-Route::middleware(['auth:sanctum,web'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    // API Media Library Management
+    Route::get('/media', [MediaController::class, 'index']);
+    Route::post('/upload-image', [MediaController::class, 'upload']);
+    Route::delete('/media/{id}', [MediaController::class, 'destroy']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Route Manajemen Organisasi
