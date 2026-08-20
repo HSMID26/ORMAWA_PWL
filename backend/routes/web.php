@@ -9,6 +9,8 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommitteeController;
 use App\Http\Controllers\CommitteeWebController;
 use App\Http\Controllers\ActivityWebController;
+use App\Http\Controllers\UserWebController;
+use App\Http\Controllers\OrganizationWebController;
 use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +65,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/activities', [ActivityWebController::class, 'store'])->name('activities.store');
     Route::put('/activities/{activity}', [ActivityWebController::class, 'update'])->name('activities.update');
     Route::delete('/activities/{activity}', [ActivityWebController::class, 'destroy'])->name('activities.destroy');
+
+    // Halaman Blade Management User / Pengurus Akun (Fitur 9)
+    Route::get('/users-view', [UserWebController::class, 'index']);
+    Route::get('/users', [UserWebController::class, 'index'])->name('users.index');
+    Route::post('/users', [UserWebController::class, 'store'])->name('users.store');
+    Route::put('/users/{user}', [UserWebController::class, 'update'])->name('users.update');
+    Route::patch('/users/{user}/toggle-status', [UserWebController::class, 'toggleStatus'])->name('users.toggle-status');
+    Route::delete('/users/{user}', [UserWebController::class, 'destroy'])->name('users.destroy');
+
+    // Halaman Blade Pengaturan Organisasi & Modul (Fitur 10)
+    Route::get('/organization/settings', [OrganizationWebController::class, 'settings'])->name('organization.settings');
+    Route::post('/organization/settings', [OrganizationWebController::class, 'updateSettings'])->name('organization.settings.update');
 });
 
 // Public iCal Feed Route (Google / Apple Calendar Sync)

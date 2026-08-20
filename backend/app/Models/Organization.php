@@ -14,6 +14,7 @@ class Organization extends Model
         'logo',
         'warna_tema',
         'modul_aktif',
+        'label_menu',
         'status',
     ];
 
@@ -21,7 +22,32 @@ class Organization extends Model
     {
         return [
             'modul_aktif' => 'array',
+            'label_menu'  => 'array',
         ];
+    }
+
+    /**
+     * Mengecek apakah modul tertentu aktif
+     */
+    public function isModuleActive(string $moduleKey): bool
+    {
+        $modules = $this->modul_aktif;
+        if (empty($modules) || !is_array($modules)) {
+            return true; // Default aktif jika belum dikonfigurasi
+        }
+        return isset($modules[$moduleKey]) ? (bool) $modules[$moduleKey] : true;
+    }
+
+    /**
+     * Mendapatkan label kustom menu untuk modul tertentu
+     */
+    public function getMenuLabel(string $moduleKey, string $defaultLabel): string
+    {
+        $labels = $this->label_menu;
+        if (!empty($labels) && is_array($labels) && !empty($labels[$moduleKey])) {
+            return $labels[$moduleKey];
+        }
+        return $defaultLabel;
     }
 
     /**
@@ -54,9 +80,6 @@ class Organization extends Model
 
     /**
      * Mengecek apakah organisasi beroperasi (aktif & punya period aktif)
-     * "TETAPI jangan membuat existing organization inaccessible hanya karena initial period belum dikonfigurasi.
-     * Gunakan transition behavior yang aman" - Sesuai instruksi: 
-     * Jika period = 0 (belum pernah dikonfigurasi sama sekali), anggap aktif untuk transisi.
      */
     public function isActive(): bool
     {
@@ -66,7 +89,6 @@ class Organization extends Model
         
         $periodsCount = $this->periods()->count();
         if ($periodsCount === 0) {
-            // Backward compatibility transition: if no periods exist at all, allow operation
             return true;
         }
 

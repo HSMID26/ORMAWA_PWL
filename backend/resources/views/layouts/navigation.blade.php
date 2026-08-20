@@ -1,12 +1,27 @@
+@php
+    $user = Auth::user();
+    $org = $user?->organization;
+    if (!$org && $user?->hasRole('Super Admin')) {
+        $org = \App\Models\Organization::first();
+    }
+@endphp
+
 <nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
                 <!-- Logo -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
+                <div class="shrink-0 flex items-center gap-2">
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+                        @if($org && $org->logo && Storage::disk('public')->exists($org->logo))
+                            <img src="{{ Storage::url($org->logo) }}" alt="Logo" class="h-9 w-auto rounded object-contain">
+                        @else
+                            <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
+                        @endif
+                        @if($org)
+                            <span class="font-bold text-sm text-gray-800 dark:text-gray-200 hidden md:inline">{{ $org->nama }}</span>
+                        @endif
                     </a>
                 </div>
 
@@ -15,8 +30,38 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('posts.index')" :active="request()->routeIs('posts.*')">
-                        {{ __('Artikel / Konten') }}
+
+                    <!-- Modul Artikel / Konten -->
+                    @if(!$org || $org->isModuleActive('posts'))
+                        <x-nav-link :href="route('posts.index')" :active="request()->routeIs('posts.*')">
+                            {{ $org ? $org->getMenuLabel('posts', 'Artikel / Konten') : __('Artikel / Konten') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Modul Agenda Kegiatan -->
+                    @if(!$org || $org->isModuleActive('activities'))
+                        <x-nav-link :href="route('activities.index')" :active="request()->routeIs('activities.*')">
+                            {{ $org ? $org->getMenuLabel('activities', 'Agenda Kegiatan') : __('Agenda Kegiatan') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Modul Media Galeri -->
+                    @if(!$org || $org->isModuleActive('media'))
+                        <x-nav-link :href="route('media.index')" :active="request()->routeIs('media.*')">
+                            {{ $org ? $org->getMenuLabel('media', 'Galeri Media') : __('Galeri Media') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Modul Kelola Pengurus -->
+                    @if(!$org || $org->isModuleActive('committees'))
+                        <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
+                            {{ $org ? $org->getMenuLabel('committees', 'Kelola Pengurus') : __('Kelola Pengurus') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Fitur 10: Pengaturan Organisasi & Modul -->
+                    <x-nav-link :href="route('organization.settings')" :active="request()->routeIs('organization.settings')">
+                        ⚙️ {{ __('Pengaturan Ormawa') }}
                     </x-nav-link>
                 </div>
             </div>
@@ -37,8 +82,12 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        <x-dropdown-link :href="route('organization.settings')">
+                            ⚙️ {{ __('Pengaturan Ormawa') }}
+                        </x-dropdown-link>
+
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
+                            👤 {{ __('Profile') }}
                         </x-dropdown-link>
 
                         <!-- Authentication -->
@@ -48,7 +97,7 @@
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
                                                 this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                                🚪 {{ __('Log Out') }}
                             </x-dropdown-link>
                         </form>
                     </x-slot>
@@ -73,8 +122,33 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('posts.index')" :active="request()->routeIs('posts.*')">
-                {{ __('Artikel / Konten') }}
+
+            @if(!$org || $org->isModuleActive('posts'))
+                <x-responsive-nav-link :href="route('posts.index')" :active="request()->routeIs('posts.*')">
+                    {{ $org ? $org->getMenuLabel('posts', 'Artikel / Konten') : __('Artikel / Konten') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if(!$org || $org->isModuleActive('activities'))
+                <x-responsive-nav-link :href="route('activities.index')" :active="request()->routeIs('activities.*')">
+                    {{ $org ? $org->getMenuLabel('activities', 'Agenda Kegiatan') : __('Agenda Kegiatan') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if(!$org || $org->isModuleActive('media'))
+                <x-responsive-nav-link :href="route('media.index')" :active="request()->routeIs('media.*')">
+                    {{ $org ? $org->getMenuLabel('media', 'Galeri Media') : __('Galeri Media') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if(!$org || $org->isModuleActive('committees'))
+                <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
+                    {{ $org ? $org->getMenuLabel('committees', 'Kelola Pengurus') : __('Kelola Pengurus') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <x-responsive-nav-link :href="route('organization.settings')" :active="request()->routeIs('organization.settings')">
+                ⚙️ {{ __('Pengaturan Ormawa') }}
             </x-responsive-nav-link>
         </div>
 
@@ -86,8 +160,12 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                <x-responsive-nav-link :href="route('organization.settings')">
+                    ⚙️ {{ __('Pengaturan Ormawa') }}
+                </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
+                    👤 {{ __('Profile') }}
                 </x-responsive-nav-link>
 
                 <!-- Authentication -->
@@ -97,7 +175,7 @@
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
                                         this.closest('form').submit();">
-                        {{ __('Log Out') }}
+                        🚪 {{ __('Log Out') }}
                     </x-responsive-nav-link>
                 </form>
             </div>

@@ -50,6 +50,16 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Cek jika akun dinonaktifkan (Fitur 9)
+        if (Auth::user()->status === 'inactive') {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun Anda sedang dinonaktifkan. Silakan hubungi Admin Organisasi atau Super Admin.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 
