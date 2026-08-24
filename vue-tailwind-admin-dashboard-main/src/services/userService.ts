@@ -1,18 +1,31 @@
 import api from './api'
 import type { ApiListResponse, ApiSingleResponse, UserProfile } from '@/types/api'
 
+export interface UserFilterParams {
+  role?: string
+  status?: string
+  search?: string
+  organization_id?: number
+  exclude_super_admin?: boolean
+}
+
 export const userService = {
-  async list() {
-    const { data } = await api.get<ApiListResponse<UserProfile>>('/users')
+  async list(params?: UserFilterParams) {
+    const { data } = await api.get<ApiListResponse<UserProfile>>('/users', { params })
     return data.data
   },
 
-  async create(payload: Record<string, unknown>) {
+  async getById(id: number) {
+    const { data } = await api.get<ApiSingleResponse<UserProfile>>(`/users/${id}`)
+    return data.data
+  },
+
+  async create(payload: Record<string, any>) {
     const { data } = await api.post<ApiSingleResponse<UserProfile>>('/users', payload)
     return data.data
   },
 
-  async update(id: number, payload: Record<string, unknown>) {
+  async update(id: number, payload: Record<string, any>) {
     const { data } = await api.put<ApiSingleResponse<UserProfile>>(`/users/${id}`, payload)
     return data.data
   },
@@ -20,4 +33,20 @@ export const userService = {
   async remove(id: number) {
     await api.delete(`/users/${id}`)
   },
+
+  async activate(id: number) {
+    const { data } = await api.post<ApiSingleResponse<UserProfile>>(`/users/${id}/activate`)
+    return data.data
+  },
+
+  async deactivate(id: number) {
+    const { data } = await api.post<ApiSingleResponse<UserProfile>>(`/users/${id}/deactivate`)
+    return data.data
+  },
+
+  async resetPassword(id: number, password: string) {
+    const { data } = await api.post<{ status: string; message: string }>(`/users/${id}/reset-password`, { password })
+    return data
+  },
 }
+

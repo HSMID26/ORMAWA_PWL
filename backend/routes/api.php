@@ -7,32 +7,60 @@ use App\Http\Controllers\Api\ActivityController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\AnnouncementController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\TagController;
+use App\Http\Controllers\CommitteeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Public Route
+use App\Http\Controllers\Api\PublicController;
+
+// Public Routes (Accessible without Authentication)
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register/organization', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store']);
 
+Route::prefix('public')->group(function () {
+    Route::get('/home', [PublicController::class, 'home']);
+    Route::get('/organizations', [PublicController::class, 'organizations']);
+    Route::get('/organizations/{slug}', [PublicController::class, 'organization']);
+    Route::get('/organizations/{slug}/articles', [PublicController::class, 'articles']);
+    Route::get('/organizations/{slug}/articles/{articleSlug}', [PublicController::class, 'article']);
+    Route::get('/organizations/{slug}/agenda', [PublicController::class, 'agenda']);
+    Route::get('/organizations/{slug}/agenda/{id}', [PublicController::class, 'agendaDetail']);
+    Route::get('/organizations/{slug}/announcements', [PublicController::class, 'announcements']);
+    Route::get('/organizations/{slug}/gallery', [PublicController::class, 'gallery']);
+    Route::get('/organizations/{slug}/documents', [PublicController::class, 'documents']);
+    Route::get('/organizations/{slug}/documents/{id}/download', [PublicController::class, 'downloadDocument']);
+    Route::get('/organizations/{slug}/structure', [PublicController::class, 'structure']);
+    Route::get('/sitemap', [PublicController::class, 'sitemap']);
+});
+
 // Protected Routes 
-Route::middleware(['auth:sanctum,web'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Super Admin Dashboard Summary
     Route::get('/super-admin/dashboard', [\App\Http\Controllers\Api\DashboardController::class, 'superAdminSummary']);
+    // Organization Admin Dashboard Summary
+    Route::get('/organization/dashboard', [\App\Http\Controllers\Api\DashboardController::class, 'organizationSummary'])->name('api.organization.dashboard');
 
     // Route Manajemen Organisasi
     Route::post('/organizations/{organization}/activate', [OrganizationController::class, 'activate']);
     Route::post('/organizations/{organization}/deactivate', [OrganizationController::class, 'deactivate']);
     
     // Period Management (Organization Periods)
+    Route::get('/organization-periods', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'globalIndex']);
     Route::get('/organizations/{organization}/periods', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'index']);
     Route::post('/organizations/{organization}/periods', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'store']);
     Route::get('/organization-periods/{period}', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'show']);
     Route::put('/organization-periods/{period}', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'update']);
     Route::post('/organization-periods/{period}/approve', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'approve']);
     Route::post('/organization-periods/{period}/reject', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'reject']);
+
+    Route::post('/users/{id}/activate', [UserController::class, 'activate']);
+    Route::post('/users/{id}/deactivate', [UserController::class, 'deactivate']);
+    Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
 
     Route::apiResource('organizations', OrganizationController::class)->names([
         'index'   => 'api.organizations.index',
@@ -69,7 +97,27 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
         'update'  => 'api.announcements.update',
         'destroy' => 'api.announcements.destroy',
     ]);
+
+    // Media Library
+    Route::get('/media', [MediaController::class, 'index'])->name('api.media.index');
     Route::post('/upload-image', [MediaController::class, 'upload'])->name('api.upload.image');
+    Route::delete('/media/{id}', [MediaController::class, 'destroy'])->name('api.media.destroy');
+
+    // Categories & Tags
+    Route::get('/categories', [CategoryController::class, 'index'])->name('api.categories.index');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('api.categories.store');
+    Route::get('/tags', [TagController::class, 'index'])->name('api.tags.index');
+    Route::post('/tags', [TagController::class, 'store'])->name('api.tags.store');
+
+    // Committees / Pengurus
+    Route::get('/organization-users/linkable', [CommitteeController::class, 'linkableUsers'])->name('api.organization_users.linkable');
+    Route::get('/committees/linkable-users', [CommitteeController::class, 'linkableUsers'])->name('api.committees.linkable_users');
+    Route::get('/committees', [CommitteeController::class, 'index'])->name('api.committees.index');
+    Route::get('/committees/{id}', [CommitteeController::class, 'show'])->name('api.committees.show');
+    Route::post('/committees', [CommitteeController::class, 'store'])->name('api.committees.store');
+    Route::post('/committees/{id}', [CommitteeController::class, 'update'])->name('api.committees.update.post');
+    Route::put('/committees/{id}', [CommitteeController::class, 'update'])->name('api.committees.update');
+    Route::delete('/committees/{id}', [CommitteeController::class, 'destroy'])->name('api.committees.destroy');
 
     Route::get('/activity-logs', [\App\Http\Controllers\Api\ActivityLogController::class, 'index']);
 

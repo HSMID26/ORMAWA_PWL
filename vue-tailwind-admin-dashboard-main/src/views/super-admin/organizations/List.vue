@@ -2,99 +2,130 @@
   <AdminLayout>
     <PageBreadcrumb :pageTitle="currentPageTitle" />
     
-    <div class="p-5 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="p-5 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] space-y-6">
       
       <!-- Header & Tombol Tambah -->
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">
-          Data Organisasi
-        </h2>
-        <button @click="openModal()" class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto">
-          + Tambah Organisasi
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Tata Kelola Organisasi Mahasiswa</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Kelola seluruh ormawa (BEM, DPM, UKM, HMPS), status operasional, dan admin terkait.</p>
+        </div>
+        <button @click="openModal()" class="flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-brand-700 transition">
+          <PlusIcon class="h-4 w-4" />
+          <span>Tambah Organisasi</span>
         </button>
       </div>
 
-      <!-- Search Bar -->
-      <div class="mb-6">
+      <!-- Filters -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search organisasi..."
-          class="dark:bg-dark-900 h-11 w-full max-w-md rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+          placeholder="Cari nama atau subdomain..."
+          class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:text-white"
         />
+        <select
+          v-model="selectedJenis"
+          class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        >
+          <option value="">Semua Jenis (BEM/UKM/HMPS)</option>
+          <option value="BEM">BEM</option>
+          <option value="UKM">UKM</option>
+          <option value="HMPS">HMPS</option>
+        </select>
+        <select
+          v-model="selectedStatus"
+          class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        >
+          <option value="">Semua Status</option>
+          <option value="active">Aktif</option>
+          <option value="inactive">Nonaktif</option>
+        </select>
       </div>
 
       <!-- Tabel Data -->
-      <div v-if="isLoading" class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+      <div v-if="isLoading" class="py-12 text-center text-sm text-gray-500">
         Memuat organisasi...
       </div>
-      <div v-else-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
-        {{ errorMessage }}
+      <div v-else-if="filteredOrganizations.length === 0" class="py-12 text-center text-sm text-gray-500">
+        Data organisasi tidak ditemukan.
       </div>
       <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Organisasi</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Periode Aktif</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Status</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400 text-center">Aksi</th>
+            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs font-semibold text-gray-600 dark:text-gray-400">
+              <th class="px-4 py-3">Organisasi</th>
+              <th class="px-4 py-3">Admin Organisasi</th>
+              <th class="px-4 py-3">Periode Aktif</th>
+              <th class="px-4 py-3">Pengguna</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
             <tr 
               v-for="org in filteredOrganizations" 
               :key="org.id"
-              class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+              class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
             >
-              <td class="px-4 py-3">
+              <td class="px-4 py-3.5">
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-100 text-sm font-bold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
                     {{ org.nama.charAt(0).toUpperCase() }}
                   </div>
                   <div class="flex flex-col">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm font-medium text-gray-800 dark:text-white/90">{{ org.nama }}</span>
-                      <span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">{{ org.jenis }}</span>
+                      <span class="font-bold text-gray-900 dark:text-white">{{ org.nama }}</span>
+                      <span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-400">{{ org.jenis }}</span>
                     </div>
-                    <span class="text-xs text-gray-500">{{ org.subdomain }}</span>
+                    <span class="text-xs text-gray-500">{{ org.subdomain }}.ormawa.id</span>
                   </div>
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">
-                <span v-if="org.current_period" class="font-medium">
-                  {{ org.current_period.period_name }}<br/>
-                  <span class="text-xs text-gray-500 font-normal">{{ formatDateOnly(org.current_period.start_date) }} - {{ formatDateOnly(org.current_period.end_date) }}</span>
-                </span>
-                <span v-else class="inline-flex rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-600 ring-1 ring-inset ring-orange-500/10 dark:bg-orange-400/10 dark:text-orange-400 dark:ring-orange-400/20">
-                  Belum dikonfigurasi
-                </span>
+              <td class="px-4 py-3.5 text-xs text-gray-700 dark:text-gray-300">
+                <div v-if="org.admin_user">
+                  <span class="font-medium text-gray-900 dark:text-white">{{ org.admin_user.name }}</span>
+                  <div class="text-[10px] text-gray-400">{{ org.admin_user.email }}</div>
+                </div>
+                <span v-else class="text-xs text-orange-500 italic">Belum ada admin</span>
               </td>
-              <td class="px-4 py-3">
-                <span v-if="org.status === 'active'" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400">
+              <td class="px-4 py-3.5 text-xs">
+                <span v-if="org.current_period" class="font-semibold text-gray-800 dark:text-gray-200">
+                  {{ org.current_period.period_name }}
+                </span>
+                <span v-else class="text-xs text-orange-500 italic">Belum dikonfigurasi</span>
+              </td>
+              <td class="px-4 py-3.5 text-xs text-gray-600 dark:text-gray-400">
+                {{ org.users_count || 0 }} Pengguna
+              </td>
+              <td class="px-4 py-3.5">
+                <span v-if="org.status === 'active'" class="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
                   <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
                   Aktif
                 </span>
-                <span v-else class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400">
+                <span v-else class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400">
                   <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                  Tidak Aktif
+                  Nonaktif
                 </span>
               </td>
-              <td class="px-4 py-3 text-center">
-                <div class="flex justify-center items-center gap-3">
-                  <router-link :to="`/super-admin/organizations/${org.id}/periods`" class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400" title="Manajemen Periode">Periode</router-link>
-                  <button @click="openModal(org)" class="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Edit</button>
-                  <button v-if="org.status === 'inactive'" @click="activateOrganization(org.id)" class="text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400">Activate</button>
-                  <button v-if="org.status === 'active'" @click="deactivateOrganization(org.id)" class="text-sm font-medium text-orange-500 hover:text-orange-600 dark:text-orange-400">Deactivate</button>
-                  <button @click="deleteOrganization(org.id)" class="text-sm font-medium text-error-500 hover:text-error-600 dark:text-error-400" :disabled="deletingId === org.id">
-                    {{ deletingId === org.id ? '...' : 'Hapus' }}
+              <td class="px-4 py-3.5 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button @click="openDetail(org)" class="rounded-lg p-1.5 text-brand-600 hover:bg-brand-50" title="Detail Organisasi">
+                    <EyeIcon class="h-4 w-4" />
+                  </button>
+                  <router-link :to="`/super-admin/organizations/${org.id}/periods`" class="rounded-lg p-1.5 text-purple-600 hover:bg-purple-50" title="Kelola Periode">
+                    <CalendarIcon class="h-4 w-4" />
+                  </router-link>
+                  <button @click="openModal(org)" class="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100" title="Edit Organisasi">
+                    <EditIcon class="h-4 w-4" />
+                  </button>
+                  <button v-if="org.status === 'inactive'" @click="openStatusModal(org, 'activate')" class="rounded-lg p-1.5 text-green-600 hover:bg-green-50" title="Aktifkan">
+                    <CheckCircleIcon class="h-4 w-4" />
+                  </button>
+                  <button v-if="org.status === 'active'" @click="openStatusModal(org, 'deactivate')" class="rounded-lg p-1.5 text-orange-600 hover:bg-orange-50" title="Nonaktifkan">
+                    <XCircleIcon class="h-4 w-4" />
                   </button>
                 </div>
-              </td>
-            </tr>
-            <tr v-if="filteredOrganizations.length === 0">
-              <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                Data tidak ditemukan.
               </td>
             </tr>
           </tbody>
@@ -103,200 +134,261 @@
 
     </div>
 
-    <!-- Modal Form Organisasi -->
-    <Modal v-if="isModalOpen" @close="closeModal" :fullScreenBackdrop="true">
-      <template #body>
-        <div class="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all dark:bg-gray-900 dark:border dark:border-gray-800">
-          <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">
-            {{ isEditMode ? 'Edit Organisasi' : 'Tambah Organisasi' }}
-          </h3>
-          
-          <form @submit.prevent="submitForm" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Organisasi</label>
-              <input v-model="form.nama" required type="text" class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white" />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jenis</label>
-              <select v-model="form.jenis" required class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white dark:bg-gray-900">
-                <option value="HMPS">HMPS</option>
-                <option value="UKM">UKM</option>
-                <option value="BEM">BEM</option>
-              </select>
-            </div>
+    <!-- Modal Form (Create / Edit) -->
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 space-y-4">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+          {{ isEditing ? 'Edit Organisasi' : 'Tambah Organisasi Baru' }}
+        </h3>
+        
+        <form @submit.prevent="saveOrganization" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Nama Organisasi</label>
+            <input v-model="form.nama" type="text" required class="h-10 w-full rounded-xl border border-gray-300 px-3.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Jenis</label>
+            <select v-model="form.jenis" required class="h-10 w-full rounded-xl border border-gray-300 px-3.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+              <option value="UKM">UKM</option>
+              <option value="HMPS">HMPS</option>
+              <option value="BEM">BEM</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Subdomain</label>
+            <input v-model="form.subdomain" type="text" required class="h-10 w-full rounded-xl border border-gray-300 px-3.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+          </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subdomain</label>
-              <input v-model="form.subdomain" required type="text" class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white" />
-            </div>
+          <div v-if="modalError" class="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg">
+            {{ modalError }}
+          </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-              <button type="button" @click="closeModal" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700" :disabled="isSubmitting">
-                Batal
-              </button>
-              <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50" :disabled="isSubmitting">
-                {{ isSubmitting ? 'Menyimpan...' : 'Simpan' }}
-              </button>
-            </div>
-          </form>
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" @click="showModal = false" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Batal</button>
+            <button type="submit" :disabled="isSubmitting" class="rounded-xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+              {{ isSubmitting ? 'Menyimpan...' : 'Simpan' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Status Confirmation (Activate / Deactivate) -->
+    <div v-if="showStatusConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 space-y-4">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Konfirmasi Perubahan Status</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Apakah Anda yakin ingin <b>{{ statusAction === 'activate' ? 'mengaktifkan' : 'menonaktifkan' }}</b> organisasi <b>{{ selectedOrg?.nama }}</b>?
+        </p>
+        <div class="flex justify-end gap-3 pt-2">
+          <button @click="showStatusConfirmModal = false" class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Batal</button>
+          <button @click="confirmStatusChange" :disabled="isSubmitting" :class="statusAction === 'activate' ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-600 hover:bg-orange-700'" class="rounded-xl px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">
+            {{ isSubmitting ? 'Memproses...' : 'Ya, Lanjutkan' }}
+          </button>
         </div>
-      </template>
-    </Modal>
+      </div>
+    </div>
+
+    <!-- Modal Detail Organisasi -->
+    <div v-if="showDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b pb-3 dark:border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-xl font-bold text-brand-600">
+              {{ detailOrg?.nama?.charAt(0) }}
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ detailOrg?.nama }}</h3>
+              <p class="text-xs text-gray-500">{{ detailOrg?.subdomain }}.ormawa.id</p>
+            </div>
+          </div>
+          <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+
+        <!-- Detail Metrics Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
+            <p class="text-[10px] text-gray-500 uppercase">Total Pengguna</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ detailOrg?.users_count || 0 }}</p>
+          </div>
+          <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
+            <p class="text-[10px] text-gray-500 uppercase">Artikel Terbit</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ detailOrg?.published_posts_count || 0 }}</p>
+          </div>
+          <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
+            <p class="text-[10px] text-gray-500 uppercase">Agenda Acara</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ detailOrg?.activities_count || 0 }}</p>
+          </div>
+          <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
+            <p class="text-[10px] text-gray-500 uppercase">Pengumuman</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ detailOrg?.announcements_count || 0 }}</p>
+          </div>
+        </div>
+
+        <div class="border-t pt-3 space-y-2 dark:border-gray-700 text-xs">
+          <div class="flex justify-between py-1 border-b dark:border-gray-800">
+            <span class="text-gray-500">Admin Organisasi:</span>
+            <span class="font-semibold text-gray-900 dark:text-white">{{ detailOrg?.admin_user?.name || 'Belum ditugaskan' }}</span>
+          </div>
+          <div class="flex justify-between py-1 border-b dark:border-gray-800">
+            <span class="text-gray-500">Periode Aktif:</span>
+            <span class="font-semibold text-gray-900 dark:text-white">{{ detailOrg?.current_period?.period_name || 'Belum ada' }}</span>
+          </div>
+          <div class="flex justify-between py-1 border-b dark:border-gray-800">
+            <span class="text-gray-500">Jumlah Editor / Kontributor:</span>
+            <span class="font-semibold text-gray-900 dark:text-white">{{ detailOrg?.editors_count || 0 }} Editor, {{ detailOrg?.contributors_count || 0 }} Kontributor</span>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button @click="showDetailModal = false" class="rounded-xl bg-gray-200 px-5 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-300 dark:bg-gray-800 dark:text-white">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+
   </AdminLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { PlusIcon, EyeIcon, CalendarIcon, EditIcon, CheckCircleIcon, XCircleIcon } from 'lucide-vue-next'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
-import Modal from '@/components/ui/Modal.vue'
 import { organizationService } from '@/services/organizationService'
-import { useToastStore } from '@/stores/toast'
 import type { Organization } from '@/types/api'
 
-const toastStore = useToastStore()
-const currentPageTitle = ref('Organisasi')
-const searchQuery = ref('')
-const organizations = ref<Organization[]>([])
-const isLoading = ref(false)
-const errorMessage = ref('')
-
-// Form State
-const isModalOpen = ref(false)
-const isEditMode = ref(false)
+const currentPageTitle = ref('Semua Organisasi')
+const isLoading = ref(true)
 const isSubmitting = ref(false)
-const deletingId = ref<number | null>(null)
+const organizations = ref<Organization[]>([])
 
-const form = ref<Partial<Organization>>({
+const searchQuery = ref('')
+const selectedJenis = ref('')
+const selectedStatus = ref('')
+
+const showModal = ref(false)
+const isEditing = ref(false)
+const modalError = ref<string | null>(null)
+
+const showStatusConfirmModal = ref(false)
+const selectedOrg = ref<Organization | null>(null)
+const statusAction = ref<'activate' | 'deactivate'>('activate')
+
+const showDetailModal = ref(false)
+const detailOrg = ref<any>(null)
+
+const form = ref({
+  id: null as number | null,
   nama: '',
-  jenis: 'HMPS',
-  subdomain: ''
+  jenis: 'UKM',
+  subdomain: '',
 })
-let editId: number | null = null
 
-onMounted(async () => {
-  await loadOrganizations()
+const filteredOrganizations = computed(() => {
+  return organizations.value.filter((org) => {
+    const matchSearch = !searchQuery.value ||
+      org.nama.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      org.subdomain.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchJenis = !selectedJenis.value || org.jenis === selectedJenis.value
+    const matchStatus = !selectedStatus.value || org.status === selectedStatus.value
+    return matchSearch && matchJenis && matchStatus
+  })
 })
 
 const loadOrganizations = async () => {
   isLoading.value = true
-  errorMessage.value = ''
-
   try {
-    organizations.value = await organizationService.list()
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Gagal memuat organisasi.'
+    const data = await organizationService.list()
+    organizations.value = data || []
+  } catch (err) {
+    console.error('Failed to load organizations:', err)
   } finally {
     isLoading.value = false
   }
 }
 
 const openModal = (org?: Organization) => {
+  modalError.value = null
   if (org) {
-    isEditMode.value = true
-    editId = org.id
-    form.value = { 
-      nama: org.nama, 
-      jenis: org.jenis, 
-      subdomain: org.subdomain 
+    isEditing.value = true
+    form.value = {
+      id: org.id,
+      nama: org.nama,
+      jenis: org.jenis,
+      subdomain: org.subdomain,
     }
   } else {
-    isEditMode.value = false
-    editId = null
-    form.value = { nama: '', jenis: 'HMPS', subdomain: '' }
-  }
-  isModalOpen.value = true
-}
-
-const closeModal = () => {
-  isModalOpen.value = false
-}
-
-const submitForm = async () => {
-  if (isSubmitting.value) return
-  isSubmitting.value = true
-  
-  try {
-    if (isEditMode.value && editId !== null) {
-      await organizationService.update(editId, form.value)
-      toastStore.success('Data berhasil diperbarui.')
-    } else {
-      await organizationService.create(form.value)
-      toastStore.success('Organisasi berhasil ditambahkan.')
+    isEditing.value = false
+    form.value = {
+      id: null,
+      nama: '',
+      jenis: 'UKM',
+      subdomain: '',
     }
-    closeModal()
+  }
+  showModal.value = true
+}
+
+const saveOrganization = async () => {
+  isSubmitting.value = true
+  modalError.value = null
+  try {
+    const payload: Partial<Organization> = {
+      nama: form.value.nama,
+      jenis: form.value.jenis,
+      subdomain: form.value.subdomain,
+    }
+    if (isEditing.value && form.value.id) {
+      await organizationService.update(form.value.id, payload)
+    } else {
+      await organizationService.create(payload)
+    }
+    showModal.value = false
     await loadOrganizations()
-  } catch (error: any) {
-    toastStore.error(error.response?.data?.message || 'Data gagal disimpan.')
+  } catch (err: any) {
+    modalError.value = err?.message || 'Gagal menyimpan organisasi.'
   } finally {
     isSubmitting.value = false
   }
 }
 
-const deleteOrganization = async (id: number) => {
-  if (confirm('Apakah Anda yakin ingin menghapus organisasi ini?')) {
-    deletingId.value = id
-    try {
-      await organizationService.remove(id)
-      toastStore.success('Data berhasil dihapus.')
-      await loadOrganizations()
-    } catch (error: any) {
-      toastStore.error(error.response?.data?.message || 'Data gagal dihapus.')
-    } finally {
-      deletingId.value = null
+const openStatusModal = (org: Organization, action: 'activate' | 'deactivate') => {
+  selectedOrg.value = org
+  statusAction.value = action
+  showStatusConfirmModal.value = true
+}
+
+const confirmStatusChange = async () => {
+  if (!selectedOrg.value) return
+  isSubmitting.value = true
+  try {
+    if (statusAction.value === 'activate') {
+      await organizationService.activate(selectedOrg.value.id)
+    } else {
+      await organizationService.deactivate(selectedOrg.value.id)
     }
+    showStatusConfirmModal.value = false
+    await loadOrganizations()
+  } catch (err: any) {
+    alert(err?.message || 'Gagal mengubah status.')
+  } finally {
+    isSubmitting.value = false
   }
 }
 
-const activateOrganization = async (id: number) => {
-  if (confirm('Apakah Anda yakin ingin mengaktifkan organisasi ini?')) {
-    try {
-      await organizationService.activate(id)
-      toastStore.success('Organisasi berhasil diaktifkan.')
-      await loadOrganizations()
-    } catch (error: any) {
-      toastStore.error(error.response?.data?.message || 'Gagal mengaktifkan organisasi.')
-    }
+const openDetail = async (org: Organization) => {
+  try {
+    const data = await organizationService.getById(org.id)
+    detailOrg.value = data
+    showDetailModal.value = true
+  } catch (err) {
+    console.error('Failed to load organization detail:', err)
   }
 }
 
-const deactivateOrganization = async (id: number) => {
-  if (confirm('Apakah Anda yakin ingin menonaktifkan organisasi ini?')) {
-    try {
-      await organizationService.deactivate(id)
-      toastStore.success('Organisasi berhasil dinonaktifkan.')
-      await loadOrganizations()
-    } catch (error: any) {
-      toastStore.error(error.response?.data?.message || 'Gagal menonaktifkan organisasi.')
-    }
-  }
-}
-
-const filteredOrganizations = computed(() => {
-  if (!searchQuery.value) return organizations.value
-
-  const lowerCaseQuery = searchQuery.value.toLowerCase()
-  return organizations.value.filter((org) =>
-    org.nama.toLowerCase().includes(lowerCaseQuery) ||
-    org.jenis.toLowerCase().includes(lowerCaseQuery) ||
-    org.subdomain.toLowerCase().includes(lowerCaseQuery),
-  )
+onMounted(() => {
+  loadOrganizations()
 })
-
-const formatDateOnly = (dateString?: string | null) => {
-  if (!dateString) return '-'
-  
-  const datePart = dateString.substring(0, 10)
-  const date = new Date(datePart)
-  
-  if (isNaN(date.getTime())) return '-'
-  
-  return new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  }).format(date)
-}
 </script>
-

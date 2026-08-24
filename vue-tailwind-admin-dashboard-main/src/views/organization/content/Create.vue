@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { postService } from '@/services/postService'
 import { activityService } from '@/services/activityService'
 import { announcementService } from '@/services/announcementService'
+import { taxonomyService } from '@/services/taxonomyService'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import type { Category, Tag } from '@/types/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -21,10 +23,28 @@ const excerpt = ref('')
 const cover_image = ref('')
 const meta_title = ref('')
 const meta_description = ref('')
+const category_id = ref<number | undefined>(undefined)
+const selectedTags = ref<number[]>([])
 const activity_date = ref('')
 const activity_description = ref('')
 const announcement_date = ref('')
 const priority = ref<'low'|'normal'|'high'|'urgent'>('normal')
+
+const categoriesList = ref<Category[]>([])
+const tagsList = ref<Tag[]>([])
+
+onMounted(async () => {
+  try {
+    const [cats, tags] = await Promise.all([
+      taxonomyService.getCategories(),
+      taxonomyService.getTags(),
+    ])
+    categoriesList.value = cats
+    tagsList.value = tags
+  } catch (err) {
+    console.error('Failed to load categories or tags', err)
+  }
+})
 
 const isSubmitting = ref(false)
 const errorMessage = ref('')
@@ -44,6 +64,8 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
         cover_image: cover_image.value,
         meta_title: meta_title.value,
         meta_description: meta_description.value,
+        category_id: category_id.value,
+        tags: selectedTags.value as any,
         status: status as any
       })
     } else if (contentType.value === 'activity') {
@@ -111,6 +133,49 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
 
         <!-- POST SPECIFIC -->
         <template v-if="contentType === 'post'">
+          <div>
+            <label class="mb-2.5 block text-black dark:text-white">Kategori</label>
+            <select 
+              v-model="category_id"
+              class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+            >
+              <option :value="undefined">-- Pilih Kategori (Opsional) --</option>
+              <option v-for="cat in categoriesList" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="mb-2.5 block text-black dark:text-white">URL Cover Image</label>
+            <input 
+              type="text" 
+              v-model="cover_image" 
+              placeholder="https://..."
+              class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+            />
+          </div>
+
+          <div v-if="tagsList.length > 0" class="md:col-span-2">
+            <label class="mb-2.5 block text-black dark:text-white">Tags Terkait</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                v-for="t in tagsList"
+                :key="t.id"
+                @click="selectedTags.includes(t.id) ? selectedTags.splice(selectedTags.indexOf(t.id), 1) : selectedTags.push(t.id)"
+                :class="[
+                  'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                  selectedTags.includes(t.id)
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-meta-4 dark:text-gray-300'
+                ]"
+              >
+                #{{ t.name }}
+              </button>
+            </div>
+          </div>
+
           <div class="md:col-span-2">
             <label class="mb-2.5 block text-black dark:text-white">Ringkasan (Excerpt)</label>
             <textarea 
@@ -126,15 +191,6 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
               rows="6"
               class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
             ></textarea>
-            <!-- Catatan: Untuk TipTap editor bisa diintegrasikan nanti disini -->
-          </div>
-          <div class="md:col-span-2">
-            <label class="mb-2.5 block text-black dark:text-white">URL Cover Image</label>
-            <input 
-              type="text" 
-              v-model="cover_image" 
-              class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
-            />
           </div>
         </template>
 

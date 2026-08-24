@@ -1,34 +1,41 @@
 <template>
-  <div class="flex-grow bg-white">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      
-      <!-- State: Loading -->
-      <div v-if="isLoading" class="flex flex-col items-center justify-center py-32">
-        <div class="w-8 h-8 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-500 font-medium">Memuat detail kegiatan...</p>
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+    <nav class="flex items-center gap-1.5 text-xs text-slate-500">
+      <router-link :to="`/organizations/${organization.subdomain}`" class="hover:text-slate-900">Beranda</router-link>
+      <span>/</span>
+      <router-link :to="`/organizations/${organization.subdomain}/agenda`" class="hover:text-slate-900">Agenda</router-link>
+      <span>/</span>
+      <span class="text-slate-900 font-semibold truncate">{{ agenda?.judul || 'Rincian' }}</span>
+    </nav>
+
+    <div v-if="isLoading" class="py-20 text-center text-xs text-slate-500">Memuat rincian agenda...</div>
+    <div v-else-if="!agenda" class="py-20 text-center text-xs text-slate-500 border border-dashed rounded-xl">
+      Agenda tidak ditemukan atau belum dipublikasikan.
+    </div>
+
+    <div v-else class="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 space-y-5">
+      <div class="space-y-1.5 border-b border-slate-200 pb-4">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-900">{{ organization.nama }}</span>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-950">{{ agenda.judul }}</h1>
       </div>
 
-      <!-- State: Error / Unavailable -->
-      <div v-else-if="error" class="text-center py-32">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-6">
-          <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 border border-slate-200 text-xs">
+        <div>
+          <span class="text-slate-500 block mb-0.5">Waktu Pelaksanaan:</span>
+          <span class="font-bold text-slate-900">
+            {{ agenda.tanggal_pelaksanaan ? new Date(agenda.tanggal_pelaksanaan).toLocaleDateString('id-ID', { dateStyle: 'full' }) : '-' }}
+          </span>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900 mb-4">Detail Kegiatan Belum Tersedia</h2>
-        <p class="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
-          Layanan detail kegiatan untuk saat ini belum terhubung.
-        </p>
-        <router-link :to="`/org/${currentTenantSlug}/kegiatan`" class="text-brand-600 font-medium hover:text-brand-700">
-          &larr; Kembali ke Daftar Kegiatan
-        </router-link>
+        <div>
+          <span class="text-slate-500 block mb-0.5">Lokasi / Tempat:</span>
+          <span class="font-bold text-slate-900">{{ agenda.tempat || 'Kampus ITI' }}</span>
+        </div>
       </div>
 
-      <!-- State: Success -->
-      <article v-else-if="activity">
-        <!-- Structural representation of an activity detail -->
-      </article>
-
+      <div class="space-y-2 pt-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Deskripsi Kegiatan</h3>
+        <p class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ agenda.deskripsi }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -36,38 +43,50 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { usePublicStore } from '@/stores/public'
 import { publicService } from '@/services/publicService'
-import type { Activity } from '@/types/api'
+import { useSeoMeta } from '@/composables/useSeoMeta'
+import type { PublicOrganization, PublicAgenda } from '@/types/public'
 
+const props = defineProps<{ organization: PublicOrganization }>()
 const route = useRoute()
-const publicStore = usePublicStore()
-const { currentTenantSlug } = storeToRefs(publicStore)
 
+const agenda = ref<PublicAgenda | null>(null)
 const isLoading = ref(true)
-const error = ref<string | null>(null)
-const activity = ref<Activity | null>(null)
 
-const fetchActivity = async () => {
-  const tenantSlug = route.params.slug as string
-  const activityId = route.params.id as string
-  
-  if (!tenantSlug || !activityId) return
-  
+useSeoMeta(() => ({
+  title: agenda.value ? `${agenda.value.judul} | ${props.organization.nama}` : 'Agenda Kegiatan',
+  description: agenda.value?.deskripsi,
+  ogType: 'event',
+  jsonLd: agenda.value ? {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: agenda.value.judul,
+    startDate: agenda.value.tanggal_pelaksanaan,
+    location: {
+      '@type': 'Place',
+      name: agenda.value.tempat,
+    },
+    organizer: {
+      '@type': 'Organization',
+      name: props.organization.nama,
+    }
+  } : undefined
+}))
+
+const loadDetail = async () => {
+  const id = route.params.id as string
   isLoading.value = true
-  error.value = null
-  
   try {
-    activity.value = await publicService.getActivityById(tenantSlug, activityId)
+    const data = await publicService.getAgendaDetail(props.organization.subdomain, id)
+    agenda.value = data
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Backend Endpoint Unavailable'
+    console.error(err)
   } finally {
     isLoading.value = false
   }
 }
 
 onMounted(() => {
-  fetchActivity()
+  loadDetail()
 })
 </script>

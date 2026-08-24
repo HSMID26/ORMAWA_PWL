@@ -211,7 +211,8 @@ import {
   PlugIcon,
   BoxIcon,
   SettingsIcon,
-  CalendarClockIcon
+  CalendarClockIcon,
+  UsersIcon
 } from 'lucide-vue-next';
 import SidebarWidget from "./SidebarWidget.vue";
 import { useSidebar } from "@/composables/useSidebar";
@@ -240,14 +241,32 @@ const menuGroups = computed<MenuGroup[]>(() => {
   if (role === 'Super Admin') {
     return [
       {
-        title: 'Super Admin Menu',
+        title: 'Super Admin',
         items: [
           { icon: LayoutGridIcon, name: 'Dashboard', path: '/dashboard' },
-          { icon: BoxIcon, name: 'Pendaftaran Organisasi', path: '/super-admin/organization-registrations' },
-          { icon: BoxIcon, name: 'Organizations', path: '/super-admin/organizations' },
-          { icon: UserCircleIcon, name: 'Users', path: '/super-admin/users' },
-          { icon: PlugIcon, name: 'Platform Settings', path: '/super-admin/settings' },
-          { icon: FileTextIcon, name: 'Activity Log', path: '/super-admin/activity-logs' },
+        ]
+      },
+      {
+        title: 'ORGANISASI',
+        items: [
+          { icon: BoxIcon, name: 'Semua Organisasi', path: '/super-admin/organizations' },
+          { icon: FileTextIcon, name: 'Pendaftaran Organisasi', path: '/super-admin/organization-registrations' },
+          { icon: UsersIcon, name: 'Admin Organisasi', path: '/super-admin/organization-admins' },
+          { icon: CalendarClockIcon, name: 'Periode / Renewal', path: '/super-admin/periods' },
+        ]
+      },
+      {
+        title: 'MONITORING',
+        items: [
+          { icon: UserCircleIcon, name: 'Pengguna Global', path: '/super-admin/users' },
+          { icon: ListIcon, name: 'Monitoring Konten', path: '/super-admin/content' },
+          { icon: FileIcon, name: 'Activity Log', path: '/super-admin/activity-logs' },
+        ]
+      },
+      {
+        title: 'SYSTEM',
+        items: [
+          { icon: SettingsIcon, name: 'Pengaturan Platform', path: '/super-admin/settings' },
         ]
       }
     ]
@@ -256,16 +275,33 @@ const menuGroups = computed<MenuGroup[]>(() => {
   if (role === 'Admin Organisasi') {
     return [
       {
-        title: 'Organization Admin Menu',
+        title: 'Utama',
         items: [
           { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-          { icon: FileIcon, name: 'Posts', path: '/organization/posts' },
+        ]
+      },
+      {
+        title: 'Konten',
+        items: [
+          { icon: FileTextIcon, name: 'Artikel', path: '/organization/posts' },
           { icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' },
-          { icon: MessageSquareIcon, name: 'Announcements', path: '/organization/announcements' },
-          { icon: PieChartIcon, name: 'Gallery', path: '/organization/gallery' },
-          { icon: FileTextIcon, name: 'Documents', path: '/organization/documents' },
-          { icon: UserCircleIcon, name: 'Organization Users', path: '/organization/users' },
-          { icon: PlugIcon, name: 'Organization Settings', path: '/organization/settings' },
+          { icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' },
+          { icon: PieChartIcon, name: 'Galeri', path: '/organization/gallery' },
+          { icon: FileIcon, name: 'Dokumen', path: '/organization/documents' },
+        ]
+      },
+      {
+        title: 'Organisasi',
+        items: [
+          { icon: UsersIcon, name: 'Struktur Organisasi', path: '/organization/committees' },
+          { icon: CalendarClockIcon, name: 'Manajemen Periode', path: '/organization/period' },
+          { icon: UserCircleIcon, name: 'Pengguna Organisasi', path: '/organization/users' },
+          { icon: SettingsIcon, name: 'Pengaturan Organisasi', path: '/organization/settings' },
+        ]
+      },
+      {
+        title: 'Audit Trail',
+        items: [
           { icon: FileTextIcon, name: 'Activity Log', path: '/organization/activity-logs' },
         ]
       }
@@ -275,12 +311,19 @@ const menuGroups = computed<MenuGroup[]>(() => {
   if (role === 'Editor') {
     return [
       {
-        title: 'Editor Menu',
+        title: 'Utama',
         items: [
           { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-          { icon: FileIcon, name: 'Posts', path: '/organization/posts' },
+        ]
+      },
+      {
+        title: 'Manajemen Konten',
+        items: [
+          { icon: FileTextIcon, name: 'Artikel', path: '/organization/posts' },
           { icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' },
-          { icon: PieChartIcon, name: 'Gallery', path: '/organization/gallery' },
+          { icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' },
+          { icon: PieChartIcon, name: 'Galeri', path: '/organization/gallery' },
+          { icon: FileIcon, name: 'Dokumen', path: '/organization/documents' },
         ]
       }
     ]
@@ -289,11 +332,16 @@ const menuGroups = computed<MenuGroup[]>(() => {
   if (role === 'Kontributor') {
     return [
       {
-        title: 'Contributor Menu',
+        title: 'Utama',
         items: [
           { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-          { icon: FileTextIcon, name: 'My Drafts', path: '/organization/posts' },
-          { icon: FileIcon, name: 'Posts', path: '/organization/posts' },
+        ]
+      },
+      {
+        title: 'Artikel',
+        items: [
+          { icon: FileTextIcon, name: 'Artikel Saya', path: '/organization/posts' },
+          { icon: FileIcon, name: 'Tulis Artikel', path: '/organization/posts/create' },
         ]
       }
     ]

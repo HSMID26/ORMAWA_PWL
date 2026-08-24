@@ -40,15 +40,7 @@ class OrganizationPeriodPolicy
      */
     public function update(User $user, OrganizationPeriod $organizationPeriod): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('Admin Organisasi') && $user->organization_id === $organizationPeriod->organization_id) {
-            return $organizationPeriod->status === 'pending';
-        }
-
-        return false;
+        return $user->hasRole('Super Admin');
     }
 
     /**

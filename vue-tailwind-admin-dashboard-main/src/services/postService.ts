@@ -25,4 +25,8 @@ export const postService = {
   async remove(id: number) {
     await api.delete(`/posts/${id}`)
   },
+
+  async delete(id: number) {
+    await api.delete(`/posts/${id}`)
+  },
 }

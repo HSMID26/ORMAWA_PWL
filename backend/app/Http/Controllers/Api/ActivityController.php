@@ -12,8 +12,13 @@ class ActivityController extends Controller
     /**
      * Tampilkan semua kegiatan (Otomatis terfilter sesuai organisasi user yang login!)
      */
-    public function index()
+    public function index(Request $request)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul agenda.');
+        }
+
         $activities = Activity::with('user')->latest()->get();
 
         return response()->json([
@@ -27,22 +32,22 @@ class ActivityController extends Controller
      */
     public function store(Request $request)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk menambah agenda.');
+        }
+
         $request->validate([
             'judul'              => 'required|string|max:255',
             'deskripsi'          => 'required|string',
             'tanggal_pelaksanaan'=> 'required|date',
             'status'             => 'nullable|in:draft,review,published,rejected',
         ]);
-
-        /** @var \App\Models\User $user */
-        $user = $request->user(); // Atau auth()->user()
         
         $status = $request->status ?? 'draft';
 
         if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            if ($user->hasRole('Kontributor') && $status === 'published') {
-                $status = 'review';
-            }
+            $status = 'draft';
         }
 
         $activity = Activity::create([
@@ -78,8 +83,13 @@ class ActivityController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Activity $activity)
+    public function show(Request $request, Activity $activity)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul agenda.');
+        }
+
         return response()->json([
             'status' => 'success',
             'data'   => $activity->load(['user:id,name', 'organization:id,nama'])
@@ -91,6 +101,11 @@ class ActivityController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk mengedit agenda.');
+        }
+
         $activity = Activity::findOrFail($id);
 
         $request->validate([
@@ -103,14 +118,10 @@ class ActivityController extends Controller
         $data = $request->only(['judul', 'deskripsi', 'tanggal_pelaksanaan', 'status']);
         
         if ($request->has('status')) {
-            /** @var \App\Models\User $user */
-            $user = $request->user();
             $newStatus = $request->status;
 
             if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-                 if ($user->hasRole('Kontributor') && $newStatus === 'published') {
-                    $newStatus = 'review';
-                 }
+                $newStatus = $activity->status;
             }
             $data['status'] = $newStatus;
 
@@ -126,9 +137,6 @@ class ActivityController extends Controller
         if (isset($data['status'])) {
             $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
             $desc .= ' (Status: ' . $data['status'] . ')';
-
-            /** @var \App\Models\User $user */
-            $user = $request->user();
 
             if ($action === 'submit_review') {
                 \App\Services\NotificationService::sendToOrganizationAdmins(
@@ -175,8 +183,13 @@ class ActivityController extends Controller
     /**
      * Hapus kegiatan
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk menghapus agenda.');
+        }
+
         $activity = Activity::findOrFail($id);
         $activity->delete();
 

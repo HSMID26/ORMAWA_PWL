@@ -6,7 +6,7 @@ export function usePublicSite() {
   const route = useRoute()
   const slug = computed(() => (route.params.slug as string | undefined) || 'hmif')
   const config = computed(() => resolveOrganizationConfig(slug.value))
-  const navigation = computed(() => config.value.navigation.filter((item) => item.enabled))
+  const navigation = computed(() => config.value.navigation.filter((item: any) => item.enabled))
   const modules = computed(() => config.value.modules)
 
   function resolvePath(path: string) {

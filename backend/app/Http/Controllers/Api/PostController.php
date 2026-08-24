@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Services\ActivityLogService;
+use App\Services\NotificationService;
 
 class PostController extends Controller
 {
-    // 1. Ambil Semua Artikel (Read List)
+    // 1. Ambil Semua Artikel (Read List dengan Category & Tags)
     public function index()
     {
-        $posts = Post::with('user:id,name')->latest()->get();
+        $posts = Post::with(['user:id,name', 'category', 'tags'])->latest()->get();
 
         return response()->json([
             'status' => 'success',
@@ -33,20 +34,26 @@ class PostController extends Controller
             'status'           => 'required|in:draft,review,published,rejected',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
+            'category_id'      => 'nullable|exists:categories,id',
+            'tags'             => 'nullable|array',
+            'tags.*'           => 'exists:tags,id',
         ]);
 
         /** @var \App\Models\User $user */
         $user = $request->user();
         $status = $request->status;
 
+        // Only Admin Organisasi and Super Admin can directly publish or reject
         if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            if ($user->hasRole('Kontributor') && $status === 'published') {
+            if ($status === 'published') {
                 $status = 'review';
+            } else {
+                $status = 'draft';
             }
         }
 
         $post = Post::create([
-            'judul'            => $request->judul,
+            'judul'            => trim($request->judul),
             'slug'             => Str::slug($request->judul) . '-' . Str::random(5),
             'konten'           => $request->konten,
             'excerpt'          => $request->excerpt,
@@ -55,14 +62,19 @@ class PostController extends Controller
             'published_at'     => $status === 'published' ? now() : null,
             'meta_title'       => $request->meta_title,
             'meta_description' => $request->meta_description,
+            'category_id'      => $request->category_id,
             'user_id'          => $user->id,
             // organization_id terisi otomatis via Trait BelongsToOrganization!
         ]);
 
+        if ($request->has('tags')) {
+            $post->tags()->sync($request->tags);
+        }
+
         ActivityLogService::log('create', 'posts', 'Membuat berita baru: ' . $post->judul . ' (Status: ' . $post->status . ')', $post);
 
         if ($status === 'review') {
-            \App\Services\NotificationService::sendToOrganizationAdmins(
+            NotificationService::sendToOrganizationAdmins(
                 $post->organization_id,
                 'content_review',
                 'Konten Menunggu Review',
@@ -75,14 +87,14 @@ class PostController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Artikel berhasil dibuat!',
-            'data'    => $post
+            'data'    => $post->load(['user:id,name', 'category', 'tags'])
         ], 201);
     }
 
-    // 3. Ambil Detail 1 Artikel (Read Single)
+    // 3. Ambil Detail 1 Artikel (Read Single dengan Category & Tags)
     public function show(string $id)
     {
-        $post = Post::with('user:id,name')->findOrFail($id);
+        $post = Post::with(['user:id,name', 'category', 'tags'])->findOrFail($id);
 
         return response()->json([
             'status' => 'success',
@@ -90,10 +102,17 @@ class PostController extends Controller
         ], 200);
     }
 
-    // 4. Update Artikel (Update)
+    // 4. Update Artikel (Update dengan Sync Kategori & Tags)
     public function update(Request $request, string $id)
     {
         $post = Post::findOrFail($id);
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Contributor can only update their own posts
+        if ($user->hasRole('Kontributor') && $post->user_id !== $user->id) {
+            abort(403, 'Unauthorized. Kontributor hanya dapat mengedit artikel miliknya sendiri.');
+        }
 
         $request->validate([
             'judul'            => 'sometimes|required|string|max:255',
@@ -103,24 +122,26 @@ class PostController extends Controller
             'status'           => 'sometimes|required|in:draft,review,published,rejected',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
+            'category_id'      => 'nullable|exists:categories,id',
+            'tags'             => 'nullable|array',
+            'tags.*'           => 'exists:tags,id',
         ]);
 
-        $data = $request->only(['judul', 'konten', 'excerpt', 'cover_image', 'status', 'meta_title', 'meta_description']);
+        $data = $request->only(['judul', 'konten', 'excerpt', 'cover_image', 'status', 'meta_title', 'meta_description', 'category_id']);
 
-        // Update slug jika judul berubah
         if ($request->has('judul') && $request->judul !== $post->judul) {
             $data['slug'] = Str::slug($request->judul) . '-' . Str::random(5);
         }
 
         if ($request->has('status')) {
-            /** @var \App\Models\User $user */
-            $user = $request->user();
             $newStatus = $request->status;
 
             if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-                 if ($user->hasRole('Kontributor') && $newStatus === 'published') {
+                if ($newStatus === 'published') {
                     $newStatus = 'review';
-                 }
+                } else {
+                    $newStatus = $post->status;
+                }
             }
             $data['status'] = $newStatus;
 
@@ -131,17 +152,18 @@ class PostController extends Controller
 
         $post->update($data);
 
+        if ($request->has('tags')) {
+            $post->tags()->sync($request->tags);
+        }
+
         $action = 'update';
         $desc = 'Memperbarui berita: ' . $post->judul;
         if (isset($data['status'])) {
             $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
             $desc .= ' (Status: ' . $data['status'] . ')';
 
-            /** @var \App\Models\User $user */
-            $user = $request->user();
-
             if ($action === 'submit_review') {
-                \App\Services\NotificationService::sendToOrganizationAdmins(
+                NotificationService::sendToOrganizationAdmins(
                     $post->organization_id,
                     'content_review',
                     'Konten Menunggu Review',
@@ -151,7 +173,7 @@ class PostController extends Controller
                 );
             } elseif ($action === 'publish' && $post->user_id !== $user->id) {
                 if ($post->user) {
-                    \App\Services\NotificationService::send(
+                    NotificationService::send(
                         $post->user,
                         'content_published',
                         'Konten Dipublikasikan',
@@ -162,7 +184,7 @@ class PostController extends Controller
                 }
             } elseif ($action === 'reject' && $post->user_id !== $user->id) {
                 if ($post->user) {
-                    \App\Services\NotificationService::send(
+                    NotificationService::send(
                         $post->user,
                         'content_rejected',
                         'Konten Ditolak',
@@ -178,14 +200,22 @@ class PostController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Artikel berhasil diperbarui!',
-            'data'    => $post
+            'data'    => $post->load(['user:id,name', 'category', 'tags'])
         ], 200);
     }
 
     // 5. Hapus Artikel (Delete)
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $post = Post::findOrFail($id);
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Contributor can only delete their own posts
+        if ($user->hasRole('Kontributor') && $post->user_id !== $user->id) {
+            abort(403, 'Unauthorized. Kontributor hanya dapat menghapus artikel miliknya sendiri.');
+        }
+
         $post->delete();
 
         ActivityLogService::log('delete', 'posts', 'Menghapus berita: ' . $post->judul, clone $post);

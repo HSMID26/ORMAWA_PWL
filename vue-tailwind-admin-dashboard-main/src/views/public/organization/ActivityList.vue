@@ -1,45 +1,68 @@
 <template>
-  <div class="flex-grow bg-white">
-    <div class="bg-gray-50 py-16 border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">
-          Kegiatan & Agenda
-        </h1>
-        <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Informasi mengenai acara mendatang dan dokumentasi kegiatan yang telah terlaksana.
-        </p>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+    <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-900">Kalender Mahasiswa</span>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-950 mt-0.5">Agenda Kegiatan</h1>
+      </div>
+
+      <!-- Clean Tabs -->
+      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+        <button
+          v-for="t in tabs"
+          :key="t.value"
+          @click="activeTab = t.value; loadAgenda()"
+          :class="[
+            'rounded-md px-3 py-1 text-xs font-semibold transition',
+            activeTab === t.value ? 'bg-white text-slate-950 shadow-2xs' : 'text-slate-600 hover:text-slate-950'
+          ]"
+        >
+          {{ t.label }}
+        </button>
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      
-      <!-- State: Loading -->
-      <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
-        <div class="w-8 h-8 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-500 font-medium">Memuat agenda kegiatan...</p>
-      </div>
+    <div v-if="isLoading" class="py-16 text-center text-xs text-slate-500">Memuat agenda...</div>
+    
+    <div v-else-if="agendaItems.length === 0" class="py-14 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-xl bg-white">
+      Tidak ada agenda kegiatan pada kategori ini.
+    </div>
 
-      <!-- State: Error / Unavailable -->
-      <div v-else-if="error" class="text-center py-20">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-6">
-          <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
+    <!-- Event Rows List -->
+    <div v-else class="space-y-3">
+      <div
+        v-for="act in agendaItems"
+        :key="act.id"
+        class="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      >
+        <div class="flex items-start gap-4">
+          <!-- Date Block Anchor -->
+          <div class="h-12 w-12 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center shrink-0">
+            <span class="text-sm font-bold text-slate-900 leading-none">
+              {{ act.tanggal_pelaksanaan ? new Date(act.tanggal_pelaksanaan).getDate() : '-' }}
+            </span>
+            <span class="text-[9px] font-bold text-blue-900 uppercase leading-none mt-1">
+              {{ act.tanggal_pelaksanaan ? new Date(act.tanggal_pelaksanaan).toLocaleDateString('id-ID', { month: 'short' }) : '-' }}
+            </span>
+          </div>
+
+          <div class="space-y-1">
+            <h3 class="text-sm font-bold text-slate-950 leading-snug">{{ act.judul }}</h3>
+            <div class="flex items-center gap-3 text-xs text-slate-500">
+              <span>{{ act.tempat || 'Kampus ITI' }}</span>
+              <span>&bull;</span>
+              <span>{{ act.tanggal_pelaksanaan ? new Date(act.tanggal_pelaksanaan).toLocaleDateString('id-ID', { dateStyle: 'long' }) : '-' }}</span>
+            </div>
+            <p class="text-xs text-slate-600 line-clamp-1 max-w-xl">{{ act.deskripsi }}</p>
+          </div>
         </div>
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Agenda Belum Tersedia</h2>
-        <p class="text-lg text-gray-600 max-w-lg mx-auto">
-          Informasi publik organisasi terkait agenda kegiatan akan tampil setelah layanan konten terhubung.
-        </p>
-      </div>
-      
-      <!-- State: Empty (No activities yet) -->
-      <div v-else-if="activities.length === 0" class="text-center py-20">
-        <p class="text-gray-500">Belum ada kegiatan yang diagendakan saat ini.</p>
-      </div>
 
-      <!-- State: Success -->
-      <div v-else>
-        <!-- The UI for activities will map the activities array -->
+        <router-link
+          :to="`/organizations/${organization.subdomain}/agenda/${act.id}`"
+          class="text-xs font-semibold text-blue-900 hover:text-blue-700 shrink-0 self-end sm:self-center"
+        >
+          Lihat Rincian &rarr;
+        </router-link>
       </div>
     </div>
   </div>
@@ -47,34 +70,44 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { storeToRefs } from 'pinia'
-import { usePublicStore } from '@/stores/public'
 import { publicService } from '@/services/publicService'
-import type { Activity } from '@/types/api'
+import { useSeoMeta } from '@/composables/useSeoMeta'
+import type { PublicOrganization, PublicAgenda } from '@/types/public'
 
-const publicStore = usePublicStore()
-const { currentTenantSlug } = storeToRefs(publicStore)
+const props = defineProps<{ organization: PublicOrganization }>()
 
+const agendaItems = ref<PublicAgenda[]>([])
 const isLoading = ref(true)
-const error = ref<string | null>(null)
-const activities = ref<Activity[]>([])
+const activeTab = ref<'upcoming' | 'today' | 'past'>('upcoming')
 
-const fetchActivities = async () => {
-  if (!currentTenantSlug.value) return
-  
+const tabs = [
+  { label: 'Mendatang', value: 'upcoming' as const },
+  { label: 'Hari Ini', value: 'today' as const },
+  { label: 'Lampau', value: 'past' as const },
+]
+
+useSeoMeta(() => ({
+  title: `Agenda Kegiatan | ${props.organization.nama}`,
+  description: `Kalender jadwal kegiatan resmi mahasiswa ${props.organization.nama}.`,
+  ogType: 'website',
+}))
+
+const loadAgenda = async () => {
   isLoading.value = true
-  error.value = null
-  
   try {
-    activities.value = await publicService.getActivitiesByTenant(currentTenantSlug.value)
+    const res = await publicService.getAgenda(props.organization.subdomain, {
+      tab: activeTab.value,
+      per_page: 30,
+    })
+    agendaItems.value = res.data || []
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Backend Endpoint Unavailable'
+    console.error(err)
   } finally {
     isLoading.value = false
   }
 }
 
 onMounted(() => {
-  fetchActivities()
+  loadAgenda()
 })
 </script>

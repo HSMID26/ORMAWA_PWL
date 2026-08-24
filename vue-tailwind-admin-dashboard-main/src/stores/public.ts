@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { publicService } from '@/services/publicService'
-import type { Organization } from '@/types/api'
+import type { PublicOrganization } from '@/types/public'
 
 export const usePublicStore = defineStore('public', () => {
   const currentTenantSlug = ref<string | null>(null)
-  const currentOrganization = ref<Organization | null>(null)
+  const currentOrganization = ref<PublicOrganization | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -20,8 +20,6 @@ export const usePublicStore = defineStore('public', () => {
 
     isLoading.value = true
     try {
-      // NOTE: publicService.getOrganizationBySlug currently throws an unavailable error 
-      // because the backend endpoint does not exist yet. The UI will catch this state.
       currentOrganization.value = await publicService.getOrganizationBySlug(slug)
     } catch (err) {
       currentOrganization.value = null

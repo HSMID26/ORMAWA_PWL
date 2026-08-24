@@ -40,6 +40,31 @@ class Organization extends Model
         return $this->hasMany(OrganizationPeriod::class);
     }
 
+    public function committees(): HasMany
+    {
+        return $this->hasMany(Committee::class);
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(Activity::class);
+    }
+
+    public function announcements(): HasMany
+    {
+        return $this->hasMany(Announcement::class);
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(Media::class);
+    }
+
     /**
      * Mendapatkan period aktif saat ini (jika ada)
      */

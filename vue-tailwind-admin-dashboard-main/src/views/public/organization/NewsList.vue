@@ -1,80 +1,106 @@
 <template>
-  <div class="flex-grow bg-white">
-    <div class="bg-gray-50 py-16 border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">
-          Berita & Artikel
-        </h1>
-        <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Publikasi terkini seputar kegiatan, opini, dan informasi dari {{ currentOrganization?.nama || 'organisasi' }}.
-        </p>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+    <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-900">Publikasi & Warta</span>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-950 mt-0.5">Berita & Artikel</h1>
+      </div>
+
+      <!-- Search Input -->
+      <div class="w-full sm:w-64">
+        <input
+          v-model="searchQuery"
+          @input="onSearch"
+          type="text"
+          placeholder="Cari judul warta..."
+          class="w-full h-9 rounded-lg border border-slate-200 px-3 text-xs text-slate-900 focus:border-blue-700 focus:outline-none"
+        />
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      
-      <!-- State: Loading -->
-      <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
-        <div class="w-8 h-8 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-gray-500 font-medium">Memuat berita terkini...</p>
-      </div>
+    <div v-if="isLoading" class="py-16 text-center text-xs text-slate-500">Memuat artikel...</div>
+    
+    <div v-else-if="articles.length === 0" class="py-14 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-xl bg-white">
+      Tidak ada artikel yang sesuai dengan pencarian.
+    </div>
 
-      <!-- State: Error / Unavailable -->
-      <div v-else-if="error" class="text-center py-20">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-6">
-          <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15"></path>
-          </svg>
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+      <article
+        v-for="post in articles"
+        :key="post.id"
+        class="rounded-xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 transition flex flex-col group"
+      >
+        <router-link :to="`/organizations/${organization.subdomain}/articles/${post.slug}`" class="block h-44 bg-slate-100 overflow-hidden relative">
+          <img v-if="post.cover_image" :src="post.cover_image" :alt="post.judul" class="h-full w-full object-cover group-hover:scale-102 transition" />
+          <div v-else class="h-full w-full flex items-center justify-center text-slate-300 font-bold text-xs bg-slate-100">
+            {{ organization.nama }}
+          </div>
+          <span v-if="post.category" class="absolute top-2.5 left-2.5 rounded bg-white/95 px-2 py-0.5 text-[9px] font-bold text-slate-900 shadow-xs">
+            {{ post.category.name }}
+          </span>
+        </router-link>
+
+        <div class="p-4 flex flex-col justify-between flex-grow space-y-2">
+          <div>
+            <h3 class="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-blue-900 transition line-clamp-2 leading-snug">
+              <router-link :to="`/organizations/${organization.subdomain}/articles/${post.slug}`">
+                {{ post.judul }}
+              </router-link>
+            </h3>
+            <p class="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">{{ post.excerpt }}</p>
+          </div>
+          <div class="pt-2 border-t border-slate-100 text-[10px] text-slate-400 flex justify-between font-medium">
+            <span>{{ new Date(post.published_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) }}</span>
+            <span class="text-slate-600">{{ post.author.name }}</span>
+          </div>
         </div>
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Berita Belum Tersedia</h2>
-        <p class="text-lg text-gray-600 max-w-lg mx-auto">
-          Informasi publik organisasi terkait berita dan artikel akan tampil setelah layanan konten terhubung.
-        </p>
-      </div>
-      
-      <!-- State: Empty (No news yet) -->
-      <div v-else-if="posts.length === 0" class="text-center py-20">
-        <p class="text-gray-500">Belum ada berita yang diterbitkan saat ini.</p>
-      </div>
-
-      <!-- State: Success -->
-      <div v-else>
-        <!-- The UI for news will use ArticleCard.vue mapped to the posts array -->
-      </div>
+      </article>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { storeToRefs } from 'pinia'
-import { usePublicStore } from '@/stores/public'
 import { publicService } from '@/services/publicService'
-import type { Post } from '@/types/api'
+import { useSeoMeta } from '@/composables/useSeoMeta'
+import type { PublicOrganization, PublicArticle } from '@/types/public'
 
-const publicStore = usePublicStore()
-const { currentTenantSlug, currentOrganization } = storeToRefs(publicStore)
+const props = defineProps<{ organization: PublicOrganization }>()
 
+const articles = ref<PublicArticle[]>([])
 const isLoading = ref(true)
-const error = ref<string | null>(null)
-const posts = ref<Post[]>([])
+const searchQuery = ref('')
 
-const fetchPosts = async () => {
-  if (!currentTenantSlug.value) return
-  
+useSeoMeta(() => ({
+  title: `Warta & Berita | ${props.organization.nama}`,
+  description: `Arsip warta, kegiatan, dan publikasi resmi ${props.organization.nama}.`,
+  ogType: 'website',
+}))
+
+let debounceTimer: any = null
+const onSearch = () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    loadArticles()
+  }, 200)
+}
+
+const loadArticles = async () => {
   isLoading.value = true
-  error.value = null
-  
   try {
-    posts.value = await publicService.getPostsByTenant(currentTenantSlug.value)
+    const res = await publicService.getArticles(props.organization.subdomain, {
+      search: searchQuery.value || undefined,
+      per_page: 30,
+    })
+    articles.value = res.data || []
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Backend Endpoint Unavailable'
+    console.error(err)
   } finally {
     isLoading.value = false
   }
 }
 
 onMounted(() => {
-  fetchPosts()
+  loadArticles()
 })
 </script>

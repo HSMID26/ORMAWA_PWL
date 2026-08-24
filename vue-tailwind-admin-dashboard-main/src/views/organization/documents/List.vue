@@ -1,199 +1,469 @@
 <template>
   <AdminLayout>
-    <PageBreadcrumb :pageTitle="currentPageTitle" />
+    <PageBreadcrumb :pageTitle="'Manajemen Dokumen Organisasi'" />
 
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-      
-      <!-- Header & Tombol Tambah -->
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 lg:p-6 shadow-sm">
+      <!-- ─── Header & Upload Button ─────────────────────────────────────────── -->
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
         <div>
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Arsip Dokumen
-          </h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            Kelola file proposal, LPJ, SK, dan dokumen organisasi lainnya.
+          <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <FileArchiveIcon class="h-5 w-5 text-blue-500" />
+            Dokumen & Arsip Organisasi
+          </h1>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Kelola SK Kepengurusan, Proposal Kegiatan, LPJ, SOP, dan Template Berkas Resmi.
           </p>
         </div>
-        <button class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto shadow-theme-xs transition-colors">
-          + Unggah Dokumen
+        <button
+          @click="openUploadModal"
+          class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-700 shadow-sm transition"
+        >
+          <PlusIcon class="h-4 w-4" />
+          Upload Dokumen Baru
         </button>
       </div>
 
-      <!-- Search & Filter Bar -->
-      <div class="mb-6 flex flex-col gap-4 sm:flex-row">
-        <!-- Pencarian -->
-        <div class="flex-1">
+      <!-- ─── Toolbar Filters ────────────────────────────────────────────────── -->
+      <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="relative">
+          <SearchIcon class="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Cari nama dokumen..."
-            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+            class="h-10 w-full rounded-lg border border-gray-300 bg-transparent pl-10 pr-4 text-xs text-gray-800 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white"
           />
         </div>
-        
-        <!-- Filter Kategori -->
-        <div class="sm:w-48">
+
+        <div>
           <select
-            v-model="filterKategori"
-            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+            v-model="filterCategory"
+            class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-xs text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           >
-            <option value="">Semua Kategori</option>
-            <option value="Surat Keputusan">Surat Keputusan</option>
-            <option value="Proposal">Proposal</option>
-            <option value="Laporan (LPJ)">Laporan (LPJ)</option>
-            <option value="Template">Template</option>
+            <option value="">Semua Kategori Dokumen</option>
+            <option value="SK">Surat Keputusan (SK)</option>
+            <option value="Proposal">Proposal Kegiatan</option>
+            <option value="LPJ">Laporan Pertanggungjawaban (LPJ)</option>
+            <option value="SOP">SOP & Petunjuk Teknis</option>
+            <option value="Template">Template / Formulir</option>
+            <option value="Other">Lain-lain</option>
           </select>
         </div>
 
-        <!-- Filter Akses/Visibilitas -->
-        <div class="sm:w-48">
+        <div>
           <select
-            v-model="filterAkses"
-            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+            v-model="filterVisibility"
+            class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-xs text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           >
             <option value="">Semua Akses</option>
-            <option value="Publik">Publik</option>
-            <option value="Internal">Internal (Anggota)</option>
+            <option value="public">Publik (Dapat Diunduh Pengunjung)</option>
+            <option value="internal">Internal (Khusus Pengurus)</option>
           </select>
         </div>
       </div>
 
-      <!-- Tabel Data Dokumen -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
+      <!-- ─── Loading Skeleton ───────────────────────────────────────────────── -->
+      <div v-if="isLoading" class="space-y-3 py-6">
+        <div v-for="i in 4" :key="i" class="h-14 w-full animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800"></div>
+      </div>
+
+      <!-- ─── Table Data ─────────────────────────────────────────────────────── -->
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[700px]">
           <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Nama File</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Kategori</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Tipe & Ukuran</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Visibilitas Akses</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Tanggal Diunggah</th>
-              <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400 text-center">Aksi</th>
+            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+              <th class="px-4 py-3">Nama Dokumen</th>
+              <th class="px-4 py-3">Kategori</th>
+              <th class="px-4 py-3">Ukuran & Format</th>
+              <th class="px-4 py-3">Akses</th>
+              <th class="px-4 py-3">Tanggal Upload</th>
+              <th class="px-4 py-3 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody>
-            <tr 
-              v-for="doc in filteredDocuments" 
-              :key="doc.id"
-              class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
+            <tr
+              v-for="item in filteredDocs"
+              :key="item.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition"
             >
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
-                    <span v-if="doc.tipe === 'PDF'" class="text-error-500 font-bold text-xs">PDF</span>
-                    <span v-else-if="doc.tipe === 'DOCX'" class="text-blue-500 font-bold text-xs">DOC</span>
-                    <span v-else class="text-gray-500 font-bold text-xs">FILE</span>
+              <!-- Nama Dokumen -->
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-2.5">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                    <FileTextIcon class="h-4 w-4" />
                   </div>
-                  <p class="text-sm font-medium text-gray-800 dark:text-white/90 line-clamp-2" :title="doc.nama">
-                    {{ doc.nama }}
-                  </p>
+                  <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white">
+                      {{ item.name }}
+                    </h3>
+                    <span class="text-[11px] text-gray-400 font-mono">{{ item.filename }}</span>
+                  </div>
                 </div>
               </td>
-              <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-                {{ doc.kategori }}
-              </td>
-              <td class="px-4 py-4">
-                <span class="block text-sm font-medium text-gray-800 dark:text-white/90">{{ doc.tipe }}</span>
-                <span class="block text-xs text-gray-500">{{ doc.ukuran }}</span>
-              </td>
-              <td class="px-4 py-4">
-                <span 
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  :class="doc.akses === 'Publik' ? 'bg-success-100 text-success-800 dark:bg-success-500/20 dark:text-success-400' : 'bg-warning-100 text-warning-800 dark:bg-warning-500/20 dark:text-warning-400'"
-                >
-                  {{ doc.akses }}
+
+              <!-- Kategori -->
+              <td class="px-4 py-3.5">
+                <span class="rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                  {{ item.category }}
                 </span>
               </td>
-              <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {{ doc.tanggal }}
+
+              <!-- Ukuran & Format -->
+              <td class="px-4 py-3.5 text-gray-600 dark:text-gray-400 font-mono text-[11px]">
+                {{ item.file_type }} • {{ formatBytes(item.file_size) }}
               </td>
-              <td class="px-4 py-4 text-center">
-                <div class="flex justify-center items-center gap-3">
-                  <button class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors" title="Unduh File">Unduh</button>
-                  <button class="text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors" title="Edit Meta Data">Edit</button>
-                  <button class="text-sm font-medium text-error-500 hover:text-error-600 dark:text-error-400 transition-colors" title="Hapus File">Hapus</button>
+
+              <!-- Akses -->
+              <td class="px-4 py-3.5">
+                <span
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase"
+                  :class="item.visibility === 'public' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400'"
+                >
+                  {{ item.visibility }}
+                </span>
+              </td>
+
+              <!-- Tanggal Upload -->
+              <td class="px-4 py-3.5 text-gray-500 text-[11px] whitespace-nowrap">
+                {{ formatDate(item.created_at) }}
+              </td>
+
+              <!-- Aksi -->
+              <td class="px-4 py-3.5 text-center">
+                <div class="flex items-center justify-center gap-1.5">
+                  <a
+                    v-if="item.file_url"
+                    :href="item.file_url"
+                    target="_blank"
+                    download
+                    class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-brand-600 dark:hover:bg-gray-800 transition"
+                    title="Download Dokumen"
+                  >
+                    <DownloadIcon class="h-4 w-4" />
+                  </a>
+                  <button
+                    @click="openDeleteModal(item)"
+                    class="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition"
+                    title="Hapus Dokumen"
+                  >
+                    <Trash2Icon class="h-4 w-4" />
+                  </button>
                 </div>
               </td>
             </tr>
-            <tr v-if="filteredDocuments.length === 0">
-              <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                Dokumen tidak ditemukan.
+
+            <!-- Empty State -->
+            <tr v-if="filteredDocs.length === 0">
+              <td colspan="6" class="px-4 py-12 text-center">
+                <FileArchiveIcon class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-700 mb-2" />
+                <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Belum Ada Dokumen</h3>
+                <p class="text-xs text-gray-400 mt-1">Unggah dokumen resmi atau proposal organisasi Anda.</p>
+                <button
+                  @click="openUploadModal"
+                  class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+                >
+                  <PlusIcon class="h-3.5 w-3.5" />
+                  Upload Dokumen Pertama
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+    </div>
 
+    <!-- ─── Modal Upload Dokumen ─────────────────────────────────────────────── -->
+    <div
+      v-if="isUploadModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 overflow-y-auto"
+      @click.self="isUploadModalOpen = false"
+    >
+      <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 border border-gray-100 dark:border-gray-800 my-8">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800 mb-4">
+          <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <UploadCloudIcon class="h-5 w-5 text-blue-500" />
+            Upload Dokumen Organisasi
+          </h3>
+          <button @click="isUploadModalOpen = false" class="rounded-lg p-1 text-gray-400 hover:text-gray-600">
+            <XIcon class="h-5 w-5" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitUpload" class="space-y-4 text-xs">
+          <div>
+            <label class="block font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+              Nama Dokumen <span class="text-rose-500">*</span>
+            </label>
+            <input
+              v-model="uploadForm.name"
+              type="text"
+              required
+              placeholder="Contoh: SK Kepengurusan 2026 / Proposal Lomba Web"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-3.5 py-2.5 text-xs text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                Kategori Dokumen
+              </label>
+              <select
+                v-model="uploadForm.category"
+                class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="SK">Surat Keputusan (SK)</option>
+                <option value="Proposal">Proposal Kegiatan</option>
+                <option value="LPJ">Laporan Pertanggungjawaban</option>
+                <option value="SOP">SOP & Juknis</option>
+                <option value="Template">Template Formulir</option>
+                <option value="Other">Lain-lain</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                Akses Visibilitas
+              </label>
+              <select
+                v-model="uploadForm.visibility"
+                class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="public">Publik (Siapa Saja)</option>
+                <option value="internal">Internal (Khusus Pengurus)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+              Pilih Berkas File <span class="text-rose-500">*</span>
+            </label>
+            <input
+              type="file"
+              required
+              @change="handleFileChange"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-3 py-2 text-xs text-gray-700 dark:border-gray-700 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+            />
+            <p class="text-[10px] text-gray-400 mt-1">Mendukung file PDF, DOCX, XLSX, PPTX, ZIP (Max 25MB)</p>
+          </div>
+
+          <div class="mt-6 flex justify-end gap-2.5 border-t border-gray-100 pt-4 dark:border-gray-800">
+            <button
+              type="button"
+              @click="isUploadModalOpen = false"
+              class="rounded-xl bg-gray-100 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="rounded-xl bg-brand-600 px-5 py-2 font-semibold text-white hover:bg-brand-700 shadow-sm disabled:opacity-50"
+            >
+              {{ isSubmitting ? 'Mengunggah...' : 'Simpan Dokumen' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ─── Modal Konfirmasi Hapus ───────────────────────────────────────────── -->
+    <div
+      v-if="isDeleteOpen && docToDelete"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4"
+    >
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 dark:bg-rose-500/10 mb-4">
+          <Trash2Icon class="h-6 w-6" />
+        </div>
+        <h3 class="text-base font-bold text-gray-900 dark:text-white">Hapus Dokumen?</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Apakah Anda yakin ingin menghapus arsip dokumen <strong class="text-gray-900 dark:text-white">"{{ docToDelete.name }}"</strong>? Tindakan ini tidak dapat dibatalkan.
+        </p>
+
+        <div class="mt-6 flex justify-end gap-2.5">
+          <button
+            @click="isDeleteOpen = false"
+            class="rounded-lg px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+          >
+            Batal
+          </button>
+          <button
+            @click="confirmDelete"
+            :disabled="isDeleting"
+            class="rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+          >
+            {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
+          </button>
+        </div>
+      </div>
     </div>
   </AdminLayout>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import { documentService, type OrgDocument } from '@/services/documentService'
+import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
+import {
+  FileArchiveIcon,
+  FileTextIcon,
+  PlusIcon,
+  SearchIcon,
+  DownloadIcon,
+  Trash2Icon,
+  UploadCloudIcon,
+  XIcon
+} from 'lucide-vue-next'
 
-// Title Halaman
-const currentPageTitle = ref('Arsip Dokumen')
+const authStore = useAuthStore()
+const toastStore = useToastStore()
 
-// State Pencarian dan Filter
+const orgId = computed(() => authStore.organization_id || (authStore.user as any)?.organization_id || authStore.user?.organization?.id || 1)
+
+const documents = ref<OrgDocument[]>([])
+const isLoading = ref(true)
+const isSubmitting = ref(false)
+
 const searchQuery = ref('')
-const filterKategori = ref('')
-const filterAkses = ref('')
+const filterCategory = ref('')
+const filterVisibility = ref('')
 
-// Simulasi Data Dokumen (Berdasarkan parameter PRD)
-const documents = ref([
-  {
-    id: 1,
-    nama: 'Surat Keputusan Kepengurusan HMIF Periode 2026/2027.pdf',
-    kategori: 'Surat Keputusan',
-    tipe: 'PDF',
-    ukuran: '1.2 MB',
-    akses: 'Publik',
-    tanggal: '10 Jan 2026'
-  },
-  {
-    id: 2,
-    nama: 'Proposal Sponsorship Tech Fair 2026.pdf',
-    kategori: 'Proposal',
-    tipe: 'PDF',
-    ukuran: '4.5 MB',
-    akses: 'Internal',
-    tanggal: '15 Jul 2026'
-  },
-  {
-    id: 3,
-    nama: 'LPJ Kegiatan Buka Bersama 2025.pdf',
-    kategori: 'Laporan (LPJ)',
-    tipe: 'PDF',
-    ukuran: '3.1 MB',
-    akses: 'Publik',
-    tanggal: '20 Mei 2025'
-  },
-  {
-    id: 4,
-    nama: 'Template Notulensi Rapat Mingguan.docx',
-    kategori: 'Template',
-    tipe: 'DOCX',
-    ukuran: '145 KB',
-    akses: 'Internal',
-    tanggal: '05 Feb 2026'
+// Upload Modal
+const isUploadModalOpen = ref(false)
+const selectedFile = ref<File | null>(null)
+const uploadForm = ref({
+  name: '',
+  category: 'SK' as OrgDocument['category'],
+  visibility: 'public' as 'public' | 'internal'
+})
+
+// Delete Modal
+const isDeleteOpen = ref(false)
+const docToDelete = ref<OrgDocument | null>(null)
+const isDeleting = ref(false)
+
+const loadDocuments = async () => {
+  isLoading.value = true
+  try {
+    documents.value = await documentService.list(orgId.value)
+  } catch (error) {
+    console.error('Failed to load documents:', error)
+  } finally {
+    isLoading.value = false
   }
-])
+}
 
-// Logika Filter Reaktif
-const filteredDocuments = computed(() => {
+const filteredDocs = computed(() => {
   return documents.value.filter(doc => {
-    // Filter Pencarian Text
-    const matchSearch = doc.nama.toLowerCase().includes(searchQuery.value.toLowerCase())
-    
-    // Filter Kategori (Dropdown)
-    const matchKategori = filterKategori.value === '' || doc.kategori === filterKategori.value
-    
-    // Filter Akses Visibilitas (Dropdown)
-    const matchAkses = filterAkses.value === '' || doc.akses === filterAkses.value
-
-    return matchSearch && matchKategori && matchAkses
+    if (filterCategory.value && doc.category !== filterCategory.value) {
+      return false
+    }
+    if (filterVisibility.value && doc.visibility !== filterVisibility.value) {
+      return false
+    }
+    if (searchQuery.value.trim()) {
+      const q = searchQuery.value.toLowerCase()
+      const matchName = doc.name.toLowerCase().includes(q)
+      const matchFilename = doc.filename.toLowerCase().includes(q)
+      if (!matchName && !matchFilename) return false
+    }
+    return true
   })
+})
+
+const formatBytes = (bytes?: number) => {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '-'
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }).format(new Date(dateStr))
+}
+
+const openUploadModal = () => {
+  uploadForm.value = {
+    name: '',
+    category: 'SK',
+    visibility: 'public'
+  }
+  selectedFile.value = null
+  isUploadModalOpen.value = true
+}
+
+const handleFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    selectedFile.value = target.files[0]
+  }
+}
+
+const submitUpload = async () => {
+  if (!uploadForm.value.name.trim() || !selectedFile.value) {
+    toastStore.error('Nama dokumen dan file wajib diisi.')
+    return
+  }
+
+  isSubmitting.value = true
+  try {
+    const file = selectedFile.value
+    const fakeUrl = URL.createObjectURL(file)
+
+    await documentService.create(orgId.value, {
+      name: uploadForm.value.name,
+      category: uploadForm.value.category,
+      filename: file.name,
+      file_url: fakeUrl,
+      file_size: file.size,
+      file_type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
+      visibility: uploadForm.value.visibility,
+      uploader_name: authStore.user?.name || 'Admin'
+    })
+
+    toastStore.success('Dokumen berhasil diunggah!')
+    isUploadModalOpen.value = false
+    await loadDocuments()
+  } catch (error: any) {
+    toastStore.error('Gagal mengunggah dokumen: ' + error.message)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const openDeleteModal = (doc: OrgDocument) => {
+  docToDelete.value = doc
+  isDeleteOpen.value = true
+}
+
+const confirmDelete = async () => {
+  if (!docToDelete.value || isDeleting.value) return
+  isDeleting.value = true
+  try {
+    await documentService.remove(orgId.value, docToDelete.value.id)
+    toastStore.success('Dokumen berhasil dihapus.')
+    isDeleteOpen.value = false
+    docToDelete.value = null
+    await loadDocuments()
+  } catch (error: any) {
+    toastStore.error('Gagal menghapus dokumen.')
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+onMounted(() => {
+  loadDocuments()
 })
 </script>
