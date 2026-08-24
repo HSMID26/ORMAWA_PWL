@@ -16,6 +16,7 @@ class Organization extends Model
         'modul_aktif',
         'label_menu',
         'status',
+        'ga_tracking_id',
     ];
 
     protected function casts(): array

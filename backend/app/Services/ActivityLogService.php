@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ActivityLogService
 {
@@ -19,9 +20,9 @@ class ActivityLogService
      * @param User|null $user Explicit user (overrides auth()->user())
      * @return ActivityLog
      */
-    public static function log(string $action, string $module, string $description, ?Model $subject = null, ?array $metadata = null, ?\App\Models\User $user = null): ActivityLog
+    public static function log(string $action, string $module, string $description, ?Model $subject = null, ?array $metadata = null, ?User $user = null): ActivityLog
     {
-        $user = $user ?? auth()->user();
+        $user = $user ?? Auth::user();
         
         $log = new ActivityLog();
         $log->user_id = $user ? $user->id : null;
@@ -41,8 +42,8 @@ class ActivityLogService
             $log->metadata = $metadata;
         }
 
-        $log->ip_address = Request::ip();
-        $log->user_agent = Request::userAgent();
+        $log->ip_address = request()->ip();
+        $log->user_agent = request()->userAgent();
         
         $log->save();
 

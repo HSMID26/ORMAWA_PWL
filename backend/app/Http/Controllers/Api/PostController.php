@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
+use App\Models\PageView; 
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -62,6 +63,14 @@ class PostController extends Controller
     public function show(string $id)
     {
         $post = Post::with(['user:id,name', 'category', 'tags'])->findOrFail($id);
+
+        // Catat kunjungan pengunjung ke database PageView
+        PageView::create([
+            'organization_id' => $post->organization_id ?? null,
+            'url_path'        => request()->path(),
+            'ip_address'      => request()->ip(),
+            'user_agent'      => request()->userAgent(),
+        ]);
 
         return response()->json([
             'status' => 'success',

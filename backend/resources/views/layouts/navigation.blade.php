@@ -59,6 +59,13 @@
                         </x-nav-link>
                     @endif
 
+                    <!-- Fitur 11: Riwayat Aktivitas & Audit Trail -->
+                    @if($user && $user->hasRole(['Super Admin', 'Admin Organisasi']))
+                        <x-nav-link :href="route('activity-logs.index')" :active="request()->routeIs('activity-logs.*')">
+                            📜 {{ __('Riwayat Aktivitas') }}
+                        </x-nav-link>
+                    @endif
+
                     <!-- Fitur 10: Pengaturan Organisasi & Modul -->
                     <x-nav-link :href="route('organization.settings')" :active="request()->routeIs('organization.settings')">
                         ⚙️ {{ __('Pengaturan Ormawa') }}
@@ -144,6 +151,12 @@
             @if(!$org || $org->isModuleActive('committees'))
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     {{ $org ? $org->getMenuLabel('committees', 'Kelola Pengurus') : __('Kelola Pengurus') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if($user && $user->hasRole(['Super Admin', 'Admin Organisasi']))
+                <x-responsive-nav-link :href="route('activity-logs.index')" :active="request()->routeIs('activity-logs.*')">
+                    📜 {{ __('Riwayat Aktivitas') }}
                 </x-responsive-nav-link>
             @endif
 

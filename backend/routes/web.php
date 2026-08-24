@@ -11,7 +11,11 @@ use App\Http\Controllers\CommitteeWebController;
 use App\Http\Controllers\ActivityWebController;
 use App\Http\Controllers\UserWebController;
 use App\Http\Controllers\OrganizationWebController;
+use App\Http\Controllers\ActivityLogWebController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\BackupWebController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -77,9 +81,21 @@ Route::middleware('auth')->group(function () {
     // Halaman Blade Pengaturan Organisasi & Modul (Fitur 10)
     Route::get('/organization/settings', [OrganizationWebController::class, 'settings'])->name('organization.settings');
     Route::post('/organization/settings', [OrganizationWebController::class, 'updateSettings'])->name('organization.settings.update');
+
+    // Halaman Blade Riwayat Aktivitas & Audit Trail (Fitur 11)
+    Route::get('/activity-logs', [ActivityLogWebController::class, 'index'])->name('activity-logs.index');
+
+    // Halaman Backup & Restore Konten
+    Route::get('/backup-view', [BackupWebController::class, 'index'])->name('backup.index');
+    Route::get('/backup/export', [BackupController::class, 'export'])->name('backup.export');
+    Route::post('/backup/import', [BackupController::class, 'import'])->name('backup.import');
+
+    // Halaman Statistik & Google Analytics
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 });
 
-// Public iCal Feed Route (Google / Apple Calendar Sync)
-Route::get('/calendar.ics', [ActivityWebController::class, 'icalFeed'])->name('calendar.ics');
+    // Public iCal Feed Route (Google / Apple Calendar Sync)
+    Route::get('/calendar.ics', [ActivityWebController::class, 'icalFeed'])->name('calendar.ics');
+
 
 require __DIR__.'/auth.php';
