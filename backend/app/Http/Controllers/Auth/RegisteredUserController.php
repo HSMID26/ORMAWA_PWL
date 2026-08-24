@@ -3,53 +3,42 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\PendingRegistration;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(): View
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            // Validasi pilihan organisasi (jika dari dropdown) atau berikan fallback default
-            'organization_id' => ['nullable', 'exists:organizations,id'],
+            'nama_ormawa'  => ['required', 'string', 'max:255'],
+            'jenis_ormawa' => ['required', 'in:HMPS,UKM,BEM,Senat,Lainnya'],
+            'subdomain'    => ['required', 'string', 'alpha_dash', 'max:50', 'unique:pending_registrations,subdomain', 'unique:organizations,subdomain'],
+            'admin_name'   => ['required', 'string', 'max:255'],
+            'admin_email'  => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:pending_registrations,admin_email', 'unique:'.User::class.',email'],
+            'password'     => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            // Assign ke organisasi pilihan atau default ke ID 1
-            'organization_id' => $request->organization_id ?? 1,
+        PendingRegistration::create([
+            'nama_ormawa'    => $request->nama_ormawa,
+            'jenis_ormawa'   => $request->jenis_ormawa,
+            'subdomain'      => strtolower($request->subdomain),
+            'admin_name'     => $request->admin_name,
+            'admin_email'    => $request->admin_email,
+            'admin_password' => Hash::make($request->password),
+            'status'         => 'pending',
         ]);
 
-        event(new Registered($user));
-
-        Auth::login($user);
-
-        return redirect(route('dashboard', absolute: false));
+        return redirect()->route('login')->with('status', 'Pendaftaran Ormawa berhasil diajukan! Harap tunggu persetujuan dari Super Admin PKA.');
     }
 }

@@ -16,6 +16,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BackupWebController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\SuperAdminController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -31,6 +32,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Management Pengajuan Ormawa oleh Super Admin
+    Route::get('/superadmin/pending-registrations', [SuperAdminController::class, 'pendingRegistrations'])->name('superadmin.pending.index');
+    Route::post('/superadmin/pending-registrations/{id}/approve', [SuperAdminController::class, 'approve'])->name('superadmin.approve');
+    Route::post('/superadmin/pending-registrations/{id}/reject', [SuperAdminController::class, 'reject'])->name('superadmin.reject');
 
     // Rute Manajemen Postings Ormawa (TipTap Editor)
     Route::get('/posts', [PostWebController::class, 'index'])->name('posts.index');
