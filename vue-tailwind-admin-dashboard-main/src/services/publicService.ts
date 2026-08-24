@@ -1,56 +1,117 @@
-import type { Organization, Post, Activity } from '@/types/api'
+import apiClient from '@/services/api'
+import type {
+  PublicOrganization,
+  PublicArticle,
+  PublicAgenda,
+  PublicAnnouncement,
+  PublicMedia,
+  PublicDocument,
+  PublicCommittee,
+  PublicHomeSummary,
+  PublicPaginationMeta,
+} from '@/types/public'
 
-/**
- * Public Service Layer
- * 
- * NOTE: The Laravel backend currently does not expose public endpoints for 
- * organizations, posts, or activities (they are all behind auth:sanctum).
- * 
- * This service acts as a clean abstraction layer ready for future backend integration.
- * It intentionally rejects promises with a specific error so the UI can display
- * a professional "Content Unavailable" state rather than breaking or using fake data.
- */
-
-class EndpointUnavailableError extends Error {
-  constructor(message: string = 'Layanan backend publik belum tersedia.') {
-    super(message)
-    this.name = 'EndpointUnavailableError'
-  }
+export interface PublicPaginationResponse<T> {
+  status: string
+  data: T[]
+  meta: PublicPaginationMeta
 }
 
 export const publicService = {
-  // Expected: GET /api/public/organizations
-  async getOrganizations(): Promise<Organization[]> {
-    throw new EndpointUnavailableError('Data organisasi publik belum dapat dimuat.')
+  // GET /api/public/home
+  async getHome(): Promise<PublicHomeSummary> {
+    const res = await apiClient.get('/public/home')
+    return res.data.data
   },
 
-  // Expected: GET /api/public/organizations/{slug}
-  async getOrganizationBySlug(slug: string): Promise<Organization> {
-    throw new EndpointUnavailableError('Profil organisasi publik belum dapat dimuat.')
+  // GET /api/public/organizations
+  async getOrganizations(params?: {
+    jenis?: string
+    search?: string
+    page?: number
+    per_page?: number
+  }): Promise<PublicPaginationResponse<PublicOrganization>> {
+    const res = await apiClient.get('/public/organizations', { params })
+    return res.data
   },
 
-  // Expected: GET /api/public/organizations/{slug}/posts
-  async getPostsByTenant(slug: string): Promise<Post[]> {
-    throw new EndpointUnavailableError('Berita organisasi belum dapat dimuat.')
+  // GET /api/public/organizations/{slug}
+  async getOrganizationBySlug(slug: string): Promise<PublicOrganization> {
+    const res = await apiClient.get(`/public/organizations/${slug}`)
+    return res.data.data
   },
 
-  // Expected: GET /api/public/organizations/{slug}/activities
-  async getActivitiesByTenant(slug: string): Promise<Activity[]> {
-    throw new EndpointUnavailableError('Kegiatan organisasi belum dapat dimuat.')
+  // GET /api/public/organizations/{slug}/articles
+  async getArticles(
+    slug: string,
+    params?: {
+      search?: string
+      category?: string
+      tag?: string
+      page?: number
+      per_page?: number
+    }
+  ): Promise<PublicPaginationResponse<PublicArticle>> {
+    const res = await apiClient.get(`/public/organizations/${slug}/articles`, { params })
+    return res.data
   },
 
-  // Expected: GET /api/public/organizations/{slug}/posts/{postSlug}
-  async getPostBySlug(slug: string, postSlug: string): Promise<Post> {
-    throw new EndpointUnavailableError('Detail berita publik belum dapat dimuat.')
+  // GET /api/public/organizations/{slug}/articles/{articleSlug}
+  async getArticleBySlug(slug: string, articleSlug: string): Promise<PublicArticle> {
+    const res = await apiClient.get(`/public/organizations/${slug}/articles/${articleSlug}`)
+    return res.data.data
   },
 
-  // Expected: GET /api/public/organizations/{slug}/activities/{id}
-  async getActivityById(slug: string, id: string | number): Promise<Activity> {
-    throw new EndpointUnavailableError('Detail kegiatan publik belum dapat dimuat.')
+  // GET /api/public/organizations/{slug}/agenda
+  async getAgenda(
+    slug: string,
+    params?: {
+      tab?: 'upcoming' | 'today' | 'past' | 'all'
+      page?: number
+      per_page?: number
+    }
+  ): Promise<PublicPaginationResponse<PublicAgenda>> {
+    const res = await apiClient.get(`/public/organizations/${slug}/agenda`, { params })
+    return res.data
   },
 
-  // Expected: GET /api/public/organizations/{slug}/structure
-  async getStructureByTenant(slug: string): Promise<any[]> {
-    throw new EndpointUnavailableError('Struktur kepengurusan organisasi belum dapat dimuat.')
-  }
+  // GET /api/public/organizations/{slug}/agenda/{id}
+  async getAgendaDetail(slug: string, id: string | number): Promise<PublicAgenda> {
+    const res = await apiClient.get(`/public/organizations/${slug}/agenda/${id}`)
+    return res.data.data
+  },
+
+  // GET /api/public/organizations/{slug}/announcements
+  async getAnnouncements(slug: string): Promise<PublicAnnouncement[]> {
+    const res = await apiClient.get(`/public/organizations/${slug}/announcements`)
+    return res.data.data
+  },
+
+  // GET /api/public/organizations/{slug}/gallery
+  async getGallery(
+    slug: string,
+    params?: { page?: number; per_page?: number }
+  ): Promise<PublicPaginationResponse<PublicMedia>> {
+    const res = await apiClient.get(`/public/organizations/${slug}/gallery`, { params })
+    return res.data
+  },
+
+  // GET /api/public/organizations/{slug}/documents
+  async getDocuments(
+    slug: string,
+    params?: { page?: number; per_page?: number }
+  ): Promise<PublicPaginationResponse<PublicDocument>> {
+    const res = await apiClient.get(`/public/organizations/${slug}/documents`, { params })
+    return res.data
+  },
+
+  // GET /api/public/organizations/{slug}/structure
+  async getStructure(slug: string): Promise<{
+    organization: { nama: string; subdomain: string; logo?: string; current_period?: string }
+    members: PublicCommittee[]
+    by_department: Record<string, PublicCommittee[]>
+  }> {
+    const res = await apiClient.get(`/public/organizations/${slug}/structure`)
+    return res.data.data
+  },
 }

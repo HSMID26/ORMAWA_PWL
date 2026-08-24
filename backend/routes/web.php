@@ -63,7 +63,7 @@ Route::middleware('auth')->group(function () {
     // Rute Manajemen Pengurus Ormawa
     Route::get('/committees', [CommitteeController::class, 'index']);
     Route::post('/committees', [CommitteeController::class, 'store']);
-    Route::post('/committees/{id}', [CommitteeController::class, 'update']); // Menggunakan POST untuk FormData upload foto
+    Route::post('/committees/{id}', [CommitteeController::class, 'update']);
     Route::delete('/committees/{id}', [CommitteeController::class, 'destroy']);
 
     // Halaman Blade Management Pengurus
@@ -100,8 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 });
 
-    // Public iCal Feed Route (Google / Apple Calendar Sync)
-    Route::get('/calendar.ics', [ActivityWebController::class, 'icalFeed'])->name('calendar.ics');
+// Public iCal Feed Route (Google / Apple Calendar Sync)
+Route::get('/calendar.ics', [ActivityWebController::class, 'icalFeed'])->name('calendar.ics');
 
-
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

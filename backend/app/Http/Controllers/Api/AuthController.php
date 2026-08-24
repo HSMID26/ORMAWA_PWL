@@ -40,8 +40,10 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Generate Sanctum Token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Generate Sanctum Token with Expiration
+        $expirationMinutes = config('sanctum.expiration', 1440);
+        $expiresAt = $expirationMinutes ? now()->addMinutes($expirationMinutes) : null;
+        $token = $user->createToken('auth_token', ['*'], $expiresAt)->plainTextToken;
 
         ActivityLogService::log('login', 'authentication', 'User berhasil login', $user, null, clone $user);
 

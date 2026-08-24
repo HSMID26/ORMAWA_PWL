@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Media extends Model
 {
-    use HasFactory, BelongsToOrganization; // filter berdasarkan organization_id
+    use HasFactory, BelongsToOrganization;
 
     protected $fillable = [
         'organization_id',
@@ -19,15 +21,18 @@ class Media extends Model
         'size',
     ];
 
-    // Relasi ke User pembuat/pengunggah
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Helper Accessor untuk mendapatkan Full URL Gambar
-    public function getUrlAttribute()
+    public function organization(): BelongsTo
     {
-        return url(\Illuminate\Support\Facades\Storage::url($this->path));
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function getUrlAttribute(): string
+    {
+        return url(Storage::url($this->path));
     }
 }

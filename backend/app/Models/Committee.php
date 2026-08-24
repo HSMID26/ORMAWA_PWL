@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class Committee extends Model
@@ -13,6 +14,7 @@ class Committee extends Model
 
     protected $fillable = [
         'organization_id',
+        'organization_period_id',
         'user_id',
         'name',
         'position',
@@ -22,13 +24,22 @@ class Committee extends Model
         'status',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Accessor untuk dapetin full URL foto
-    public function getPhotoUrlAttribute()
+    public function organizationPeriod(): BelongsTo
+    {
+        return $this->belongsTo(OrganizationPeriod::class, 'organization_period_id');
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function getPhotoUrlAttribute(): ?string
     {
         return $this->photo ? url(Storage::url($this->photo)) : null;
     }

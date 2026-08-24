@@ -14,9 +14,14 @@ class AnnouncementController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $announcements = Announcement::with('user:id,name')->latest()->get();
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul pengumuman.');
+        }
+
+        $announcements = Announcement::with(['user:id,name', 'organization:id,nama'])->latest()->get();
 
         return response()->json([
             'status' => 'success',
@@ -29,6 +34,11 @@ class AnnouncementController extends Controller
      */
     public function store(Request $request)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk membuat pengumuman.');
+        }
+
         $request->validate([
             'title'            => 'required|string|max:255',
             'content'          => 'required|string',
@@ -39,22 +49,14 @@ class AnnouncementController extends Controller
             'meta_description' => 'nullable|string',
         ]);
 
-        /** @var \App\Models\User $user */
-        $user = $request->user();
-
         $status = $request->status ?? 'draft';
 
-        // Check status transition authorization (simple check here, Policy should also be used)
         if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            // If user is just a contributor, they cannot publish directly.
-            if ($user->hasRole('Kontributor') && $status === 'published') {
-                $status = 'review';
-            }
+            $status = 'draft';
         }
 
         $announcement = Announcement::create([
             'user_id'          => $user->id,
-            // organization_id is automatically assigned via BelongsToOrganization trait
             'title'            => $request->title,
             'slug'             => Str::slug($request->title) . '-' . Str::random(5),
             'content'          => $request->content,
@@ -89,8 +91,13 @@ class AnnouncementController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul pengumuman.');
+        }
+
         $announcement = Announcement::with('user:id,name')->findOrFail($id);
 
         return response()->json([
@@ -104,6 +111,11 @@ class AnnouncementController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk mengedit pengumuman.');
+        }
+
         $announcement = Announcement::findOrFail($id);
 
         $request->validate([
@@ -125,13 +137,10 @@ class AnnouncementController extends Controller
         }
 
         if ($request->has('status')) {
-            $user = $request->user();
             $newStatus = $request->status;
 
             if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-                 if ($user->hasRole('Kontributor') && $newStatus === 'published') {
-                    $newStatus = 'review';
-                 }
+                $newStatus = $announcement->status;
             }
             $data['status'] = $newStatus;
 
@@ -147,9 +156,6 @@ class AnnouncementController extends Controller
         if (isset($data['status'])) {
             $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
             $desc .= ' (Status: ' . $data['status'] . ')';
-
-            /** @var \App\Models\User $user */
-            $user = $request->user();
 
             if ($action === 'submit_review') {
                 \App\Services\NotificationService::sendToOrganizationAdmins(
@@ -196,8 +202,13 @@ class AnnouncementController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
+            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk menghapus pengumuman.');
+        }
+
         $announcement = Announcement::findOrFail($id);
         $announcement->delete();
 

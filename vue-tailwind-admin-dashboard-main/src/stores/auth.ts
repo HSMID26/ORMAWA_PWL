@@ -1,75 +1,104 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import router from '@/router'
 import { authService } from '@/services/authService'
 import type { UserProfile } from '@/types/api'
 
+export type AuthStatus = 'AUTH_LOADING' | 'AUTHENTICATED' | 'UNAUTHENTICATED'
+
 export const useAuthStore = defineStore('auth', () => {
+  const status = ref<AuthStatus>('AUTH_LOADING')
   const user = ref<UserProfile | null>(null)
   const role = ref<string | null>(null)
   const organization_id = ref<number | null>(null)
-  const token = ref<string | null>(localStorage.getItem('auth_token'))
+  const token = ref<string | null>(null)
   const isLoading = ref(false)
+  const isInitialized = ref(false)
   const error = ref<string | null>(null)
+
+  const isAuthenticated = computed(() => status.value === 'AUTHENTICATED' && !!token.value && !!user.value)
 
   const persistAuth = (authToken: string, authUser: UserProfile) => {
     token.value = authToken
     user.value = authUser
     role.value = authUser.role ?? null
     organization_id.value = authUser.organization?.id ?? null
+    status.value = 'AUTHENTICATED'
     localStorage.setItem('auth_token', authToken)
     localStorage.setItem('auth_user', JSON.stringify(authUser))
     localStorage.setItem('auth_role', authUser.role ?? '')
     localStorage.setItem('auth_organization', authUser.organization?.id?.toString() ?? '')
   }
 
-  const clearAuth = async () => {
+  const clearAuth = async (shouldRedirect = true) => {
     token.value = null
     user.value = null
     role.value = null
     organization_id.value = null
+    status.value = 'UNAUTHENTICATED'
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
     localStorage.removeItem('auth_role')
     localStorage.removeItem('auth_organization')
     error.value = null
-    await router.replace('/login')
+
+    if (shouldRedirect && router.currentRoute.value.meta.requiresAuth) {
+      await router.replace('/login')
+    }
   }
 
-  const restoreSession = async () => {
-    const storedToken = localStorage.getItem('auth_token')
-    const storedUser = localStorage.getItem('auth_user')
+  let restorePromise: Promise<boolean> | null = null
 
-    if (!storedToken) {
-      return false
+  const restoreSession = async (): Promise<boolean> => {
+    if (restorePromise) {
+      return restorePromise
     }
 
-    if (storedUser) {
-      try {
-        user.value = JSON.parse(storedUser) as UserProfile
-        role.value = user.value?.role ?? null
-        organization_id.value = user.value?.organization?.id ?? null
-      } catch {
-        localStorage.removeItem('auth_user')
-      }
-    }
-
-    try {
+    restorePromise = (async () => {
+      status.value = 'AUTH_LOADING'
       isLoading.value = true
-      const currentUser = await authService.me()
-      user.value = currentUser
-      role.value = currentUser.role ?? null
-      organization_id.value = currentUser.organization?.id ?? null
-      localStorage.setItem('auth_user', JSON.stringify(currentUser))
-      localStorage.setItem('auth_role', currentUser.role ?? '')
-      localStorage.setItem('auth_organization', currentUser.organization?.id?.toString() ?? '')
-      isLoading.value = false
-      return true
-    } catch (err) {
-      isLoading.value = false
-      await clearAuth()
-      return false
-    }
+
+      const storedToken = localStorage.getItem('auth_token')
+
+      if (!storedToken) {
+        token.value = null
+        user.value = null
+        role.value = null
+        organization_id.value = null
+        status.value = 'UNAUTHENTICATED'
+        isLoading.value = false
+        isInitialized.value = true
+        restorePromise = null
+        return false
+      }
+
+      // Temporarily set token in memory so outgoing requests include Authorization header
+      token.value = storedToken
+
+      try {
+        const currentUser = await authService.me()
+        user.value = currentUser
+        role.value = currentUser.role ?? null
+        organization_id.value = currentUser.organization?.id ?? null
+        status.value = 'AUTHENTICATED'
+
+        localStorage.setItem('auth_user', JSON.stringify(currentUser))
+        localStorage.setItem('auth_role', currentUser.role ?? '')
+        localStorage.setItem('auth_organization', currentUser.organization?.id?.toString() ?? '')
+        isLoading.value = false
+        isInitialized.value = true
+        restorePromise = null
+        return true
+      } catch {
+        isLoading.value = false
+        isInitialized.value = true
+        restorePromise = null
+        await clearAuth(false)
+        return false
+      }
+    })()
+
+    return restorePromise
   }
 
   const login = async (email: string, password: string) => {
@@ -80,6 +109,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.login(email, password)
       persistAuth(response.access_token, response.user)
       isLoading.value = false
+      isInitialized.value = true
 
       if (role.value === 'Super Admin') {
         await router.push('/dashboard')
@@ -113,12 +143,22 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authService.logout()
     } catch {
-      // Ignore API errors and clear local session
+      // Ignore API errors during logout
     }
-    await clearAuth()
+    await clearAuth(true)
+  }
+
+  // Handle global auth expiration event
+  if (typeof window !== 'undefined') {
+    window.addEventListener('auth:expired', () => {
+      clearAuth(true)
+    })
   }
 
   return {
+    status,
+    isAuthenticated,
+    isInitialized,
     user,
     role,
     organization_id,
@@ -131,3 +171,4 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuth,
   }
 })
+

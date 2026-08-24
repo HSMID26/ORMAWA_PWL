@@ -7,6 +7,11 @@ export const organizationService = {
     return data.data
   },
 
+  async getById(id: number) {
+    const { data } = await api.get<ApiSingleResponse<Organization>>(`/organizations/${id}`)
+    return data.data
+  },
+
   async create(payload: Partial<Organization>) {
     const { data } = await api.post<ApiSingleResponse<Organization>>('/organizations', payload)
     return data.data

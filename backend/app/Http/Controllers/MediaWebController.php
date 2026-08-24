@@ -11,6 +11,6 @@ class MediaWebController extends Controller
         // Trait BelongsToOrganization otomatis memfilter media per Ormawa
         $mediaList = Media::with('user')->latest()->get();
 
-        return view('media.index', compact('mediaList'));
+        return view('Media.index', compact('mediaList'));
     }
 }

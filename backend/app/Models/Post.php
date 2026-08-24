@@ -12,6 +12,7 @@ class Post extends Model
 
     protected $fillable = [
         'organization_id',
+        'category_id',
         'user_id',
         'judul',
         'slug',
@@ -33,13 +34,11 @@ class Post extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Relasi Ke Category (One-to-Many)
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    // Relasi Ke Tag (Many-to-Many)
     public function tags()
     {
         return $this->belongsToMany(Tag::class);

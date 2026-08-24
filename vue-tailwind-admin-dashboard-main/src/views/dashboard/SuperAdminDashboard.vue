@@ -2,7 +2,7 @@
   <AdminLayout>
     <PageBreadcrumb :pageTitle="currentPageTitle" />
 
-    <!-- Error State Global (Hanya jika Dashboard API gagal) -->
+    <!-- Error State Global -->
     <div v-if="!isLoading && isError" class="flex h-64 flex-col items-center justify-center gap-4 rounded-2xl border border-error-200 bg-error-50 p-6 dark:border-error-800 dark:bg-error-900/20">
       <AlertCircleIcon class="h-10 w-10 text-error-500" />
       <h3 class="text-lg font-bold text-error-700 dark:text-error-400">Gagal memuat data utama dashboard.</h3>
@@ -10,355 +10,338 @@
     </div>
 
     <!-- Main Content -->
-    <div v-else>
-      <!-- Bagian 1: Kartu Metrik Utama (Global) -->
-      <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
-        
-        <!-- Loading State untuk Kartu -->
-        <template v-if="isLoading">
-          <div v-for="i in 4" :key="i" class="animate-pulse rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="h-11 w-11 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-            <div class="mt-4 flex flex-col gap-2">
-              <div class="h-6 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
-              <div class="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+    <div v-else class="space-y-6">
+      
+      <!-- 1. GOVERNANCE ALERTS SECTION -->
+      <div v-if="hasAlerts" class="space-y-3">
+        <!-- Alert Pending Registrasi -->
+        <div v-if="stats.governance_alerts.pending_registrations > 0" class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-warning-200 bg-warning-50 p-4 dark:border-warning-800/50 dark:bg-warning-950/20">
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning-500 text-white">
+              <ClipboardCheckIcon class="h-5 w-5" />
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-warning-900 dark:text-warning-300">Pendaftaran Organisasi Menunggu Review</h4>
+              <p class="text-xs text-warning-700 dark:text-warning-400">Terdapat {{ stats.governance_alerts.pending_registrations }} permintaan pendaftaran ormawa baru yang perlu ditinjau.</p>
             </div>
           </div>
-        </template>
-        
-        <template v-else>
-          <!-- Total Organisasi -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-brand-500 dark:bg-brand-500/20 dark:text-brand-400">
+          <router-link to="/super-admin/organization-registrations" class="shrink-0 rounded-lg bg-warning-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-warning-700 transition">
+            Review Pendaftaran
+          </router-link>
+        </div>
+
+        <!-- Alert Pending Renewal Periode -->
+        <div v-if="stats.governance_alerts.pending_renewals > 0" class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-800/50 dark:bg-brand-950/20">
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white">
+              <CalendarClockIcon class="h-5 w-5" />
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-brand-900 dark:text-brand-300">Pengajuan Perpanjangan Periode Menunggu Persetujuan</h4>
+              <p class="text-xs text-brand-700 dark:text-brand-400">Terdapat {{ stats.governance_alerts.pending_renewals }} pengajuan perpanjangan kepengurusan yang memerlukan persetujuan.</p>
+            </div>
+          </div>
+          <router-link to="/super-admin/periods" class="shrink-0 rounded-lg bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-brand-700 transition">
+            Review Periode
+          </router-link>
+        </div>
+
+        <!-- Alert Periode Akan Berakhir -->
+        <div v-if="stats.governance_alerts.expiring_periods > 0" class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800/50 dark:bg-orange-950/20">
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white">
+              <AlertCircleIcon class="h-5 w-5" />
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-orange-900 dark:text-orange-300">Periode Kepengurusan Segera Berakhir</h4>
+              <p class="text-xs text-orange-700 dark:text-orange-400">Terdapat {{ stats.governance_alerts.expiring_periods }} organisasi yang masa kepengurusannya akan habis dalam <= 30 hari.</p>
+            </div>
+          </div>
+          <router-link to="/super-admin/periods" class="shrink-0 rounded-lg bg-orange-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-orange-700 transition">
+            Pantau Organisasi
+          </router-link>
+        </div>
+      </div>
+
+      <!-- 2. METRIC CARDS UTAMA PLATFORM -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-6">
+        <!-- Total Organisasi Aktif -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
               <BuildingIcon class="h-6 w-6" />
             </div>
-            <div class="mt-4 flex items-end justify-between">
-              <div>
-                <h4 class="text-title-md font-bold text-gray-800 dark:text-white/90">{{ stats.organizations.active }}</h4>
-                <span class="text-sm font-medium text-gray-500">Total Organisasi Aktif</span>
-              </div>
-            </div>
+            <span class="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+              {{ stats.organizations.active }} Aktif
+            </span>
           </div>
+          <div class="mt-4">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.organizations.total }}</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Total Organisasi Terdaftar</p>
+          </div>
+        </div>
 
-          <!-- Total Pengguna Global -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-500 dark:bg-blue-500/20 dark:text-blue-400">
+        <!-- Total Pengguna Platform -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
               <UsersIcon class="h-6 w-6" />
             </div>
-            <div class="mt-4 flex items-end justify-between">
-              <div>
-                <h4 class="text-title-md font-bold text-gray-800 dark:text-white/90">{{ stats.users.total }}</h4>
-                <span class="text-sm font-medium text-gray-500">Total Pengguna Sistem</span>
-              </div>
-            </div>
+            <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+              {{ stats.users.active }} Aktif
+            </span>
           </div>
-
-          <!-- Kapasitas Penyimpanan Global -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="flex h-11 w-11 items-center justify-center rounded-full bg-warning-50 text-warning-500 dark:bg-warning-500/20 dark:text-warning-400">
-              <HardDriveIcon class="h-6 w-6" />
-            </div>
-            <div class="mt-4 flex items-end justify-between">
-              <div v-if="stats.storage.available">
-                <h4 class="text-title-md font-bold text-gray-800 dark:text-white/90">{{ stats.storage.used }} GB</h4>
-                <span class="text-sm font-medium text-gray-500">Storage Terpakai (Kapasitas {{ stats.storage.capacity }}GB)</span>
-              </div>
-              <div v-else>
-                <h4 class="text-title-md font-bold text-gray-800 dark:text-white/90">-</h4>
-                <span class="text-sm font-medium text-gray-500">Data storage belum tersedia</span>
-              </div>
-            </div>
+          <div class="mt-4">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.users.total }}</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Pengguna Operasional (Ormawa)</p>
           </div>
+        </div>
 
-          <!-- Total Konten -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="flex h-11 w-11 items-center justify-center rounded-full bg-purple-50 text-purple-500 dark:bg-purple-500/20 dark:text-purple-400">
+        <!-- Konten Terpublikasi -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
               <FileTextIcon class="h-6 w-6" />
             </div>
-            <div class="mt-4 flex items-end justify-between">
-              <div>
-                <h4 class="text-title-md font-bold text-gray-800 dark:text-white/90">{{ stats.content.published }}</h4>
-                <span class="text-sm font-medium text-gray-500">Total Konten Terpublikasi</span>
-              </div>
-            </div>
+            <span class="rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+              {{ stats.content.posts.published }} Terbit
+            </span>
           </div>
-        </template>
+          <div class="mt-4">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.content.posts.total }}</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Total Berita & Artikel</p>
+          </div>
+        </div>
+
+        <!-- Media & Dokumen -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+              <LayersIcon class="h-6 w-6" />
+            </div>
+            <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+              {{ stats.content.media.images }} Galeri
+            </span>
+          </div>
+          <div class="mt-4">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.content.media.total }}</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Total Berkas & Media Global</p>
+          </div>
+        </div>
       </div>
 
-      <!-- Bagian 2: Area Konten Utama -->
-      <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <!-- 3. BREAKDOWN STATISTIK KONTEN, PENGGUNA & PERIODE -->
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         
-        <!-- Panel Kiri: Antrean Pendaftaran Organisasi Baru -->
-        <div class="flex flex-col gap-6 xl:col-span-2">
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-            <div class="mb-5 flex items-center justify-between">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 flex items-center gap-2">
-                  Permintaan Pendaftaran Organisasi
-                  <span v-if="!isLoading && stats.registrations.pending > 0" class="rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-700 dark:bg-warning-900/30 dark:text-warning-400">
-                    {{ stats.registrations.pending }} Menunggu
-                  </span>
-                </h3>
-                <p class="text-sm text-gray-500">Menunggu persetujuan pendaftaran.</p>
-              </div>
-              <router-link to="/super-admin/organization-registrations" class="text-sm font-medium text-brand-500 hover:text-brand-600">Lihat Semua</router-link>
-            </div>
-
-            <div class="overflow-x-auto">
-              <div v-if="isLoadingRegistrations" class="animate-pulse flex flex-col gap-3 py-4">
-                <div v-for="i in 3" :key="i" class="h-12 w-full rounded bg-gray-100 dark:bg-gray-800"></div>
-              </div>
-              <div v-else-if="isErrorRegistrations" class="py-6 text-center text-sm text-error-500">
-                Gagal memuat pendaftaran organisasi.
-              </div>
-              <table v-else-if="pendingRegistrations.length > 0" class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                    <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Nama Organisasi</th>
-                    <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Jenis</th>
-                    <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400">Pemohon</th>
-                    <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400 text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="req in pendingRegistrations" :key="req.id" class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02]">
-                    <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">{{ req.organization_name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ req.organization_type }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ req.admin_first_name }} {{ req.admin_last_name }}</td>
-                    <td class="px-4 py-3 text-center">
-                      <router-link :to="`/super-admin/organization-registrations/${req.id}`" class="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 transition">
-                        Review
-                      </router-link>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div v-else class="py-8 text-center text-sm text-gray-500">
-                Belum ada pendaftaran organisasi yang menunggu persetujuan.
-              </div>
-            </div>
-          </div>
-
-          <!-- Statistik Konten -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-            <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-              Ringkasan Data Konten Global
+        <!-- Panel 1: Breakdown Konten Global -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <FileTextIcon class="h-4 w-4 text-brand-500" />
+              Monitoring Konten Global
             </h3>
-            
-            <div v-if="isLoading" class="animate-pulse grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div v-for="i in 4" :key="i" class="h-24 rounded-lg bg-gray-100 dark:bg-gray-800/50"></div>
-            </div>
-            
-            <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
-               <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                 <p class="text-sm text-gray-500">Total Berita</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.content.posts }}</p>
-               </div>
-               <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                 <p class="text-sm text-gray-500">Total Agenda</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.content.activities }}</p>
-               </div>
-               <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                 <p class="text-sm text-gray-500">Total Pengumuman</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.content.announcements }}</p>
-               </div>
-               <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                 <p class="text-sm text-gray-500">Draft (Belum Terbit)</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.content.draft }}</p>
-               </div>
-            </div>
+            <router-link to="/super-admin/content" class="text-xs font-medium text-brand-500 hover:text-brand-600">Lihat Semua</router-link>
           </div>
-
-          <!-- Statistik Periode Organisasi -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] lg:p-6 mt-6">
-            <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
-              Periode Organisasi
-            </h3>
-            
-            <div v-if="isLoading" class="animate-pulse grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div v-for="i in 4" :key="i" class="h-24 rounded-lg bg-gray-100 dark:bg-gray-800/50"></div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Artikel Published</span>
+              <span class="text-sm font-bold text-green-600">{{ stats.content.posts.published }}</span>
             </div>
-            
-            <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
-               <div class="rounded-lg border border-green-100 bg-green-50 p-4 dark:border-green-900/30 dark:bg-green-900/10">
-                 <p class="text-sm text-green-600 dark:text-green-400 font-medium">Active</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.periods?.active || 0 }}</p>
-               </div>
-               <div class="rounded-lg border border-orange-100 bg-orange-50 p-4 dark:border-orange-900/30 dark:bg-orange-900/10">
-                 <p class="text-sm text-orange-600 dark:text-orange-400 font-medium">Expiring Soon</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.periods?.expiring_soon || 0 }}</p>
-               </div>
-               <div class="rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
-                 <p class="text-sm text-red-600 dark:text-red-400 font-medium">Expired</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.periods?.expired || 0 }}</p>
-               </div>
-               <div class="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
-                 <p class="text-sm text-blue-600 dark:text-blue-400 font-medium">Renewal Pending</p>
-                 <p class="text-xl font-bold text-gray-800 dark:text-white/90">{{ stats.periods?.pending || 0 }}</p>
-               </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Artikel In-Review</span>
+              <span class="text-sm font-bold text-yellow-600">{{ stats.content.posts.review }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Artikel Draft / Rejected</span>
+              <span class="text-sm font-bold text-gray-700 dark:text-gray-300">{{ stats.content.posts.draft + stats.content.posts.rejected }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Agenda Acara Mendatang</span>
+              <span class="text-sm font-bold text-blue-600">{{ stats.content.agendas.upcoming }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Pengumuman Aktif</span>
+              <span class="text-sm font-bold text-purple-600">{{ stats.content.announcements.published }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Panel Kanan: Status Sistem & Quick Actions -->
-        <div class="flex flex-col gap-6 xl:col-span-1">
-          
-          <!-- Quick Actions Super Admin -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Aksi Cepat Pusat</h3>
-            <div class="grid grid-cols-2 gap-3">
-              <router-link to="/super-admin/organization-registrations" class="flex flex-col items-center justify-center rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition text-brand-500 dark:text-brand-400 group">
-                <ClipboardCheckIcon class="h-8 w-8 mb-2 group-hover:scale-110 transition-transform" />
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">Pendaftaran</span>
-              </router-link>
-              <router-link to="/super-admin/organizations" class="flex flex-col items-center justify-center rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition text-brand-500 dark:text-brand-400 group">
-                <BuildingIcon class="h-8 w-8 mb-2 group-hover:scale-110 transition-transform" />
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">Organisasi</span>
-              </router-link>
-              <router-link to="/super-admin/users" class="flex flex-col items-center justify-center rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition text-brand-500 dark:text-brand-400 group">
-                <UsersIcon class="h-8 w-8 mb-2 group-hover:scale-110 transition-transform" />
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">Pengguna</span>
-              </router-link>
-              <router-link to="/super-admin/activity-logs" class="flex flex-col items-center justify-center rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition text-brand-500 dark:text-brand-400 group">
-                <ActivityIcon class="h-8 w-8 mb-2 group-hover:scale-110 transition-transform" />
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">Activity Log</span>
-              </router-link>
-              <button disabled title="Fitur belum tersedia" class="col-span-2 flex flex-col items-center justify-center rounded-xl border border-gray-200 p-4 opacity-50 cursor-not-allowed dark:border-gray-700 transition text-gray-500">
-                <SettingsIcon class="h-6 w-6 mb-2" />
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">Pengaturan Platform (Segera Tersedia)</span>
-              </button>
+        <!-- Panel 2: Breakdown Pengguna Ormawa -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <UsersIcon class="h-4 w-4 text-blue-500" />
+              Distribusi Pengguna Organisasi
+            </h3>
+            <router-link to="/super-admin/users" class="text-xs font-medium text-brand-500 hover:text-brand-600">Lihat Semua</router-link>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Admin Organisasi</span>
+              <span class="text-sm font-bold text-brand-600">{{ stats.users.org_admins }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Editor Konten</span>
+              <span class="text-sm font-bold text-blue-600">{{ stats.users.editors }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Kontributor Berita</span>
+              <span class="text-sm font-bold text-indigo-600">{{ stats.users.contributors }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <span class="text-xs text-gray-600 dark:text-gray-400">Akun Nonaktif / Ditangguhkan</span>
+              <span class="text-sm font-bold text-red-600">{{ stats.users.inactive }}</span>
             </div>
           </div>
+        </div>
 
-          <!-- Log Aktivitas Lintas Instance Terbaru -->
-          <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Aktivitas Sistem Terbaru</h3>
-            
-            <div v-if="isLoadingLogs" class="animate-pulse flex flex-col gap-4 py-2">
-              <div v-for="i in 3" :key="i" class="flex gap-3">
-                <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
-                <div class="flex flex-col gap-2 w-full mt-1">
-                  <div class="h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
-                  <div class="h-2 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
-                </div>
-              </div>
-            </div>
-            
-            <div v-else-if="isErrorLogs" class="py-4 text-center text-sm text-error-500">
-              Gagal memuat aktivitas.
-            </div>
-
-            <ul v-else-if="recentGlobalLogs.length > 0" class="flex flex-col gap-4">
-              <li v-for="log in recentGlobalLogs" :key="log.id" class="flex items-start gap-3">
-                <div class="relative flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300 shrink-0">
-                  {{ log.user ? log.user.name.charAt(0) : 'S' }}
-                </div>
-                <div>
-                  <p class="text-sm font-medium text-gray-800 dark:text-white/90 leading-tight">
-                    {{ log.user ? log.user.name : 'Sistem' }} 
-                    <span v-if="log.organization" class="font-normal text-gray-500">dari</span> 
-                    {{ log.organization ? log.organization.nama : '' }}
-                  </p>
-                  <p class="text-xs text-gray-500 mt-1">{{ log.description }}</p>
-                  <span class="text-[10px] text-gray-400 mt-1 block">{{ new Date(log.created_at).toLocaleString('id-ID') }}</span>
-                </div>
-              </li>
-            </ul>
-            <div v-else class="py-4 text-center text-sm text-gray-500">
-              Belum ada aktivitas sistem.
-            </div>
-
-            <router-link to="/super-admin/activity-logs" class="mt-5 flex w-full justify-center rounded-lg border border-gray-300 bg-white py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 transition">
-              Lihat Semua Log
-            </router-link>
+        <!-- Panel 3: Tata Kelola Periode Ormawa -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <CalendarClockIcon class="h-4 w-4 text-purple-500" />
+              Tata Kelola Periode Kepengurusan
+            </h3>
+            <router-link to="/super-admin/periods" class="text-xs font-medium text-brand-500 hover:text-brand-600">Lihat Semua</router-link>
           </div>
-
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-green-50/60 dark:bg-green-950/20">
+              <span class="text-xs text-green-800 dark:text-green-300">Periode Aktif Normal</span>
+              <span class="text-sm font-bold text-green-700 dark:text-green-400">{{ stats.periods.active }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-brand-50/60 dark:bg-brand-950/20">
+              <span class="text-xs text-brand-800 dark:text-brand-300">Menunggu Persetujuan Renewal</span>
+              <span class="text-sm font-bold text-brand-700 dark:text-brand-400">{{ stats.periods.pending }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-orange-50/60 dark:bg-orange-950/20">
+              <span class="text-xs text-orange-800 dark:text-orange-300">Segera Habis (<= 30 hari)</span>
+              <span class="text-sm font-bold text-orange-700 dark:text-orange-400">{{ stats.periods.expiring_soon }}</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-red-50/60 dark:bg-red-950/20">
+              <span class="text-xs text-red-800 dark:text-red-300">Periode Kedaluwarsa</span>
+              <span class="text-sm font-bold text-red-700 dark:text-red-400">{{ stats.periods.expired }}</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- 4. RECENT GLOBAL ACTIVITY LOG -->
+      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <ActivityIcon class="h-5 w-5 text-brand-500" />
+              Aktivitas Platform Terbaru
+            </h3>
+            <p class="text-xs text-gray-500">Audit trail aktivitas seluruh organisasi dan administrator.</p>
+          </div>
+          <router-link to="/super-admin/activity-logs" class="text-xs font-semibold text-brand-500 hover:text-brand-600">
+            Buka Audit Log Lengkap →
+          </router-link>
+        </div>
+
+        <div v-if="stats.recent_activities.length === 0" class="py-8 text-center text-sm text-gray-500">
+          Belum ada rekaman aktivitas sistem.
+        </div>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <th class="px-4 py-2.5 text-xs font-semibold text-gray-600 dark:text-gray-400">Waktu</th>
+                <th class="px-4 py-2.5 text-xs font-semibold text-gray-600 dark:text-gray-400">Aktor</th>
+                <th class="px-4 py-2.5 text-xs font-semibold text-gray-600 dark:text-gray-400">Organisasi</th>
+                <th class="px-4 py-2.5 text-xs font-semibold text-gray-600 dark:text-gray-400">Aksi & Modul</th>
+                <th class="px-4 py-2.5 text-xs font-semibold text-gray-600 dark:text-gray-400">Deskripsi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="log in stats.recent_activities" :key="log.id" class="border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] text-xs">
+                <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
+                  {{ new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) }}
+                </td>
+                <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                  {{ log.actor }}
+                </td>
+                <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                  <span class="rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                    {{ log.organization }}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="rounded-md bg-brand-50 px-2 py-0.5 font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 uppercase tracking-wide text-[10px]">
+                    {{ log.action }} : {{ log.module }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                  {{ log.description }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </AdminLayout>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import { BuildingIcon, UsersIcon, HardDriveIcon, FileTextIcon, ClipboardCheckIcon, ActivityIcon, SettingsIcon, AlertCircleIcon } from 'lucide-vue-next'
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import {
+  BuildingIcon,
+  UsersIcon,
+  FileTextIcon,
+  LayersIcon,
+  ClipboardCheckIcon,
+  CalendarClockIcon,
+  ActivityIcon,
+  AlertCircleIcon,
+} from 'lucide-vue-next'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
-import { getSuperAdminDashboard } from '@/services/dashboardService'
-import { organizationRegistrationService } from '@/services/organizationRegistrationService'
-import { activityLogService } from '@/services/activityLogService'
+import { getSuperAdminDashboard, type SuperAdminDashboardSummary } from '@/services/dashboardService'
 
-const currentPageTitle = ref('Dashboard Super Admin — CMS ORMAWA')
-
+const currentPageTitle = ref('Dashboard Super Admin')
 const isLoading = ref(true)
 const isError = ref(false)
 
-const isLoadingRegistrations = ref(true)
-const isErrorRegistrations = ref(false)
-
-const isLoadingLogs = ref(true)
-const isErrorLogs = ref(false)
-
-const stats = ref({
-  organizations: { total: 0, active: 0 },
+const stats = ref<SuperAdminDashboardSummary>({
+  organizations: { total: 0, active: 0, inactive: 0, pending_registrations: 0 },
   periods: { active: 0, pending: 0, expired: 0, expiring_soon: 0 },
-  users: { total: 0, active: 0 },
-  registrations: { pending: 0 },
-  content: { posts: 0, activities: 0, announcements: 0, published: 0, draft: 0 },
-  storage: { available: false, used: null, capacity: null, percentage: null }
+  users: { total: 0, active: 0, inactive: 0, org_admins: 0, editors: 0, contributors: 0 },
+  content: {
+    posts: { total: 0, published: 0, review: 0, draft: 0, rejected: 0 },
+    agendas: { total: 0, upcoming: 0, today: 0, past: 0 },
+    announcements: { total: 0, published: 0, draft: 0, archived: 0 },
+    media: { total: 0, images: 0, documents: 0 },
+  },
+  governance_alerts: {
+    pending_registrations: 0,
+    pending_renewals: 0,
+    expiring_periods: 0,
+    expired_periods: 0,
+    inactive_organizations: 0,
+  },
+  recent_activities: [],
 })
 
-const pendingRegistrations = ref([])
-const recentGlobalLogs = ref([])
+const hasAlerts = computed(() => {
+  const alerts = stats.value.governance_alerts
+  return alerts.pending_registrations > 0 || alerts.pending_renewals > 0 || alerts.expiring_periods > 0
+})
 
 const fetchDashboardData = async () => {
   isLoading.value = true
   isError.value = false
-  isLoadingRegistrations.value = true
-  isErrorRegistrations.value = false
-  isLoadingLogs.value = true
-  isErrorLogs.value = false
 
   try {
-    const [summaryRes, regRes, logsRes] = await Promise.allSettled([
-      getSuperAdminDashboard(),
-      organizationRegistrationService.list({ status: 'pending', per_page: 5 }),
-      activityLogService.getLogs({ per_page: 5 })
-    ])
-
-    // Handle Dashboard Summary Data
-    if (summaryRes.status === 'fulfilled') {
-      stats.value = summaryRes.value
-    } else {
-      console.error('Failed to load dashboard summary', summaryRes.reason)
-      isError.value = true
-    }
-    isLoading.value = false
-
-    // Handle Registrations Data
-    if (regRes.status === 'fulfilled') {
-      pendingRegistrations.value = regRes.value.data || []
-    } else {
-      console.error('Failed to load pending registrations', regRes.reason)
-      isErrorRegistrations.value = true
-    }
-    isLoadingRegistrations.value = false
-    
-    // Handle Activity Logs Data
-    if (logsRes.status === 'fulfilled') {
-      recentGlobalLogs.value = logsRes.value.data?.data || []
-    } else {
-      console.error('Failed to load recent activity logs', logsRes.reason)
-      isErrorLogs.value = true
-    }
-    isLoadingLogs.value = false
-
+    const data = await getSuperAdminDashboard()
+    stats.value = data
   } catch (err) {
-    // Top-level fallback, though allSettled shouldn't throw here typically
-    console.error('Unexpected error in fetchDashboardData:', err)
+    console.error('Error loading super admin dashboard:', err)
     isError.value = true
+  } finally {
     isLoading.value = false
-    isLoadingRegistrations.value = false
-    isLoadingLogs.value = false
   }
 }
 

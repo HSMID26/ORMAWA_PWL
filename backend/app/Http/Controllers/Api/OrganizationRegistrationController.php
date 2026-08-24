@@ -258,8 +258,14 @@ class OrganizationRegistrationController extends Controller
             abort(403, 'Unauthorized.');
         }
 
+        $reason = is_string($request->reason) ? trim($request->reason) : '';
+        $request->merge(['reason' => $reason]);
+
         $validated = $request->validate([
-            'reason' => 'required|string',
+            'reason' => 'required|string|min:5',
+        ], [
+            'reason.required' => 'Alasan penolakan wajib diisi.',
+            'reason.min' => 'Alasan penolakan minimal 5 karakter.',
         ]);
 
         $registration = OrganizationRegistration::findOrFail($id);

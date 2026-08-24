@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class TagController extends Controller
 {
-    // Ambil semua tag
+    // Ambil semua tag global
     public function index()
     {
         $tags = Tag::latest()->get();
@@ -23,7 +23,7 @@ class TagController extends Controller
         $request->validate(['name' => 'required|string|max:255']);
 
         $tag = Tag::firstOrCreate([
-            'name' => $request->name,
+            'name' => trim($request->name),
         ]);
 
         return response()->json([

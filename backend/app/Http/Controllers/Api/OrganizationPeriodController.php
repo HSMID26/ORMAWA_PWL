@@ -10,8 +10,47 @@ use Illuminate\Support\Facades\DB;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 
+use Carbon\Carbon;
+
 class OrganizationPeriodController extends Controller
 {
+    /**
+     * Get all periods across all organizations (Super Admin Governance)
+     */
+    public function globalIndex(Request $request)
+    {
+        if (!auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Unauthorized. Super Admin only.');
+        }
+
+        $query = OrganizationPeriod::with(['organization', 'reviewer'])->latest('created_at');
+
+        if ($request->has('status') && $request->status && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('organization_id') && $request->organization_id) {
+            $query->where('organization_id', $request->organization_id);
+        }
+
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('period_name', 'like', "%{$search}%")
+                  ->orWhereHas('organization', function ($qo) use ($search) {
+                      $qo->where('nama', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $periods = $query->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $periods,
+        ]);
+    }
+
     /**
      * Get periods of an organization
      */
@@ -24,12 +63,13 @@ class OrganizationPeriodController extends Controller
             abort(403, 'Anda tidak memiliki akses ke periode organisasi ini.');
         }
 
-        $periods = $organization->periods()->orderBy('end_date', 'desc')->get();
+        $periods = $organization->periods()->with(['reviewer', 'organization'])->orderBy('end_date', 'desc')->get();
+        $currentPeriod = $organization->currentPeriod();
 
         return response()->json([
             'status' => 'success',
             'data' => $periods,
-            'current_period' => $organization->currentPeriod()
+            'current_period' => $currentPeriod ? $currentPeriod->load(['reviewer', 'organization']) : null
         ]);
     }
 
@@ -51,7 +91,7 @@ class OrganizationPeriodController extends Controller
         $validated = $request->validate([
             'period_name' => 'required|string|max:255',
             'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
         ]);
 
@@ -72,12 +112,12 @@ class OrganizationPeriodController extends Controller
                   })->exists();
                   
              if ($overlap) {
-                 return response()->json(['message' => 'Tanggal periode bertabrakan dengan periode aktif lainnya.'], 422);
+                 return response()->json(['message' => 'Tanggal periode bertabrakan dengan periode lain pada organisasi ini.'], 422);
              }
         }
 
         $period = $organization->periods()->create([
-            'period_name' => $validated['period_name'],
+            'period_name' => trim($validated['period_name']),
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
             'status' => $status,
@@ -101,6 +141,8 @@ class OrganizationPeriodController extends Controller
             ActivityLogService::log('create', 'organization_periods', 'Menyiapkan periode awal: ' . $period->period_name, clone $period);
         }
 
+        $period->load(['reviewer', 'organization']);
+
         return response()->json([
             'status' => 'success',
             'message' => $status === 'active' ? 'Periode berhasil ditambahkan.' : 'Pengajuan periode berhasil dikirim.',
@@ -113,7 +155,7 @@ class OrganizationPeriodController extends Controller
      */
     public function show($id)
     {
-        $period = OrganizationPeriod::with('organization')->findOrFail($id);
+        $period = OrganizationPeriod::with(['organization', 'reviewer'])->findOrFail($id);
 
         if (!auth()->user()->hasRole('Super Admin') && auth()->user()->organization_id != $period->organization_id) {
             abort(403, 'Anda tidak memiliki akses ke periode ini.');
@@ -126,31 +168,87 @@ class OrganizationPeriodController extends Controller
     }
 
     /**
-     * Update period (allowed for Pending, or Super Admin)
+     * Update period (allowed only for Super Admin)
      */
     public function update(Request $request, $id)
     {
-        $period = OrganizationPeriod::findOrFail($id);
+        $period = OrganizationPeriod::with(['organization', 'reviewer'])->findOrFail($id);
 
         if (!auth()->user()->hasRole('Super Admin')) {
-             if (auth()->user()->organization_id != $period->organization_id) {
-                 abort(403, 'Anda tidak memiliki akses.');
-             }
-             if ($period->status !== 'pending') {
-                 abort(403, 'Hanya periode dengan status pending yang dapat diubah.');
-             }
+            abort(403, 'Hanya Super Admin yang diizinkan mengedit periode.');
         }
 
         $validated = $request->validate([
             'period_name' => 'required|string|max:255',
             'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
         ]);
 
-        $period->update($validated);
+        // Cek overlap terhadap periode aktif lain milik organisasi ini (kecuali diri sendiri)
+        $overlap = $period->organization->periods()
+            ->where('id', '!=', $period->id)
+            ->where('status', 'active')
+            ->where(function($q) use ($validated) {
+                $q->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
+                  ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+                  ->orWhere(function($q2) use ($validated) {
+                       $q2->where('start_date', '<=', $validated['start_date'])
+                          ->where('end_date', '>=', $validated['end_date']);
+                  });
+            })->exists();
 
-        ActivityLogService::log('update', 'organization_periods', 'Memperbarui data periode: ' . $period->period_name, clone $period);
+        if ($overlap) {
+            return response()->json([
+                'message' => 'Tanggal periode bertabrakan dengan periode lain pada organisasi ini.'
+            ], 422);
+        }
+
+        $oldStartDate = $period->start_date ? Carbon::parse($period->start_date)->toDateString() : null;
+        $oldEndDate = $period->end_date ? Carbon::parse($period->end_date)->toDateString() : null;
+        $oldPeriodName = $period->period_name;
+
+        $period->update([
+            'period_name' => trim($validated['period_name']),
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        ActivityLogService::log(
+            'period_update',
+            'organization_periods',
+            'Super Admin memperbarui periode organisasi',
+            $period,
+            [
+                'organization_id' => $period->organization_id,
+                'organization_name' => $period->organization?->nama,
+                'period_id' => $period->id,
+                'period_name' => $period->period_name,
+                'old_start_date' => $oldStartDate,
+                'old_end_date' => $oldEndDate,
+                'new_start_date' => Carbon::parse($period->start_date)->toDateString(),
+                'new_end_date' => Carbon::parse($period->end_date)->toDateString(),
+                'old_period_name' => $oldPeriodName,
+                'new_period_name' => $period->period_name,
+            ]
+        );
+
+        if ($period->status === 'active') {
+            NotificationService::sendToOrganizationAdmins(
+                $period->organization_id,
+                'period_updated',
+                'Periode Organisasi Diperbarui',
+                'Periode kepengurusan organisasi Anda telah diperbarui oleh Super Admin.',
+                '/organization/period',
+                [
+                    'organization_id' => $period->organization_id,
+                    'period_id' => $period->id,
+                ]
+            );
+        }
+
+        $period->load(['organization', 'reviewer']);
 
         return response()->json([
             'status' => 'success',
@@ -228,8 +326,14 @@ class OrganizationPeriodController extends Controller
             abort(403, 'Hanya Super Admin yang dapat menolak pengajuan.');
         }
 
+        $reason = is_string($request->reason) ? trim($request->reason) : '';
+        $request->merge(['reason' => $reason]);
+
         $validated = $request->validate([
-            'reason' => 'required|string',
+            'reason' => 'required|string|min:5',
+        ], [
+            'reason.required' => 'Alasan penolakan wajib diisi.',
+            'reason.min' => 'Alasan penolakan minimal 5 karakter.',
         ]);
 
         $period = OrganizationPeriod::with('organization.users')->findOrFail($id);

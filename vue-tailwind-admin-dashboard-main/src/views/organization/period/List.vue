@@ -142,7 +142,7 @@ import { useAuthStore } from '@/stores/auth'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 import Modal from '@/components/ui/Modal.vue'
-import api from '@/services/api'
+import { organizationPeriodService } from '@/services/organizationPeriodService'
 import { useToastStore } from '@/stores/toast'
 import type { OrganizationPeriod } from '@/types/api'
 
@@ -172,9 +172,9 @@ const loadData = async () => {
   if (!orgId) return
   isLoading.value = true
   try {
-    const res = await api.get(`/organizations/${orgId}/periods`)
-    periods.value = res.data.data
-    currentPeriod.value = res.data.current_period
+    const res = await organizationPeriodService.getPeriods(orgId)
+    periods.value = res.data
+    currentPeriod.value = res.current_period
   } catch (error: any) {
     toastStore.error(error.response?.data?.message || 'Gagal memuat periode.')
   } finally {
@@ -213,7 +213,7 @@ const submitForm = async () => {
   isSubmitting.value = true
   
   try {
-    await api.post(`/organizations/${orgId}/periods`, form.value)
+    await organizationPeriodService.createPeriod(orgId, form.value)
     toastStore.success('Pengajuan perpanjangan berhasil dikirim.')
     closeModal()
     await loadData()

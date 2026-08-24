@@ -27,12 +27,17 @@ api.interceptors.response.use(
     let message = (error.response?.data as { message?: string })?.message || error.message
 
     if (status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_user')
-      localStorage.removeItem('auth_role')
-      localStorage.removeItem('auth_organization')
-      window.dispatchEvent(new Event('auth:expired'))
-      message = 'Sesi Anda telah berakhir. Silakan login kembali.'
+      const isLoginRequest = error.config?.url?.includes('/login')
+      if (!isLoginRequest) {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('auth_user')
+        localStorage.removeItem('auth_role')
+        localStorage.removeItem('auth_organization')
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('auth:expired'))
+        }
+        message = 'Sesi Anda telah berakhir. Silakan login kembali.'
+      }
     } else if (status === 403) {
       message = 'Anda tidak memiliki izin untuk melakukan tindakan ini.'
     } else if (status === 404) {

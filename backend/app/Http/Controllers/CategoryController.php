@@ -7,9 +7,10 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    // Ambil semua daftar kategori untuk dropdown/pilihan
+    // Ambil semua daftar kategori milik organisasi yang sedang login
     public function index()
     {
+        // Trait BelongsToOrganization otomatis memfilter berdasarkan organization_id
         $categories = Category::latest()->get();
         return response()->json([
             'status' => 'success',
@@ -22,8 +23,9 @@ class CategoryController extends Controller
     {
         $request->validate(['name' => 'required|string|max:255']);
 
-        $category = Category::create([
-            'name' => $request->name,
+        $category = Category::firstOrCreate([
+            'organization_id' => auth()->user()?->organization_id,
+            'name'            => trim($request->name),
         ]);
 
         return response()->json([

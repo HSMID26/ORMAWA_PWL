@@ -1,21 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Struktur Organisasi & Pengurus') }}
+            {{ __('Struktur Organisasi & Manajemen Pengurus Ormawa') }}
         </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            <!-- Form Input Pengurus Baru -->
+            <!-- Form Tambah Pengurus Baru -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">➕ Tambah Pengurus Baru</h3>
-                <form id="form-committee" class="grid grid-cols-1 md:grid-cols-3 gap-4" enctype="multipart/form-data">
+                <form id="form-committee" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @csrf
                     <div>
                         <label class="block text-sm font-semibold dark:text-gray-300 mb-1">Nama Lengkap</label>
-                        <input type="text" id="name" required class="w-full p-2 border rounded-lg dark:bg-gray-900 dark:text-white" placeholder="Contoh: Ahmad Subagja">
+                        <input type="text" id="name" required class="w-full p-2 border rounded-lg dark:bg-gray-900 dark:text-white" placeholder="Contoh: Fakhri Rizal">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold dark:text-gray-300 mb-1">Jabatan</label>

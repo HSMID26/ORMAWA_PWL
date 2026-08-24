@@ -18,10 +18,6 @@ const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
-
-const authStore = useAuthStore()
-authStore.restoreSession().finally(() => {
-  app.use(router)
-  app.use(VueApexCharts)
-  app.mount('#app')
-})
+app.use(router)
+app.use(VueApexCharts)
+app.mount('#app')

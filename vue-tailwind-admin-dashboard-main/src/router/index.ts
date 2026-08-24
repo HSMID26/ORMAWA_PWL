@@ -15,53 +15,97 @@ const router = createRouter({
       meta: { title: 'Beranda', public: true },
     },
     {
-      path: '/org/:slug',
+      path: '/organizations',
+      name: 'public-organizations-directory',
+      component: () => import('@/views/public/OrganizationsDirectory.vue'),
+      meta: { title: 'Direktori Ormawa', public: true },
+    },
+    {
+      path: '/organizations/:slug',
       component: () => import('@/components/public/OrganizationLayout.vue'),
       meta: { public: true },
       children: [
         {
           path: '',
-          name: 'organization-home',
+          name: 'public-organization-home',
           component: () => import('@/views/public/OrganizationHome.vue'),
-          meta: { title: 'Organisasi' }
+          meta: { title: 'Organisasi', public: true }
         },
         {
           path: 'profil',
-          name: 'organization-profile',
+          name: 'public-organization-profile',
           component: () => import('@/views/public/organization/Profile.vue'),
-          meta: { title: 'Profil Organisasi' }
+          meta: { title: 'Profil Organisasi', public: true }
         },
         {
-          path: 'struktur',
-          name: 'organization-structure',
-          component: () => import('@/views/public/organization/Structure.vue'),
-          meta: { title: 'Struktur Organisasi' }
-        },
-        {
-          path: 'berita',
-          name: 'organization-news-list',
+          path: 'articles',
+          alias: 'berita',
+          name: 'public-organization-articles-list',
           component: () => import('@/views/public/organization/NewsList.vue'),
-          meta: { title: 'Berita & Artikel' }
+          meta: { title: 'Berita & Artikel', public: true }
         },
         {
-          path: 'berita/:postSlug',
-          name: 'organization-news-detail',
+          path: 'articles/:articleSlug',
+          alias: 'berita/:articleSlug',
+          name: 'public-organization-article-detail',
           component: () => import('@/views/public/organization/NewsDetail.vue'),
-          meta: { title: 'Detail Berita' }
+          meta: { title: 'Detail Berita', public: true }
         },
         {
-          path: 'kegiatan',
-          name: 'organization-activity-list',
+          path: 'agenda',
+          alias: 'kegiatan',
+          name: 'public-organization-agenda-list',
           component: () => import('@/views/public/organization/ActivityList.vue'),
-          meta: { title: 'Kegiatan & Agenda' }
+          meta: { title: 'Agenda Kegiatan', public: true }
         },
         {
-          path: 'kegiatan/:id',
-          name: 'organization-activity-detail',
+          path: 'agenda/:id',
+          alias: 'kegiatan/:id',
+          name: 'public-organization-agenda-detail',
           component: () => import('@/views/public/organization/ActivityDetail.vue'),
-          meta: { title: 'Detail Kegiatan' }
-        }
+          meta: { title: 'Detail Kegiatan', public: true }
+        },
+        {
+          path: 'announcements',
+          alias: 'pengumuman',
+          name: 'public-organization-announcements',
+          component: () => import('@/views/public/organization/AnnouncementsPage.vue'),
+          meta: { title: 'Pengumuman', public: true }
+        },
+        {
+          path: 'gallery',
+          alias: 'galeri',
+          name: 'public-organization-gallery',
+          component: () => import('@/views/public/organization/GalleryPage.vue'),
+          meta: { title: 'Galeri Foto', public: true }
+        },
+        {
+          path: 'documents',
+          alias: 'dokumen',
+          name: 'public-organization-documents',
+          component: () => import('@/views/public/organization/DocumentsPage.vue'),
+          meta: { title: 'Dokumen', public: true }
+        },
+        {
+          path: 'structure',
+          alias: 'struktur',
+          name: 'public-organization-structure',
+          component: () => import('@/views/public/organization/Structure.vue'),
+          meta: { title: 'Struktur Organisasi', public: true }
+        },
       ]
+    },
+    // Compatibility alias: /org/:slug redirect to /organizations/:slug
+    {
+      path: '/org/:slug/:pathMatch(.*)*',
+      redirect: to => {
+        const path = Array.isArray(to.params.pathMatch) ? to.params.pathMatch.join('/') : (to.params.pathMatch || '')
+        return `/organizations/${to.params.slug}${path ? '/' + path : ''}`
+      },
+    },
+    {
+      path: '/org/:slug',
+      redirect: to => `/organizations/${to.params.slug}`,
     },
     // Keep other existing public routes as fallbacks if needed, but route / dynamically
     // ─── Auth ───────────────────────────────────────────────────
@@ -95,19 +139,13 @@ const router = createRouter({
       path: '/dashboard',
       name: 'super-admin-dashboard',
       component: () => import('@/views/dashboard/SuperAdminDashboard.vue'),
-      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Dashboard' },
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Dashboard Global' },
     },
     {
       path: '/super-admin/organizations',
       name: 'super-admin-organizations',
       component: () => import('@/views/super-admin/organizations/List.vue'),
-      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Organizations' },
-    },
-    {
-      path: '/super-admin/users',
-      name: 'super-admin-users',
-      component: () => import('@/views/super-admin/users/List.vue'),
-      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Users' }
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Semua Organisasi' },
     },
     {
       path: '/super-admin/organization-registrations',
@@ -116,26 +154,48 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Pendaftaran Organisasi' }
     },
     {
+      path: '/super-admin/organization-admins',
+      name: 'super-admin-organization-admins',
+      component: () => import('@/views/super-admin/organization-admins/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Admin Organisasi' }
+    },
+    {
+      path: '/super-admin/periods',
+      name: 'super-admin-periods',
+      component: () => import('@/views/super-admin/periods/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Periode / Renewal' }
+    },
+    {
+      path: '/super-admin/users',
+      name: 'super-admin-users',
+      component: () => import('@/views/super-admin/users/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Pengguna Global' }
+    },
+    {
+      path: '/super-admin/content',
+      name: 'super-admin-content',
+      component: () => import('@/views/super-admin/content/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Monitoring Konten' }
+    },
+    {
       path: '/super-admin/activity-logs',
-      name: 'activity-logs',
+      name: 'super-admin-activity-logs',
       component: () => import('@/views/super-admin/activity-logs/List.vue'),
       meta: { title: 'Activity Log', requiresAuth: true, roles: ['Super Admin'] }
     },
     {
       path: '/super-admin/approvals',
-      redirect: '/dashboard',
+      redirect: '/super-admin/periods',
     },
     {
       path: '/super-admin/settings',
       name: 'super-admin-settings',
       component: () => import('@/views/super-admin/settings/PlatformSettings.vue'),
-      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Platform Settings' },
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Pengaturan Platform' },
     },
     {
       path: '/super-admin/logs',
-      name: 'super-admin-logs',
-      component: () => import('@/views/super-admin/logs/ActivityLog.vue'),
-      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Activity Logs' },
+      redirect: '/super-admin/activity-logs',
     },
     {
       path: '/super-admin/organizations/:id/periods',
@@ -180,31 +240,45 @@ const router = createRouter({
     },
     {
       path: '/organization/posts',
-      redirect: to => ({ path: '/organization/content', query: { type: 'post' } }),
+      name: 'organization-posts',
+      component: () => import('@/views/organization/posts/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Berita & Artikel' },
     },
     {
       path: '/organization/posts/create',
-      redirect: to => ({ path: '/organization/content/create', query: { type: 'post' } }),
+      name: 'organization-posts-create',
+      component: () => import('@/views/organization/posts/Create.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Tulis Artikel' },
     },
     {
       path: '/organization/posts/edit/:id',
-      redirect: to => ({ path: `/organization/content/edit/post/${to.params.id}` }),
+      name: 'organization-posts-edit',
+      component: () => import('@/views/organization/posts/Edit.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Edit Artikel' },
     },
     {
       path: '/organization/agenda',
-      redirect: to => ({ path: '/organization/content', query: { type: 'activity' } }),
+      name: 'organization-agenda',
+      component: () => import('@/views/organization/agenda/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Agenda Acara' },
     },
     {
       path: '/organization/agenda/create',
-      redirect: to => ({ path: '/organization/content/create', query: { type: 'activity' } }),
+      name: 'organization-agenda-create',
+      component: () => import('@/views/organization/agenda/Create.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Tambah Agenda' },
     },
     {
       path: '/organization/agenda/edit/:id',
-      redirect: to => ({ path: `/organization/content/edit/activity/${to.params.id}` }),
+      name: 'organization-agenda-edit',
+      component: () => import('@/views/organization/agenda/Edit.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Edit Agenda' },
     },
     {
       path: '/organization/announcements',
-      redirect: to => ({ path: '/organization/content', query: { type: 'announcement' } }),
+      name: 'organization-announcements',
+      component: () => import('@/views/organization/announcements/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Pengumuman' },
     },
     {
       path: '/organization/gallery',
@@ -216,7 +290,7 @@ const router = createRouter({
       path: '/organization/documents',
       name: 'organization-documents',
       component: () => import('@/views/organization/documents/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Documents' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Documents' },
     },
     {
       path: '/organization/users',
@@ -235,6 +309,12 @@ const router = createRouter({
       name: 'organization-period',
       component: () => import('@/views/organization/period/List.vue'),
       meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Manage Period' },
+    },
+    {
+      path: '/organization/committees',
+      name: 'organization-committees',
+      component: () => import('@/views/organization/committees/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Struktur Organisasi' },
     },
 
     // ─── Shared Admin Routes ──────────────────────────────────────
@@ -274,24 +354,33 @@ router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
   const publicStore = usePublicStore()
 
-  // Initialize tenant dynamically on first load
+  // 1. Ensure authentication session is fully restored/verified before evaluating routes
+  if (!authStore.isInitialized) {
+    await authStore.restoreSession()
+  }
+
+  // 2. Initialize tenant dynamically on first load
   if (publicStore.currentTenantSlug === null && !publicStore.isLoading) {
     const slug = resolveTenantFromHostname()
     await publicStore.setTenant(slug)
   }
 
-  if (to.meta.public) {
-    // Note: Do NOT auto-redirect to dashboard if accessing public pages, 
-    // unless they hit /login while logged in.
-    if (authStore.token && (to.name === 'login' || to.name === 'register' || to.name === 'signup')) {
+  // 3. Public Routes Handling
+  const isPublic = to.matched.some(record => record.meta.public) || to.meta.public
+  if (isPublic) {
+    // If authenticated user visits login or register pages, redirect to role-appropriate dashboard
+    if (authStore.isAuthenticated && (to.name === 'login' || to.name === 'register' || to.name === 'signup')) {
       if (authStore.role === 'Super Admin') return next({ name: 'super-admin-dashboard' })
       return next({ name: 'organization-dashboard' })
     }
     return next()
   }
 
+  // 4. Protected Routes Handling
   if (to.meta.requiresAuth) {
-    if (!authStore.token) return next({ name: 'login', replace: true })
+    if (!authStore.isAuthenticated) {
+      return next({ name: 'login', query: { redirect: to.fullPath }, replace: true })
+    }
 
     const allowedRoles = to.meta.roles as string[] | undefined
     if (allowedRoles && authStore.role && !allowedRoles.includes(authStore.role)) {
