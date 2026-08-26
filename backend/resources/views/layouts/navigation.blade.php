@@ -31,6 +31,13 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
+                    <!-- Menu Pengajuan Ormawa (Khusus Super Admin) -->
+                    @if($user && $user->hasRole('Super Admin'))
+                        <x-nav-link :href="route('superadmin.pending.index')" :active="request()->routeIs('superadmin.pending.*')">
+                            📋 {{ __('Pengajuan Ormawa') }}
+                        </x-nav-link>
+                    @endif
+
                     <!-- Modul Artikel / Konten -->
                     @if(!$org || $org->isModuleActive('posts'))
                         <x-nav-link :href="route('posts.index')" :active="request()->routeIs('posts.*')">
@@ -129,6 +136,13 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            <!-- Menu Pengajuan Ormawa Mobile (Khusus Super Admin) -->
+            @if($user && $user->hasRole('Super Admin'))
+                <x-responsive-nav-link :href="route('superadmin.pending.index')" :active="request()->routeIs('superadmin.pending.*')">
+                    📋 {{ __('Pengajuan Ormawa') }}
+                </x-responsive-nav-link>
+            @endif
 
             @if(!$org || $org->isModuleActive('posts'))
                 <x-responsive-nav-link :href="route('posts.index')" :active="request()->routeIs('posts.*')">
