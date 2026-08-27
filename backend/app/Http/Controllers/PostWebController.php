@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\PageView;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -23,10 +25,23 @@ class PostWebController extends Controller
         return view('posts.create');
     }
 
-    // 3. Halaman Detail Artikel
-    public function show(Post $post)
+    // 3. Halaman Detail Artikel (Termasuk Pencatatan PageView)
+    public function show(Request $request, Post $post)
     {
         $post->load(['user', 'organization']);
+
+        // Catat PageView internal traffic
+        try {
+            PageView::create([
+                'organization_id' => $post->organization_id,
+                'url_path'        => '/' . ltrim($request->path(), '/'),
+                'ip_address'      => $request->ip(),
+                'user_agent'      => substr($request->userAgent() ?? '', 0, 255),
+            ]);
+        } catch (\Exception $e) {
+            // Ignore tracking exceptions if any
+        }
+
         return view('posts.show', compact('post'));
     }
 
@@ -55,6 +70,8 @@ class PostWebController extends Controller
             'status' => $request->status,
         ]);
 
+        ActivityLogService::log('update', 'posts', 'Memperbarui artikel: ' . $post->judul, $post);
+
         if ($request->wantsJson()) {
             return response()->json([
                 'status'  => 'success',
@@ -69,7 +86,11 @@ class PostWebController extends Controller
     // 6. Proses Hapus Artikel
     public function destroy(Request $request, Post $post)
     {
+        $judul = $post->judul;
+        $postCopy = clone $post;
         $post->delete();
+
+        ActivityLogService::log('delete', 'posts', 'Menghapus artikel: ' . $judul, $postCopy);
 
         if ($request->wantsJson()) {
             return response()->json([

@@ -172,6 +172,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Pengguna Global' }
     },
     {
+      path: '/super-admin/roles',
+      name: 'super-admin-roles',
+      component: () => import('@/views/super-admin/roles/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Role & Hak Akses' }
+    },
+    {
       path: '/super-admin/content',
       name: 'super-admin-content',
       component: () => import('@/views/super-admin/content/List.vue'),

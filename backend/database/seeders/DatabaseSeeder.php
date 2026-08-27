@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
@@ -21,6 +22,26 @@ class DatabaseSeeder extends Seeder
         foreach (['Super Admin', 'Admin Organisasi', 'Editor', 'Kontributor'] as $roleName) {
             Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
         }
+
+        // 1b. Katalog hak akses yang dipakai oleh seluruh modul platform.
+        $permissions = [
+            'manage-users', 'manage-organizations', 'manage-periods',
+            'view-content', 'create-content', 'edit-content', 'delete-content', 'publish-content',
+            'view-activity-logs', 'manage-platform-settings',
+        ];
+        foreach ($permissions as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
+
+        Role::findByName('Super Admin')->syncPermissions($permissions);
+        Role::findByName('Admin Organisasi')->syncPermissions([
+            'manage-users', 'view-content', 'create-content', 'edit-content', 'delete-content', 'publish-content',
+            'view-activity-logs',
+        ]);
+        Role::findByName('Editor')->syncPermissions([
+            'view-content', 'create-content', 'edit-content', 'publish-content',
+        ]);
+        Role::findByName('Kontributor')->syncPermissions(['view-content', 'create-content', 'edit-content']);
 
         // 2. Buat Dummy Organisasi (HMPS Teknik Informatika)
         $hmif = Organization::firstOrCreate(

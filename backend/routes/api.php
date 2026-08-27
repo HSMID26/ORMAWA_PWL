@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ActivityController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\MediaController;
@@ -80,6 +81,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         'update'  => 'api.users.update',
         'destroy' => 'api.users.destroy',
     ]);
+    Route::get('/roles', [RoleController::class, 'index'])->name('api.roles.index');
+    Route::put('/roles/{role}/permissions', [RoleController::class, 'update'])->name('api.roles.permissions.update');
     Route::apiResource('activities', ActivityController::class)->names([
         'index'   => 'api.activities.index',
         'store'   => 'api.activities.store',
