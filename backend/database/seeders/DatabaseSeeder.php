@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -23,7 +24,7 @@ class DatabaseSeeder extends Seeder
             Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
         }
 
-        // 1b. Katalog hak akses yang dipakai oleh seluruh modul platform.
+        // Katalog hak akses yang dipakai oleh seluruh modul platform.
         $permissions = [
             'manage-users', 'manage-organizations', 'manage-periods',
             'view-content', 'create-content', 'edit-content', 'delete-content', 'publish-content',
@@ -43,7 +44,7 @@ class DatabaseSeeder extends Seeder
         ]);
         Role::findByName('Kontributor')->syncPermissions(['view-content', 'create-content', 'edit-content']);
 
-        // 2. Buat Dummy Organisasi (HMPS Teknik Informatika)
+        // 2. Dummy Organisasi (HMPS Teknik Informatika)
         $hmif = Organization::firstOrCreate(
             ['subdomain' => 'hmif'],
             [
@@ -54,6 +55,18 @@ class DatabaseSeeder extends Seeder
                 'modul_aktif' => ['galeri' => true, 'proker' => true],
             ]
         );
+
+        foreach ([
+            ['name' => 'Akademik', 'slug' => 'akademik'],
+            ['name' => 'Kegiatan', 'slug' => 'kegiatan'],
+            ['name' => 'Prestasi', 'slug' => 'prestasi'],
+            ['name' => 'Informasi', 'slug' => 'informasi'],
+        ] as $category) {
+            Category::firstOrCreate(
+                ['organization_id' => $hmif->id, 'slug' => $category['slug']],
+                ['name' => $category['name']]
+            );
+        }
 
         // 3. Buat User Super Admin (PKA Pusat - Tanpa organization_id)
         $superAdmin = User::firstOrCreate(
