@@ -15,10 +15,20 @@ class Media extends Model
     protected $fillable = [
         'organization_id',
         'user_id',
+        'name',
+        'caption',
+        'taken_at',
+        'alt_text',
         'filename',
         'path',
         'mime_type',
+        'category',
+        'visibility',
         'size',
+    ];
+
+    protected $casts = [
+        'taken_at' => 'date',
     ];
 
     public function user(): BelongsTo
@@ -34,5 +44,10 @@ class Media extends Model
     public function getUrlAttribute(): string
     {
         return url(Storage::url($this->path));
+    }
+
+    public function getIsImageAttribute(): bool
+    {
+        return str_starts_with($this->mime_type ?? '', 'image/');
     }
 }

@@ -1,28 +1,24 @@
 <template>
-  <div class="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-slate-900 selection:text-white">
+  <div class="min-h-screen bg-[#F8F9FA] text-[#191C1D] flex flex-col font-sans selection:bg-[#00346F] selection:text-white">
     <PublicNavbar />
-    
-    <main id="main-content" class="flex-grow flex flex-col items-center justify-center py-32 px-4 text-center">
-      <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-900 flex items-center justify-center mb-4 text-2xl font-black">
-        404
-      </div>
-      <h1 class="text-2xl sm:text-3xl font-black text-slate-950 mb-2">Halaman Tidak Ditemukan</h1>
-      <p class="text-xs sm:text-sm text-slate-500 max-w-md mb-8 leading-relaxed">
-        Halaman atau berkas publik yang Anda tuju tidak tersedia, telah dipindahkan, atau status publikasi belum aktif.
-      </p>
-      <div class="flex flex-wrap gap-3 justify-center">
-        <router-link
-          to="/"
-          class="rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-800 shadow-sm transition"
-        >
-          Kembali ke Beranda
-        </router-link>
-        <router-link
-          to="/organizations"
-          class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm transition"
-        >
-          Direktori Ormawa
-        </router-link>
+
+    <main class="flex-grow flex items-center justify-center px-4 py-20 pt-28">
+      <div class="max-w-md w-full bg-white rounded border border-[#C2C6D3] p-8 text-center space-y-4 shadow-2xs">
+        <div class="h-12 w-12 rounded bg-[#F3F4F5] text-[#00346F] mx-auto flex items-center justify-center font-bold text-lg">
+          404
+        </div>
+        <h1 class="text-xl font-bold text-[#191C1D]">Halaman Tidak Ditemukan</h1>
+        <p class="text-xs text-[#424751] leading-relaxed">
+          Tautan yang Anda tuju tidak tersedia, telah dihapus, atau sedang mengalami pemeliharaan sistem.
+        </p>
+        <div class="pt-2">
+          <router-link
+            to="/"
+            class="inline-block rounded bg-[#00346F] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#004A99] transition shadow-2xs"
+          >
+            &larr; Kembali ke Beranda
+          </router-link>
+        </div>
       </div>
     </main>
 

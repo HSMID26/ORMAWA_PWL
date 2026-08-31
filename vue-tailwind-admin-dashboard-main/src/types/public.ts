@@ -108,6 +108,7 @@ export interface PublicAnnouncement {
   content: string
   priority: 'urgent' | 'high' | 'normal' | 'low'
   effective_date?: string | null
+  expires_at?: string | null
   published_at?: string
   organization?: {
     id: number
@@ -120,8 +121,19 @@ export interface PublicAnnouncement {
 
 export interface PublicMedia {
   id: number
-  filename: string
+  title?: string
+  name?: string
+  judul?: string
+  caption?: string | null
+  deskripsi?: string | null
+  alt_text?: string | null
+  category?: string | null
+  kategori?: string | null
+  taken_at?: string | null
+  tanggal?: string | null
+  image_url: string
   url: string
+  filename: string
   mime_type?: string
   size?: number
   created_at?: string
@@ -129,11 +141,19 @@ export interface PublicMedia {
 
 export interface PublicDocument {
   id: number
+  name: string
+  judul?: string
   filename: string
-  url: string
+  category?: string
+  kategori?: string
   mime_type: string
+  file_type?: string
   size?: number
+  file_size?: number
   formatted_size?: string
+  url?: string
+  file_url?: string
+  download_url: string
   created_at?: string
 }
 
@@ -144,6 +164,7 @@ export interface PublicCommittee {
   department: string
   period?: string | null
   photo?: string | null
+  photo_url?: string | null
 }
 
 export interface PublicHomeSummary {

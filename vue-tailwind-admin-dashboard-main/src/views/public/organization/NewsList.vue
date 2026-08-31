@@ -1,57 +1,60 @@
 <template>
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
-    <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#424751]" aria-label="Breadcrumb">
+      <router-link to="/" class="hover:text-[#00346F]">Beranda</router-link>
+      <span class="text-[#737783]">&rsaquo;</span>
+      <router-link :to="`/organizations/${subdomain}`" class="hover:text-[#00346F]">{{ orgName }}</router-link>
+      <span class="text-[#737783]">&rsaquo;</span>
+      <span class="text-[#00346F] font-bold">Warta & Berita</span>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="border-b border-[#C2C6D3] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
       <div>
-        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-900">Publikasi & Warta</span>
-        <h1 class="text-2xl sm:text-3xl font-bold text-slate-950 mt-0.5">Berita & Artikel</h1>
-      </div>
-
-      <!-- Search Input -->
-      <div class="w-full sm:w-64">
-        <input
-          v-model="searchQuery"
-          @input="onSearch"
-          type="text"
-          placeholder="Cari judul warta..."
-          class="w-full h-9 rounded-lg border border-slate-200 px-3 text-xs text-slate-900 focus:border-blue-700 focus:outline-none"
-        />
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#00346F]">Publikasi Resmi</span>
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#191C1D] mt-0.5">Warta & Artikel</h1>
       </div>
     </div>
 
-    <div v-if="isLoading" class="py-16 text-center text-xs text-slate-500">Memuat artikel...</div>
-    
-    <div v-else-if="articles.length === 0" class="py-14 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-xl bg-white">
-      Tidak ada artikel yang sesuai dengan pencarian.
+    <!-- Loading -->
+    <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="i in 6" :key="i" class="h-64 rounded bg-white border border-[#C2C6D3] animate-pulse"></div>
     </div>
 
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+    <!-- Empty -->
+    <div v-else-if="articles.length === 0" class="py-16 text-center text-xs text-[#737783] border border-dashed border-[#C2C6D3] rounded bg-white">
+      Belum ada warta berita yang dipublikasikan.
+    </div>
+
+    <!-- Articles Grid -->
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <article
-        v-for="post in articles"
-        :key="post.id"
-        class="rounded-xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 transition flex flex-col group"
+        v-for="art in articles"
+        :key="art.id"
+        class="rounded border border-[#C2C6D3] bg-white overflow-hidden hover:border-[#00346F] transition duration-150 flex flex-col justify-between group shadow-2xs"
       >
-        <router-link :to="`/organizations/${organization.subdomain}/articles/${post.slug}`" class="block h-44 bg-slate-100 overflow-hidden relative">
-          <img v-if="post.cover_image" :src="post.cover_image" :alt="post.judul" class="h-full w-full object-cover group-hover:scale-102 transition" />
-          <div v-else class="h-full w-full flex items-center justify-center text-slate-300 font-bold text-xs bg-slate-100">
-            {{ organization.nama }}
-          </div>
-          <span v-if="post.category" class="absolute top-2.5 left-2.5 rounded bg-white/95 px-2 py-0.5 text-[9px] font-bold text-slate-900 shadow-xs">
-            {{ post.category.name }}
+        <router-link :to="`/organizations/${subdomain}/articles/${art.slug}`" class="block h-48 bg-[#F3F4F5] overflow-hidden relative">
+          <img v-if="art.cover_image" :src="art.cover_image" :alt="art.judul" class="h-full w-full object-cover group-hover:scale-102 transition duration-200" />
+          <div v-else class="h-full w-full flex items-center justify-center text-xs font-bold text-[#737783]">ORMAWA ITI</div>
+          <span v-if="art.category" class="absolute top-3 left-3 rounded bg-white/95 px-2.5 py-0.5 text-[9px] font-bold text-[#191C1D] shadow-xs">
+            {{ art.category.name }}
           </span>
         </router-link>
 
-        <div class="p-4 flex flex-col justify-between flex-grow space-y-2">
+        <div class="p-5 space-y-2 flex flex-col justify-between flex-grow">
           <div>
-            <h3 class="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-blue-900 transition line-clamp-2 leading-snug">
-              <router-link :to="`/organizations/${organization.subdomain}/articles/${post.slug}`">
-                {{ post.judul }}
+            <h2 class="text-sm sm:text-base font-bold text-[#191C1D] group-hover:text-[#00346F] transition leading-snug">
+              <router-link :to="`/organizations/${subdomain}/articles/${art.slug}`">
+                {{ art.judul }}
               </router-link>
-            </h3>
-            <p class="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">{{ post.excerpt }}</p>
+            </h2>
+            <p class="text-xs text-[#424751] line-clamp-2 mt-1.5 leading-relaxed">{{ art.excerpt }}</p>
           </div>
-          <div class="pt-2 border-t border-slate-100 text-[10px] text-slate-400 flex justify-between font-medium">
-            <span>{{ new Date(post.published_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) }}</span>
-            <span class="text-slate-600">{{ post.author.name }}</span>
+
+          <div class="pt-3 border-t border-[#E1E3E4] flex items-center justify-between text-[11px] text-[#737783]">
+            <span>{{ new Date(art.published_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) }}</span>
+            <span class="font-semibold text-[#191C1D]">{{ art.author?.name || 'Redaksi' }}</span>
           </div>
         </div>
       </article>
@@ -60,38 +63,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
 import type { PublicOrganization, PublicArticle } from '@/types/public'
 
-const props = defineProps<{ organization: PublicOrganization }>()
+const props = defineProps<{ organization?: PublicOrganization }>()
+const route = useRoute()
 
 const articles = ref<PublicArticle[]>([])
 const isLoading = ref(true)
-const searchQuery = ref('')
+
+const subdomain = computed(() => props.organization?.subdomain || (route.params.slug as string) || '')
+const orgName = computed(() => props.organization?.nama || 'Organisasi')
 
 useSeoMeta(() => ({
-  title: `Warta & Berita | ${props.organization.nama}`,
-  description: `Arsip warta, kegiatan, dan publikasi resmi ${props.organization.nama}.`,
+  title: `Warta & Berita — ${orgName.value} | ORMAWA ITI`,
+  description: `Kumpulan artikel warta dan berita resmi dari ${orgName.value} Institut Teknologi Indonesia.`,
   ogType: 'website',
 }))
 
-let debounceTimer: any = null
-const onSearch = () => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    loadArticles()
-  }, 200)
-}
-
 const loadArticles = async () => {
+  if (!subdomain.value) return
   isLoading.value = true
   try {
-    const res = await publicService.getArticles(props.organization.subdomain, {
-      search: searchQuery.value || undefined,
-      per_page: 30,
-    })
+    const res = await publicService.getArticles(subdomain.value, { per_page: 30 })
     articles.value = res.data || []
   } catch (err) {
     console.error(err)
@@ -99,6 +96,10 @@ const loadArticles = async () => {
     isLoading.value = false
   }
 }
+
+watch(() => subdomain.value, (newVal) => {
+  if (newVal) loadArticles()
+})
 
 onMounted(() => {
   loadArticles()

@@ -19,13 +19,13 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
 
-        if (!$authUser->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            abort(403, 'Unauthorized. Hanya Super Admin dan Admin Organisasi yang dapat mengelola pengguna.');
+        if (!$authUser || (!$authUser->hasRole('Super Admin') && !$authUser->can('users.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki hak akses untuk melihat pengguna.');
         }
 
         $query = User::with(['organization', 'roles']);
 
-        if ($authUser->hasRole('Admin Organisasi')) {
+        if (!$authUser->hasRole('Super Admin')) {
             $query->where('organization_id', $authUser->organization_id)
                   ->whereDoesntHave('roles', function ($q) {
                       $q->where('name', 'Super Admin');
@@ -79,7 +79,7 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
 
-        if (!$authUser->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        if (!$authUser || (!$authUser->hasRole('Super Admin') && !$authUser->can('users.manage'))) {
             abort(403, 'Unauthorized. Anda tidak memiliki hak akses untuk membuat pengguna.');
         }
 
@@ -157,7 +157,7 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
 
-        if (!$authUser->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        if (!$authUser || (!$authUser->hasRole('Super Admin') && !$authUser->can('users.manage'))) {
             abort(403, 'Unauthorized. Anda tidak memiliki hak akses untuk mengedit pengguna.');
         }
 
@@ -297,13 +297,13 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
 
-        if (!$authUser->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        if (!$authUser || (!$authUser->hasRole('Super Admin') && !$authUser->can('users.manage'))) {
             abort(403, 'Unauthorized. Anda tidak memiliki hak akses untuk menghapus pengguna.');
         }
 
         $targetUser = User::with('roles')->findOrFail($id);
 
-        if ($authUser->hasRole('Admin Organisasi')) {
+        if (!$authUser->hasRole('Super Admin')) {
             if ((int)$targetUser->organization_id !== (int)$authUser->organization_id || $targetUser->hasRole('Super Admin') || $targetUser->hasRole('Admin Organisasi') || $targetUser->id === $authUser->id) {
                 abort(403, 'Unauthorized. Anda hanya dapat menghapus Editor atau Kontributor di organisasi Anda.');
             }
@@ -327,13 +327,13 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
 
-        if (!$authUser->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        if (!$authUser || (!$authUser->hasRole('Super Admin') && !$authUser->can('users.manage'))) {
             abort(403, 'Unauthorized.');
         }
 
         $targetUser = User::with('roles')->findOrFail($id);
 
-        if ($authUser->hasRole('Admin Organisasi')) {
+        if (!$authUser->hasRole('Super Admin')) {
             if ((int)$targetUser->organization_id !== (int)$authUser->organization_id || $targetUser->hasRole('Super Admin')) {
                 abort(403, 'Unauthorized.');
             }
@@ -358,7 +358,7 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
 
-        if (!$authUser->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        if (!$authUser || (!$authUser->hasRole('Super Admin') && !$authUser->can('users.manage'))) {
             abort(403, 'Unauthorized.');
         }
 
@@ -378,7 +378,7 @@ class UserController extends Controller
             }
         }
 
-        if ($authUser->hasRole('Admin Organisasi')) {
+        if (!$authUser->hasRole('Super Admin')) {
             if ((int)$targetUser->organization_id !== (int)$authUser->organization_id || $targetUser->hasRole('Super Admin')) {
                 abort(403, 'Unauthorized.');
             }
@@ -406,7 +406,7 @@ class UserController extends Controller
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
 
-        if (!$authUser->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        if (!$authUser || (!$authUser->hasRole('Super Admin') && !$authUser->can('users.manage'))) {
             abort(403, 'Unauthorized.');
         }
 

@@ -50,3 +50,30 @@ export const userService = {
   },
 }
 
+export interface RoleAccess {
+  id: number
+  name: string
+  permissions: string[]
+}
+
+export interface RoleAccessResponse {
+  roles: RoleAccess[]
+  permissions: Array<{ id: number; name: string; guard_name: string }>
+  groups: Record<string, Record<string, string>>
+}
+
+export const roleService = {
+  async access() {
+    const { data } = await api.get<{ status: string; data: RoleAccessResponse }>('/roles')
+    return data.data
+  },
+
+  async updatePermissions(roleId: number, permissions: string[]) {
+    const { data } = await api.put<{ status: string; message: string; data: { id: number; name: string; permissions: string[] } }>(
+      `/roles/${roleId}/permissions`,
+      { permissions }
+    )
+    return data.data
+  },
+}
+

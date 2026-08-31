@@ -15,8 +15,8 @@ class ActivityController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul agenda.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('agenda.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat agenda kegiatan.');
         }
 
         $activities = Activity::with('user')->latest()->get();
@@ -33,8 +33,8 @@ class ActivityController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk menambah agenda.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('agenda.create'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk membuat agenda kegiatan.');
         }
 
         $request->validate([
@@ -46,7 +46,8 @@ class ActivityController extends Controller
         
         $status = $request->status ?? 'draft';
 
-        if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        $canPublish = $user->hasRole('Super Admin') || $user->can('agenda.publish');
+        if (in_array($status, ['published', 'rejected']) && !$canPublish) {
             $status = 'draft';
         }
 
@@ -86,8 +87,8 @@ class ActivityController extends Controller
     public function show(Request $request, Activity $activity)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul agenda.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('agenda.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat agenda kegiatan.');
         }
 
         return response()->json([
@@ -102,11 +103,16 @@ class ActivityController extends Controller
     public function update(Request $request, string $id)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk mengedit agenda.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('agenda.update'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengubah agenda kegiatan.');
         }
 
-        $activity = Activity::findOrFail($id);
+        $activity = Activity::withoutGlobalScopes()->findOrFail($id);
+
+        // Strict Tenant Isolation
+        if (!$user->hasRole('Super Admin') && $activity->organization_id !== $user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat mengubah agenda organisasi lain.');
+        }
 
         $request->validate([
             'judul'                => 'required|string|max:255',
@@ -120,7 +126,8 @@ class ActivityController extends Controller
         if ($request->has('status')) {
             $newStatus = $request->status;
 
-            if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
+            $canPublish = $user->hasRole('Super Admin') || $user->can('agenda.publish');
+            if (in_array($newStatus, ['published', 'rejected']) && !$canPublish) {
                 $newStatus = $activity->status;
             }
             $data['status'] = $newStatus;
@@ -186,11 +193,17 @@ class ActivityController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk menghapus agenda.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('agenda.delete'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk menghapus agenda kegiatan.');
         }
 
-        $activity = Activity::findOrFail($id);
+        $activity = Activity::withoutGlobalScopes()->findOrFail($id);
+
+        // Strict Tenant Isolation
+        if (!$user->hasRole('Super Admin') && $activity->organization_id !== $user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat menghapus agenda organisasi lain.');
+        }
+
         $activity->delete();
 
         ActivityLogService::log('delete', 'activities', 'Menghapus agenda: ' . $activity->judul, clone $activity);

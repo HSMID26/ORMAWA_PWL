@@ -21,7 +21,7 @@
                 Buat Akun
               </h1>
               <p class="text-sm text-gray-500 dark:text-gray-400">
-                Daftarkan akun untuk mulai menggunakan CMS ORMAWA.
+                Daftarkan akun untuk mulai menggunakan ORMAWA ITI.
               </p>
             </div>
             <div>
@@ -319,7 +319,7 @@
             <div class="flex flex-col items-center max-w-lg text-center px-6">
               <router-link to="/" class="block mb-8">
                 <!-- Fallback ke teks jika svg tidak tampil elegan -->
-                <h2 class="text-3xl font-extrabold text-white tracking-tight">CMS ORMAWA</h2>
+                <h2 class="text-3xl font-extrabold text-white tracking-tight">ORMAWA ITI</h2>
               </router-link>
               <h3 class="text-xl font-bold text-white mb-4">Portal Manajemen Organisasi Kemahasiswaan</h3>
               <p class="text-base text-gray-300 dark:text-white/70 leading-relaxed">

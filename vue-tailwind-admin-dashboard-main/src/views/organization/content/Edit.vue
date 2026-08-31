@@ -30,6 +30,7 @@ const selectedTags = ref<number[]>([])
 const activity_date = ref('')
 const activity_description = ref('')
 const announcement_date = ref('')
+const announcement_expires_at = ref('')
 const priority = ref<'low'|'normal'|'high'|'urgent'>('normal')
 const currentStatus = ref('draft')
 
@@ -92,6 +93,7 @@ const loadData = async () => {
       title.value = data.title
       content.value = data.content
       announcement_date.value = data.effective_date ? data.effective_date.split('T')[0] : ''
+      announcement_expires_at.value = data.expires_at ? data.expires_at.split('T')[0] : ''
       priority.value = data.priority
       meta_title.value = data.meta_title || ''
       meta_description.value = data.meta_description || ''
@@ -134,6 +136,7 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
         title: title.value,
         content: content.value,
         effective_date: announcement_date.value || null,
+        expires_at: announcement_expires_at.value || null,
         priority: priority.value,
         meta_title: meta_title.value,
         meta_description: meta_description.value,
@@ -276,14 +279,25 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
               ></textarea>
             </div>
             <div>
-              <label class="mb-2.5 block text-black dark:text-white">Tanggal Efektif (Opsional)</label>
+              <label class="mb-2.5 block text-black dark:text-white">Tanggal Efektif (Mulai Berlaku)</label>
               <input 
                 type="date" 
                 v-model="announcement_date" 
                 class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
               />
+              <p class="text-xs text-gray-500 mt-1">Kosongkan jika langsung tayang saat diterbitkan.</p>
             </div>
             <div>
+              <label class="mb-2.5 block text-black dark:text-white">Berlaku Hingga (Opsional)</label>
+              <input 
+                type="date" 
+                v-model="announcement_expires_at" 
+                :min="announcement_date || ''"
+                class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+              />
+              <p class="text-xs text-gray-500 mt-1">Kosongkan jika berlaku tanpa batas kedaluwarsa.</p>
+            </div>
+            <div class="md:col-span-2">
               <label class="mb-2.5 block text-black dark:text-white">Prioritas</label>
               <select 
                 v-model="priority"

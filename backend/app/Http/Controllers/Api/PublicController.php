@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Announcement;
+use App\Models\Category;
 use App\Models\Committee;
 use App\Models\Media;
 use App\Models\Organization;
 use App\Models\Post;
+use App\Models\Tag;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -36,6 +38,10 @@ class PublicController extends Controller
     private function ensureModuleEnabled(Organization $org, string $moduleKey): void
     {
         $modules = $org->modul_aktif ?? [];
+
+        if (isset($modules['public_website_enabled']) && $modules['public_website_enabled'] === false) {
+            abort(404, 'Website publik organisasi ini sedang dinonaktifkan.');
+        }
         
         $aliasMap = [
             'galeri' => ['galeri', 'gallery'],
@@ -54,6 +60,24 @@ class PublicController extends Controller
             if (isset($modules[$key]) && $modules[$key] === false) {
                 abort(404, "Modul {$moduleKey} tidak diaktifkan pada organisasi ini.");
             }
+        }
+    }
+
+    /**
+     * Helper: Record internal page view for analytics
+     */
+    private function recordPageView(Organization $org): void
+    {
+        try {
+            $req = request();
+            \App\Models\PageView::create([
+                'organization_id' => $org->id,
+                'url_path'        => '/' . ltrim($req->path(), '/'),
+                'ip_address'      => $req->ip() ?? '127.0.0.1',
+                'user_agent'      => substr($req->userAgent() ?? 'Web', 0, 255),
+            ]);
+        } catch (\Throwable) {
+            // Silently ignore to avoid failing public requests
         }
     }
 
@@ -115,18 +139,37 @@ class PublicController extends Controller
             ->get()
             ->map(fn($act) => $this->formatAgenda($act));
 
-        // 4. Active Announcements (Within effective date range)
-        $now = Carbon::now();
+        // 4. Active Announcements (Within effective date range and not expired)
+        $today = Carbon::today()->toDateString();
         $announcements = Announcement::withoutGlobalScopes()
             ->where('status', 'published')
-            ->where(function ($q) use ($now) {
+            ->where(function ($q) use ($today) {
                 $q->whereNull('effective_date')
-                  ->orWhere('effective_date', '<=', $now);
+                  ->orWhereDate('effective_date', '<=', $today);
             })
-            ->whereHas('organization', fn($q) => $q->where('status', 'active'))
+            ->where(function ($q) use ($today) {
+                $q->whereNull('expires_at')
+                  ->orWhereDate('expires_at', '>=', $today);
+            })
+            ->whereHas('organization', function ($q) {
+                $q->where('status', 'active')
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->announcements')
+                          ->orWhere('modul_aktif->announcements', '!=', false);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->pengumuman')
+                          ->orWhere('modul_aktif->pengumuman', '!=', false);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->public_website_enabled')
+                          ->orWhere('modul_aktif->public_website_enabled', '!=', false);
+                  });
+            })
             ->with('organization:id,nama,subdomain,logo,warna_tema')
             ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END")
             ->latest('published_at')
+            ->latest('id')
             ->take(5)
             ->get()
             ->map(fn($ann) => $this->formatAnnouncement($ann));
@@ -205,12 +248,295 @@ class PublicController extends Controller
     }
 
     /**
+     * 2.1. GET /api/public/articles
+     * Aggregated global list of published articles across all active organizations
+     */
+    public function globalArticles(Request $request)
+    {
+        $query = Post::withoutGlobalScopes()
+            ->where('status', 'published')
+            ->whereHas('organization', function ($q) {
+                $q->where('status', 'active')
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->posts')
+                          ->orWhere('modul_aktif->posts', true);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->articles')
+                          ->orWhere('modul_aktif->articles', true);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->berita')
+                          ->orWhere('modul_aktif->berita', true);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->public_website_enabled')
+                          ->orWhere('modul_aktif->public_website_enabled', true);
+                  });
+            })
+            ->with([
+                'user:id,name',
+                'category:id,name,slug',
+                'tags:id,name,slug',
+                'organization:id,nama,subdomain,logo,warna_tema',
+            ]);
+
+        // Search filter (judul, excerpt, konten)
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('judul', 'like', "%{$search}%")
+                  ->orWhere('excerpt', 'like', "%{$search}%")
+                  ->orWhere('konten', 'like', "%{$search}%");
+            });
+        }
+
+        // Organization filter (subdomain or id or nama)
+        if ($request->filled('organization')) {
+            $orgParam = trim($request->organization);
+            $query->whereHas('organization', function ($q) use ($orgParam) {
+                $q->where('subdomain', $orgParam)
+                  ->orWhere('id', $orgParam)
+                  ->orWhere('nama', $orgParam);
+            });
+        }
+
+        // Category filter (slug or name or id)
+        if ($request->filled('category')) {
+            $catParam = trim($request->category);
+            $query->whereHas('category', function ($q) use ($catParam) {
+                $q->where('slug', $catParam)
+                  ->orWhere('name', $catParam)
+                  ->orWhere('id', $catParam);
+            });
+        }
+
+        // Tag filter (slug or name or id)
+        if ($request->filled('tag')) {
+            $tagParam = trim($request->tag);
+            $query->whereHas('tags', function ($q) use ($tagParam) {
+                $q->where('slug', $tagParam)
+                  ->orWhere('name', $tagParam)
+                  ->orWhere('id', $tagParam);
+            });
+        }
+
+        // Sort order
+        if ($request->input('sort') === 'oldest') {
+            $query->orderBy('published_at', 'asc')->orderBy('id', 'asc');
+        } else {
+            $query->latest('published_at')->latest('id');
+        }
+
+        $perPage = min(max((int)($request->per_page ?? 12), 1), 50);
+        $paginator = $query->paginate($perPage);
+
+        $items = collect($paginator->items())->map(fn($p) => $this->formatArticle($p));
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $items,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ]
+        ]);
+    }
+
+    /**
+     * 2.2. GET /api/public/categories
+     * List distinct categories for active published posts
+     */
+    public function globalCategories()
+    {
+        $categories = Category::withoutGlobalScopes()
+            ->whereHas('posts', function ($q) {
+                $q->where('status', 'published')
+                  ->whereHas('organization', fn($o) => $o->where('status', 'active'));
+            })
+            ->select(['id', 'name', 'slug'])
+            ->distinct()
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $categories
+        ]);
+    }
+
+    /**
+     * 2.3. GET /api/public/agenda
+     * Aggregated global list of published activities across all active organizations
+     */
+    public function globalAgenda(Request $request)
+    {
+        $query = Activity::withoutGlobalScopes()
+            ->where('status', 'published')
+            ->whereHas('organization', function ($q) {
+                $q->where('status', 'active')
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->agenda')
+                          ->orWhere('modul_aktif->agenda', true);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->kegiatan')
+                          ->orWhere('modul_aktif->kegiatan', true);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->activities')
+                          ->orWhere('modul_aktif->activities', true);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->public_website_enabled')
+                          ->orWhere('modul_aktif->public_website_enabled', true);
+                  });
+            })
+            ->with('organization:id,nama,subdomain,logo,warna_tema');
+
+        $today = Carbon::today()->toDateString();
+        $tab = $request->get('tab', 'upcoming');
+
+        if ($tab === 'upcoming') {
+            $query->whereDate('tanggal_pelaksanaan', '>=', $today)->orderBy('tanggal_pelaksanaan', 'asc')->orderBy('id', 'asc');
+        } elseif ($tab === 'today') {
+            $query->whereDate('tanggal_pelaksanaan', '=', $today)->orderBy('id', 'asc');
+        } elseif ($tab === 'past') {
+            $query->whereDate('tanggal_pelaksanaan', '<', $today)->orderBy('tanggal_pelaksanaan', 'desc')->orderBy('id', 'desc');
+        } else {
+            $query->orderBy('tanggal_pelaksanaan', 'desc')->orderBy('id', 'desc');
+        }
+
+        // Search filter (judul, deskripsi, tempat)
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('judul', 'like', "%{$search}%")
+                  ->orWhere('deskripsi', 'like', "%{$search}%")
+                  ->orWhere('tempat', 'like', "%{$search}%");
+            });
+        }
+
+        // Organization filter
+        if ($request->filled('organization')) {
+            $orgParam = trim($request->organization);
+            $query->whereHas('organization', function ($q) use ($orgParam) {
+                $q->where('subdomain', $orgParam)
+                  ->orWhere('id', $orgParam)
+                  ->orWhere('nama', $orgParam);
+            });
+        }
+
+        $perPage = min(max((int)($request->per_page ?? 12), 1), 50);
+        $paginator = $query->paginate($perPage);
+
+        $items = collect($paginator->items())->map(fn($a) => $this->formatAgenda($a));
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $items,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ]
+        ]);
+    }
+
+    /**
+     * 2.4. GET /api/public/announcements
+     * Aggregated global list of published active announcements across all active organizations
+     */
+    public function globalAnnouncements(Request $request)
+    {
+        $today = Carbon::today()->toDateString();
+        $query = Announcement::withoutGlobalScopes()
+            ->where('status', 'published')
+            ->where(function ($q) use ($today) {
+                $q->whereNull('effective_date')
+                  ->orWhereDate('effective_date', '<=', $today);
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereNull('expires_at')
+                  ->orWhereDate('expires_at', '>=', $today);
+            })
+            ->whereHas('organization', function ($q) {
+                $q->where('status', 'active')
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->announcements')
+                          ->orWhere('modul_aktif->announcements', '!=', false);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->pengumuman')
+                          ->orWhere('modul_aktif->pengumuman', '!=', false);
+                  })
+                  ->where(function ($sub) {
+                      $sub->whereNull('modul_aktif->public_website_enabled')
+                          ->orWhere('modul_aktif->public_website_enabled', '!=', false);
+                  });
+            })
+            ->with('organization:id,nama,subdomain,logo,warna_tema');
+
+        // Priority filter
+        if ($request->filled('priority')) {
+            $priority = strtolower(trim($request->priority));
+            if (in_array($priority, ['urgent', 'high', 'normal', 'low'])) {
+                $query->where('priority', $priority);
+            }
+        }
+
+        // Search filter (title, content)
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        // Organization filter
+        if ($request->filled('organization')) {
+            $orgParam = trim($request->organization);
+            $query->whereHas('organization', function ($q) use ($orgParam) {
+                $q->where('subdomain', $orgParam)
+                  ->orWhere('id', $orgParam)
+                  ->orWhere('nama', $orgParam);
+            });
+        }
+
+        $query->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END")
+              ->latest('published_at')
+              ->latest('id');
+
+        $perPage = min(max((int)($request->per_page ?? 12), 1), 50);
+        $paginator = $query->paginate($perPage);
+
+        $items = collect($paginator->items())->map(fn($ann) => $this->formatAnnouncement($ann));
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $items,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ]
+        ]);
+    }
+
+    /**
      * 3. GET /api/public/organizations/{slug}
      * Public organization profile with current period & content counts
      */
     public function organization(string $slug)
     {
         $org = $this->resolveOrganization($slug);
+        $this->recordPageView($org);
 
         $currentPeriod = $org->currentPeriod();
         $modules = $org->modul_aktif ?? [];
@@ -264,7 +590,7 @@ class PublicController extends Controller
                 'jenis' => $org->jenis,
                 'subdomain' => $org->subdomain,
                 'logo' => $org->logo,
-                'warna_tema' => $org->warna_tema ?? '#4f46e5',
+                'warna_tema' => $org->warna_tema ?? '#00346F',
                 'status' => $org->status,
                 'slogan' => $modules['slogan'] ?? null,
                 'deskripsi' => $modules['deskripsi'] ?? null,
@@ -274,7 +600,7 @@ class PublicController extends Controller
                 'email_publik' => $modules['email_publik'] ?? null,
                 'instagram' => $modules['instagram'] ?? null,
                 'website_eksternal' => $modules['website_eksternal'] ?? null,
-                'seo_title' => $modules['seo_title'] ?? "{$org->nama} | CMS ORMAWA ITI",
+                'seo_title' => $modules['seo_title'] ?? "{$org->nama} | ORMAWA ITI",
                 'seo_description' => $modules['seo_description'] ?? ($modules['deskripsi'] ?? "Website resmi {$org->nama}"),
                 'og_image' => $modules['og_image'] ?? $org->logo,
                 'modules' => [
@@ -371,6 +697,7 @@ class PublicController extends Controller
     {
         $org = $this->resolveOrganization($slug);
         $this->ensureModuleEnabled($org, 'posts');
+        $this->recordPageView($org);
 
         $post = Post::withoutGlobalScopes()
             ->where('organization_id', $org->id)
@@ -391,12 +718,18 @@ class PublicController extends Controller
             abort(404, 'Artikel tidak ditemukan atau belum dipublikasikan.');
         }
 
-        // 3 Related Articles from same organization
-        $related = Post::withoutGlobalScopes()
+        // Up to 3 Related Articles from same organization (prioritizing same category)
+        $relatedQuery = Post::withoutGlobalScopes()
             ->where('organization_id', $org->id)
             ->where('status', 'published')
-            ->where('id', '!=', $post->id)
-            ->with(['category:id,name,slug', 'organization:id,nama,subdomain'])
+            ->where('id', '!=', $post->id);
+
+        if ($post->category_id) {
+            $relatedQuery->orderByRaw("CASE WHEN category_id = {$post->category_id} THEN 0 ELSE 1 END");
+        }
+
+        $related = $relatedQuery
+            ->with(['category:id,name,slug', 'organization:id,nama,subdomain,logo,warna_tema', 'user:id,name', 'tags:id,name,slug'])
             ->latest('published_at')
             ->take(3)
             ->get()
@@ -463,6 +796,7 @@ class PublicController extends Controller
     {
         $org = $this->resolveOrganization($slug);
         $this->ensureModuleEnabled($org, 'agenda');
+        $this->recordPageView($org);
 
         $activity = Activity::withoutGlobalScopes()
             ->where('organization_id', $org->id)
@@ -490,17 +824,22 @@ class PublicController extends Controller
         $org = $this->resolveOrganization($slug);
         $this->ensureModuleEnabled($org, 'announcements');
 
-        $now = Carbon::now();
+        $today = Carbon::today()->toDateString();
         $announcements = Announcement::withoutGlobalScopes()
             ->where('organization_id', $org->id)
             ->where('status', 'published')
-            ->where(function ($q) use ($now) {
+            ->where(function ($q) use ($today) {
                 $q->whereNull('effective_date')
-                  ->orWhere('effective_date', '<=', $now);
+                  ->orWhereDate('effective_date', '<=', $today);
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereNull('expires_at')
+                  ->orWhereDate('expires_at', '>=', $today);
             })
             ->with('organization:id,nama,subdomain,logo,warna_tema')
             ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END")
             ->latest('published_at')
+            ->latest('id')
             ->get()
             ->map(fn($ann) => $this->formatAnnouncement($ann));
 
@@ -521,22 +860,47 @@ class PublicController extends Controller
 
         $query = Media::withoutGlobalScopes()
             ->where('organization_id', $org->id)
+            ->where('mime_type', 'like', 'image/%')
             ->where(function ($q) {
-                $q->where('mime_type', 'like', 'image/%')
-                  ->orWhereNull('mime_type');
+                $q->whereNull('visibility')->orWhere('visibility', '!=', 'internal');
             })
             ->with('organization:id,nama,subdomain');
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('caption', 'like', "%{$s}%")
+                  ->orWhere('filename', 'like', "%{$s}%");
+            });
+        }
 
         $perPage = min(max((int)($request->per_page ?? 12), 1), 50);
         $paginator = $query->latest('created_at')->paginate($perPage);
 
         $items = collect($paginator->items())->map(function ($m) {
+            $title = $m->name ?? pathinfo($m->filename, PATHINFO_FILENAME);
             return [
-                'id' => $m->id,
-                'filename' => $m->filename,
-                'url' => $m->url,
-                'mime_type' => $m->mime_type,
-                'size' => $m->size,
+                'id'         => $m->id,
+                'title'      => $title,
+                'name'       => $title,
+                'judul'      => $title,
+                'caption'    => $m->caption,
+                'deskripsi'  => $m->caption,
+                'alt_text'   => $m->alt_text ?: $title,
+                'category'   => $m->category ?? 'Dokumentasi',
+                'kategori'   => $m->category ?? 'Dokumentasi',
+                'taken_at'   => $m->taken_at?->toDateString(),
+                'tanggal'    => $m->taken_at?->toDateString() ?? $m->created_at?->toDateString(),
+                'image_url'  => $m->url,
+                'url'        => $m->url,
+                'filename'   => $m->filename,
+                'mime_type'  => $m->mime_type,
+                'size'       => $m->size,
                 'created_at' => $m->created_at?->toIso8601String(),
             ];
         });
@@ -565,25 +929,41 @@ class PublicController extends Controller
         $query = Media::withoutGlobalScopes()
             ->where('organization_id', $org->id)
             ->where(function ($q) {
-                $q->where('mime_type', 'not like', 'image/%')
-                  ->orWhere('filename', 'like', '%.pdf')
-                  ->orWhere('filename', 'like', '%.doc%')
-                  ->orWhere('filename', 'like', '%.xls%')
-                  ->orWhere('filename', 'like', '%.zip%');
+                $q->whereNull('visibility')->orWhere('visibility', 'public');
             })
+            ->where('mime_type', 'not like', 'image/%')
             ->with('organization:id,nama,subdomain');
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('filename', 'like', "%{$s}%");
+            });
+        }
 
         $perPage = min(max((int)($request->per_page ?? 12), 1), 50);
         $paginator = $query->latest('created_at')->paginate($perPage);
 
-        $items = collect($paginator->items())->map(function ($m) {
+        $items = collect($paginator->items())->map(function ($m) use ($org) {
             return [
                 'id' => $m->id,
+                'name' => $m->name ?? $m->filename,
+                'judul' => $m->name ?? $m->filename,
                 'filename' => $m->filename,
-                'url' => $m->url,
+                'category' => $m->category ?? 'Other',
+                'kategori' => $m->category ?? 'Other',
                 'mime_type' => $m->mime_type ?? 'application/octet-stream',
+                'file_type' => strtoupper(pathinfo($m->filename, PATHINFO_EXTENSION) ?: 'FILE'),
                 'size' => $m->size,
-                'formatted_size' => $m->size ? round($m->size / 1024, 1) . ' KB' : 'N/A',
+                'file_size' => $m->size,
+                'formatted_size' => $m->size ? round($m->size / 1024, 1) . ' KB' : '0 B',
+                'download_url' => url("/api/public/organizations/{$org->subdomain}/documents/{$m->id}/download"),
+                'file_url' => url("/api/public/organizations/{$org->subdomain}/documents/{$m->id}/download"),
                 'created_at' => $m->created_at?->toIso8601String(),
             ];
         });
@@ -622,7 +1002,8 @@ class PublicController extends Controller
                     'position' => $c->position,
                     'department' => $c->department ?? 'Pengurus Inti',
                     'period' => $c->period,
-                    'photo' => $c->photo,
+                    'photo' => $c->photo_url,
+                    'photo_url' => $c->photo_url,
                 ];
             });
 
@@ -726,16 +1107,20 @@ class PublicController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
+        if ($doc->visibility === 'internal') {
+            abort(403, 'Dokumen ini bersifat internal organisasi dan tidak dapat diunduh oleh publik.');
+        }
+
         // Check if file exists in storage
         if ($doc->path && \Illuminate\Support\Facades\Storage::disk('public')->exists($doc->path)) {
-            return \Illuminate\Support\Facades\Storage::disk('public')->download($doc->path, $doc->filename);
+            $headers = [];
+            if ($doc->mime_type) {
+                $headers['Content-Type'] = $doc->mime_type;
+            }
+            return \Illuminate\Support\Facades\Storage::disk('public')->download($doc->path, $doc->filename, $headers);
         }
 
-        if ($doc->url) {
-            return redirect()->away($doc->url);
-        }
-
-        abort(404, 'Berkas dokumen tidak ditemukan.');
+        abort(404, 'Berkas fisik dokumen tidak ditemukan di server.');
     }
 
     private function formatArticle(Post $post): array
@@ -804,6 +1189,7 @@ class PublicController extends Controller
             'content' => $announcement->content,
             'priority' => $announcement->priority ?? 'normal',
             'effective_date' => $announcement->effective_date?->toDateString(),
+            'expires_at' => $announcement->expires_at?->toDateString(),
             'published_at' => $announcement->published_at?->toIso8601String() ?? $announcement->created_at?->toIso8601String(),
             'organization' => $announcement->organization ? [
                 'id' => $announcement->organization->id,

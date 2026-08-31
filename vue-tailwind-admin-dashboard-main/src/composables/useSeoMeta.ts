@@ -54,7 +54,7 @@ export function useSeoMeta(getOptions: () => SeoOptions) {
 
   watchEffect(() => {
     const opts = getOptions()
-    const baseSiteName = 'CMS ORMAWA ITI'
+    const baseSiteName = 'ORMAWA ITI'
 
     // Document Title
     document.title = opts.title ? `${opts.title} | ${baseSiteName}` : baseSiteName

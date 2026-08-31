@@ -80,12 +80,13 @@ class OrganizationPeriodController extends Controller
     {
         $organization = Organization::findOrFail($organizationId);
 
-        if (!auth()->user()->hasRole('Super Admin') && auth()->user()->organization_id != $organization->id) {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && $user->organization_id != $organization->id)) {
             abort(403, 'Anda tidak diizinkan membuat periode untuk organisasi ini.');
         }
 
-        if (auth()->user()->hasRole('Kontributor') || auth()->user()->hasRole('Editor')) {
-             abort(403, 'Editor atau Kontributor tidak dapat mengajukan perpanjangan periode.');
+        if (!$user->hasRole('Super Admin') && !$user->can('periods.manage')) {
+             abort(403, 'Anda tidak memiliki izin untuk mengelola atau mengajukan perpanjangan periode.');
         }
 
         $validated = $request->validate([

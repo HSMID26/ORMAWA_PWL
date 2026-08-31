@@ -17,10 +17,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Buat Roles (Fitur 2 PRD)
-        foreach (['Super Admin', 'Admin Organisasi', 'Editor', 'Kontributor'] as $roleName) {
-            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-        }
+        // 1. Inisialisasi Permissions dan Roles beserta Default Matrix
+        \App\Http\Controllers\Api\RoleController::ensureDefaultPermissions();
 
         // 2. Buat Dummy Organisasi (HMPS Teknik Informatika)
         $hmif = Organization::firstOrCreate(

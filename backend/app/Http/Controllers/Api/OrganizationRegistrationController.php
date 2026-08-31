@@ -195,7 +195,7 @@ class OrganizationRegistrationController extends Controller
                 'jenis' => $registration->organization_type,
                 'subdomain' => $registration->organization_subdomain,
                 'logo' => $registration->organization_logo,
-                'warna_tema' => '#000000', // Default
+                'warna_tema' => '#00346F', // Institutional Default
             ]);
 
             // Create User
@@ -225,7 +225,7 @@ class OrganizationRegistrationController extends Controller
                 $user,
                 'organization_registration_approved',
                 'Pendaftaran Organisasi Disetujui',
-                "Pendaftaran organisasi Anda telah disetujui. Anda sekarang dapat login ke CMS ORMAWA.",
+                "Pendaftaran organisasi Anda telah disetujui. Anda sekarang dapat login ke ORMAWA ITI.",
                 '/login'
             );
 

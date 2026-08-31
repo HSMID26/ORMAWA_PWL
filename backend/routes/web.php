@@ -17,6 +17,7 @@ use App\Http\Controllers\BackupWebController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -98,6 +99,10 @@ Route::middleware('auth')->group(function () {
 
     // Halaman Statistik & Google Analytics
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+    // Pencarian Global (Global Search & Live Search API)
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+    Route::get('/api/global-search', [SearchController::class, 'liveSearch'])->name('api.global-search');
 });
 
 // Public iCal Feed Route (Google / Apple Calendar Sync)

@@ -134,11 +134,11 @@ class OrganizationController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            abort(403, 'Unauthorized. Editor dan Kontributor tidak dapat mengubah pengaturan organisasi.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('organizations.manage'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengubah pengaturan organisasi.');
         }
 
-        if ($user->hasRole('Admin Organisasi') && (int)$user->organization_id !== (int)$id) {
+        if (!$user->hasRole('Super Admin') && (int)$user->organization_id !== (int)$id) {
             abort(403, 'Unauthorized. Anda tidak dapat mengubah pengaturan organisasi lain.');
         }
 
@@ -161,6 +161,24 @@ class OrganizationController extends Controller
 
         if ($request->has('logo')) {
             $updateData['logo'] = $request->logo;
+        }
+        if ($request->has('email')) {
+            $updateData['email'] = $request->email;
+        }
+        if ($request->has('telepon')) {
+            $updateData['telepon'] = $request->telepon;
+        }
+        if ($request->has('alamat')) {
+            $updateData['alamat'] = $request->alamat;
+        }
+        if ($request->has('media_sosial')) {
+            $updateData['media_sosial'] = $request->media_sosial;
+        }
+        if ($request->has('label_menu')) {
+            $updateData['label_menu'] = $request->label_menu;
+        }
+        if ($request->has('ga_tracking_id')) {
+            $updateData['ga_tracking_id'] = $request->ga_tracking_id;
         }
 
         // Super Admin can change nama & subdomain

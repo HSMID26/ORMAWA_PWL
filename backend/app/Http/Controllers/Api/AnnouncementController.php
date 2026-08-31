@@ -17,8 +17,8 @@ class AnnouncementController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul pengumuman.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('announcements.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat pengumuman.');
         }
 
         $announcements = Announcement::with(['user:id,name', 'organization:id,nama'])->latest()->get();
@@ -35,23 +35,27 @@ class AnnouncementController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk membuat pengumuman.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('announcements.create'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk membuat pengumuman.');
         }
 
         $request->validate([
             'title'            => 'required|string|max:255',
             'content'          => 'required|string',
             'effective_date'   => 'nullable|date',
+            'expires_at'       => 'nullable|date|after_or_equal:effective_date',
             'priority'         => 'nullable|in:low,normal,high,urgent',
             'status'           => 'nullable|in:draft,review,published,rejected',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
+        ], [
+            'expires_at.after_or_equal' => 'Tanggal berlaku hingga harus setelah atau sama dengan tanggal efektif.',
         ]);
 
         $status = $request->status ?? 'draft';
 
-        if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        $canPublish = $user->hasRole('Super Admin') || $user->can('announcements.publish');
+        if (in_array($status, ['published', 'rejected']) && !$canPublish) {
             $status = 'draft';
         }
 
@@ -61,6 +65,7 @@ class AnnouncementController extends Controller
             'slug'             => Str::slug($request->title) . '-' . Str::random(5),
             'content'          => $request->content,
             'effective_date'   => $request->effective_date,
+            'expires_at'       => $request->expires_at,
             'priority'         => $request->priority ?? 'normal',
             'status'           => $status,
             'published_at'     => $status === 'published' ? now() : null,
@@ -94,11 +99,15 @@ class AnnouncementController extends Controller
     public function show(Request $request, string $id)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses ke modul pengumuman.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('announcements.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat pengumuman.');
         }
 
-        $announcement = Announcement::with('user:id,name')->findOrFail($id);
+        $announcement = Announcement::withoutGlobalScopes()->with('user:id,name')->findOrFail($id);
+
+        if (!$user->hasRole('Super Admin') && (int)$announcement->organization_id !== (int)$user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat melihat pengumuman organisasi lain.');
+        }
 
         return response()->json([
             'status' => 'success',
@@ -112,24 +121,34 @@ class AnnouncementController extends Controller
     public function update(Request $request, string $id)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk mengedit pengumuman.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('announcements.update'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengubah pengumuman.');
         }
 
-        $announcement = Announcement::findOrFail($id);
+        $announcement = Announcement::withoutGlobalScopes()->findOrFail($id);
+
+        // Strict Tenant Isolation
+        if (!$user->hasRole('Super Admin') && $announcement->organization_id !== $user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat mengubah pengumuman organisasi lain.');
+        }
+
+        $effectiveDate = $request->has('effective_date') ? $request->effective_date : $announcement->effective_date?->toDateString();
 
         $request->validate([
             'title'            => 'sometimes|required|string|max:255',
             'content'          => 'sometimes|required|string',
             'effective_date'   => 'nullable|date',
+            'expires_at'       => 'nullable|date' . ($effectiveDate ? '|after_or_equal:' . $effectiveDate : ''),
             'priority'         => 'nullable|in:low,normal,high,urgent',
             'status'           => 'sometimes|required|in:draft,review,published,rejected',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
+        ], [
+            'expires_at.after_or_equal' => 'Tanggal berlaku hingga harus setelah atau sama dengan tanggal efektif.',
         ]);
 
         $data = $request->only([
-            'title', 'content', 'effective_date', 'priority', 'status', 'meta_title', 'meta_description'
+            'title', 'content', 'effective_date', 'expires_at', 'priority', 'status', 'meta_title', 'meta_description'
         ]);
 
         if ($request->has('title') && $request->title !== $announcement->title) {
@@ -139,7 +158,8 @@ class AnnouncementController extends Controller
         if ($request->has('status')) {
             $newStatus = $request->status;
 
-            if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
+            $canPublish = $user->hasRole('Super Admin') || $user->can('announcements.publish');
+            if (in_array($newStatus, ['published', 'rejected']) && !$canPublish) {
                 $newStatus = $announcement->status;
             }
             $data['status'] = $newStatus;
@@ -205,11 +225,17 @@ class AnnouncementController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi', 'Editor'])) {
-            abort(403, 'Unauthorized. Kontributor tidak memiliki akses untuk menghapus pengumuman.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('announcements.delete'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk menghapus pengumuman.');
         }
 
-        $announcement = Announcement::findOrFail($id);
+        $announcement = Announcement::withoutGlobalScopes()->findOrFail($id);
+
+        // Strict Tenant Isolation
+        if (!$user->hasRole('Super Admin') && $announcement->organization_id !== $user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat menghapus pengumuman organisasi lain.');
+        }
+
         $announcement->delete();
 
         ActivityLogService::log('delete', 'announcements', 'Menghapus pengumuman: ' . $announcement->title, clone $announcement);

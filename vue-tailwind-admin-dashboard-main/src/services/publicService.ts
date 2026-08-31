@@ -41,6 +41,50 @@ export const publicService = {
     return res.data.data
   },
 
+  // GET /api/public/articles (Global News Hub)
+  async getGlobalArticles(params?: {
+    search?: string
+    organization?: string
+    category?: string
+    tag?: string
+    sort?: 'latest' | 'oldest'
+    page?: number
+    per_page?: number
+  }): Promise<PublicPaginationResponse<PublicArticle>> {
+    const res = await apiClient.get('/public/articles', { params })
+    return res.data
+  },
+
+  // GET /api/public/categories (Global categories)
+  async getGlobalCategories(): Promise<Array<{ id: number; name: string; slug: string }>> {
+    const res = await apiClient.get('/public/categories')
+    return res.data.data
+  },
+
+  // GET /api/public/agenda (Global Agenda Hub)
+  async getGlobalAgenda(params?: {
+    tab?: 'upcoming' | 'today' | 'past' | 'all'
+    search?: string
+    organization?: string
+    page?: number
+    per_page?: number
+  }): Promise<PublicPaginationResponse<PublicAgenda>> {
+    const res = await apiClient.get('/public/agenda', { params })
+    return res.data
+  },
+
+  // GET /api/public/announcements (Global Announcement Hub)
+  async getGlobalAnnouncements(params?: {
+    priority?: 'urgent' | 'high' | 'normal' | 'low'
+    search?: string
+    organization?: string
+    page?: number
+    per_page?: number
+  }): Promise<PublicPaginationResponse<PublicAnnouncement>> {
+    const res = await apiClient.get('/public/announcements', { params })
+    return res.data
+  },
+
   // GET /api/public/organizations/{slug}/articles
   async getArticles(
     slug: string,

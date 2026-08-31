@@ -18,6 +18,7 @@ class Announcement extends Model
         'slug',
         'content',
         'effective_date',
+        'expires_at',
         'priority',
         'status',
         'published_at',
@@ -27,6 +28,7 @@ class Announcement extends Model
 
     protected $casts = [
         'effective_date' => 'date',
+        'expires_at' => 'date',
         'published_at' => 'datetime',
     ];
 

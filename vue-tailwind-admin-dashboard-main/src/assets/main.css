@@ -759,6 +759,58 @@ span.flatpickr-weekday,
   @apply flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto;
 }
 
+/* Motion Design System */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Stitch Institutional Design Helpers ──────────────────────── */
+.stitch-dropcap::first-letter {
+  font-size: 3.25rem;
+  line-height: 0.9;
+  font-weight: 700;
+  float: left;
+  margin-right: 0.625rem;
+  color: #00346F;
+}
+
+.stitch-blockquote {
+  border-left: 4px solid #00346F;
+  padding: 0.75rem 1.25rem;
+  margin: 1.5rem 0;
+  background-color: #F3F4F5;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  font-style: italic;
+  color: #424751;
+}
+
 /* Accessibility & Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *,

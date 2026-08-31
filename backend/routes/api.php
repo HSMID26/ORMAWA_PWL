@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\CommitteeController;
+use App\Http\Controllers\Api\RoleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,11 +18,18 @@ use App\Http\Controllers\Api\PublicController;
 
 // Public Routes (Accessible without Authentication)
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/register/organization', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store']);
+Route::post('/organization-registrations', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store']);
 
 Route::prefix('public')->group(function () {
     Route::get('/home', [PublicController::class, 'home']);
     Route::get('/organizations', [PublicController::class, 'organizations']);
+    Route::get('/articles', [PublicController::class, 'globalArticles']);
+    Route::get('/categories', [PublicController::class, 'globalCategories']);
+    Route::get('/agenda', [PublicController::class, 'globalAgenda']);
+    Route::get('/announcements', [PublicController::class, 'globalAnnouncements']);
     Route::get('/organizations/{slug}', [PublicController::class, 'organization']);
     Route::get('/organizations/{slug}/articles', [PublicController::class, 'articles']);
     Route::get('/organizations/{slug}/articles/{articleSlug}', [PublicController::class, 'article']);
@@ -38,6 +46,12 @@ Route::prefix('public')->group(function () {
 // Protected Routes 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/profile', [AuthController::class, 'me']);
+    Route::patch('/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/password', [AuthController::class, 'updatePassword']);
+    Route::patch('/password', [AuthController::class, 'updatePassword']);
+
     // API Media Library Management
     Route::get('/media', [MediaController::class, 'index']);
     Route::post('/upload-image', [MediaController::class, 'upload']);
@@ -80,6 +94,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         'update'  => 'api.users.update',
         'destroy' => 'api.users.destroy',
     ]);
+    Route::get('/roles', [RoleController::class, 'index'])->name('api.roles.index');
+    Route::put('/roles/{role}/permissions', [RoleController::class, 'update'])->name('api.roles.permissions.update');
+    Route::put('/roles/{role}', [RoleController::class, 'update'])->name('api.roles.update');
     Route::apiResource('activities', ActivityController::class)->names([
         'index'   => 'api.activities.index',
         'store'   => 'api.activities.store',
@@ -105,7 +122,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Media Library
     Route::get('/media', [MediaController::class, 'index'])->name('api.media.index');
     Route::post('/upload-image', [MediaController::class, 'upload'])->name('api.upload.image');
+    Route::put('/media/{id}', [MediaController::class, 'update'])->name('api.media.update');
+    Route::patch('/media/{id}', [MediaController::class, 'update'])->name('api.media.update.patch');
     Route::delete('/media/{id}', [MediaController::class, 'destroy'])->name('api.media.destroy');
+
+    // Documents Management
+    Route::get('/documents', [MediaController::class, 'listDocuments'])->name('api.documents.index');
+    Route::post('/documents', [MediaController::class, 'uploadDocument'])->name('api.documents.store');
+    Route::put('/documents/{id}', [MediaController::class, 'update'])->name('api.documents.update');
+    Route::patch('/documents/{id}', [MediaController::class, 'update'])->name('api.documents.update.patch');
+    Route::delete('/documents/{id}', [MediaController::class, 'destroy'])->name('api.documents.destroy');
 
     // Categories & Tags
     Route::get('/categories', [CategoryController::class, 'index'])->name('api.categories.index');
@@ -136,4 +162,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
+
+    // Platform Settings (Super Admin)
+    Route::get('/platform-settings', [\App\Http\Controllers\Api\PlatformSettingController::class, 'show']);
+    Route::put('/platform-settings', [\App\Http\Controllers\Api\PlatformSettingController::class, 'update']);
+
+    // Analytics (Scaped API)
+    Route::get('/analytics', [\App\Http\Controllers\AnalyticsController::class, 'index']);
+
+    // Global Search API
+    Route::get('/global-search', [\App\Http\Controllers\SearchController::class, 'liveSearch']);
+
+    // Backup & Restore
+    Route::get('/backup/export', [\App\Http\Controllers\BackupController::class, 'export']);
+    Route::post('/backup/import', [\App\Http\Controllers\BackupController::class, 'import']);
 });

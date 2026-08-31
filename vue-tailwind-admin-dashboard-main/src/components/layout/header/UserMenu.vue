@@ -4,8 +4,9 @@
       class="flex items-center text-gray-700 dark:text-gray-400"
       @click.prevent="toggleDropdown"
     >
-      <span class="mr-3 overflow-hidden rounded-full h-11 w-11 flex items-center justify-center bg-brand-50 text-brand-600 font-bold dark:bg-brand-500/20 dark:text-brand-400">
-        {{ userInitial }}
+      <span class="mr-3 overflow-hidden rounded-full h-11 w-11 flex items-center justify-center bg-brand-50 text-brand-600 font-bold dark:bg-brand-500/20 dark:text-brand-400 border border-slate-200 dark:border-gray-700 shrink-0">
+        <img v-if="userAvatar" :src="userAvatar" :alt="userName" class="h-full w-full object-cover" />
+        <span v-else>{{ userInitial }}</span>
       </span>
 
       <span class="block mr-1 font-medium text-theme-sm">{{ userName }}</span>
@@ -66,6 +67,7 @@ const authStore = useAuthStore()
 
 const userName = computed(() => authStore.user?.name ?? 'Pengguna')
 const userEmail = computed(() => authStore.user?.email ?? 'Unknown')
+const userAvatar = computed(() => authStore.user?.avatar || null)
 const userInitial = computed(() => userName.value.charAt(0).toUpperCase())
 
 const dropdownOpen = ref(false)

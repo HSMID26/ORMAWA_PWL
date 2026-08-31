@@ -3,8 +3,27 @@ import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  scrollBehavior() {
-    return { top: 0 }
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    if (to.hash) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const element = document.querySelector(to.hash)
+          if (element) {
+            resolve({
+              el: to.hash,
+              behavior: 'smooth',
+              top: 80,
+            })
+          } else {
+            resolve({ top: 0, behavior: 'smooth' })
+          }
+        }, 150)
+      })
+    }
+    return { top: 0, behavior: 'smooth' }
   },
   routes: [
     // ─── Public Website ─────────────────────────────────────────
@@ -21,6 +40,27 @@ const router = createRouter({
       meta: { title: 'Direktori Ormawa', public: true },
     },
     {
+      path: '/berita',
+      alias: '/articles',
+      name: 'public-global-news-hub',
+      component: () => import('@/views/public/GlobalNewsHub.vue'),
+      meta: { title: 'Warta & Berita Mahasiswa', public: true },
+    },
+    {
+      path: '/agenda',
+      alias: '/kegiatan',
+      name: 'public-global-agenda-hub',
+      component: () => import('@/views/public/GlobalAgendaHub.vue'),
+      meta: { title: 'Agenda & Kegiatan Mahasiswa', public: true },
+    },
+    {
+      path: '/pengumuman',
+      alias: '/announcements',
+      name: 'public-global-announcement-hub',
+      component: () => import('@/views/public/GlobalAnnouncementHub.vue'),
+      meta: { title: 'Pengumuman Resmi', public: true },
+    },
+    {
       path: '/organizations/:slug',
       component: () => import('@/components/public/OrganizationLayout.vue'),
       meta: { public: true },
@@ -33,9 +73,7 @@ const router = createRouter({
         },
         {
           path: 'profil',
-          name: 'public-organization-profile',
-          component: () => import('@/views/public/organization/Profile.vue'),
-          meta: { title: 'Profil Organisasi', public: true }
+          redirect: (to) => `/organizations/${to.params.slug}`
         },
         {
           path: 'articles',
@@ -116,6 +154,18 @@ const router = createRouter({
       meta: { title: 'Login', public: true },
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/views/Auth/ForgotPassword.vue'),
+      meta: { title: 'Lupa Kata Sandi', public: true },
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/Auth/ResetPassword.vue'),
+      meta: { title: 'Atur Ulang Kata Sandi', public: true },
+    },
+    {
       path: '/register',
       name: 'register',
       component: () => import('@/views/Auth/OrganizationRegistration.vue'),
@@ -188,6 +238,12 @@ const router = createRouter({
       redirect: '/super-admin/periods',
     },
     {
+      path: '/super-admin/roles',
+      name: 'super-admin-roles',
+      component: () => import('@/views/super-admin/roles/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Role & Hak Akses' },
+    },
+    {
       path: '/super-admin/settings',
       name: 'super-admin-settings',
       component: () => import('@/views/super-admin/settings/PlatformSettings.vue'),
@@ -236,99 +292,101 @@ const router = createRouter({
       path: '/organization/activity-logs',
       name: 'organization-activity-logs',
       component: () => import('@/views/organization/activity-logs/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Activity Logs' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi'], permission: 'activity_logs.view', title: 'Activity Logs' },
     },
     {
       path: '/organization/posts',
       name: 'organization-posts',
       component: () => import('@/views/organization/posts/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Berita & Artikel' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], permission: 'posts.view', title: 'Berita & Artikel' },
     },
     {
       path: '/organization/posts/create',
       name: 'organization-posts-create',
       component: () => import('@/views/organization/posts/Create.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Tulis Artikel' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], permission: 'posts.create', title: 'Tulis Artikel' },
     },
     {
       path: '/organization/posts/edit/:id',
       name: 'organization-posts-edit',
       component: () => import('@/views/organization/posts/Edit.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Edit Artikel' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], permission: 'posts.update', title: 'Edit Artikel' },
     },
     {
       path: '/organization/agenda',
       name: 'organization-agenda',
       component: () => import('@/views/organization/agenda/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Agenda Acara' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'agenda.view', title: 'Agenda Acara' },
     },
     {
       path: '/organization/agenda/create',
       name: 'organization-agenda-create',
       component: () => import('@/views/organization/agenda/Create.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Tambah Agenda' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'agenda.create', title: 'Tambah Agenda' },
     },
     {
       path: '/organization/agenda/edit/:id',
       name: 'organization-agenda-edit',
       component: () => import('@/views/organization/agenda/Edit.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Edit Agenda' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'agenda.update', title: 'Edit Agenda' },
     },
     {
       path: '/organization/announcements',
       name: 'organization-announcements',
       component: () => import('@/views/organization/announcements/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Pengumuman' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'announcements.view', title: 'Pengumuman' },
     },
     {
       path: '/organization/gallery',
       name: 'organization-gallery',
       component: () => import('@/views/organization/gallery/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Gallery' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'gallery.view', title: 'Gallery' },
     },
     {
       path: '/organization/documents',
       name: 'organization-documents',
       component: () => import('@/views/organization/documents/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], title: 'Documents' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'documents.view', title: 'Documents' },
     },
     {
       path: '/organization/users',
       name: 'organization-users',
       component: () => import('@/views/organization/users/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Organization Users' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi'], permission: 'users.view', title: 'Organization Users' },
     },
     {
       path: '/organization/settings',
       name: 'organization-settings',
       component: () => import('@/views/organization/settings/OrganizationSettings.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Settings' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi'], permission: 'organizations.manage', title: 'Settings' },
     },
     {
       path: '/organization/period',
       name: 'organization-period',
       component: () => import('@/views/organization/period/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi'], title: 'Manage Period' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi'], permission: 'periods.manage', title: 'Manage Period' },
     },
     {
       path: '/organization/committees',
       name: 'organization-committees',
       component: () => import('@/views/organization/committees/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], title: 'Struktur Organisasi' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor', 'Kontributor'], permission: 'structure.view', title: 'Struktur Organisasi' },
     },
 
     // ─── Shared Admin Routes ──────────────────────────────────────
     {
       path: '/profile',
+      alias: '/account/profile',
       name: 'profile',
       component: () => import('@/views/profile/Profile.vue'),
-      meta: { requiresAuth: true, title: 'Profil' },
+      meta: { requiresAuth: true, title: 'Edit Profile' },
     },
     {
       path: '/settings',
+      alias: '/account/settings',
       name: 'settings',
       component: () => import('@/views/settings/Settings.vue'),
-      meta: { requiresAuth: true, title: 'Pengaturan' },
+      meta: { requiresAuth: true, title: 'Pengaturan Akun' },
     },
 
     // ─── Errors ──────────────────────────────────────────────────
@@ -336,7 +394,19 @@ const router = createRouter({
       path: '/404',
       name: 'not-found',
       component: () => import('@/views/public/NotFoundPage.vue'),
-      meta: { title: 'Page Not Found', public: true },
+      meta: { title: '404 | Not Found', public: true },
+    },
+    {
+      path: '/500',
+      name: 'server-error',
+      component: () => import('@/views/public/NotFoundPage.vue'),
+      meta: { title: '500 | Server Error', public: true },
+    },
+    {
+      path: '/403',
+      name: 'forbidden',
+      component: () => import('@/views/public/NotFoundPage.vue'),
+      meta: { title: '403 | Forbidden', public: true },
     },
     {
       path: '/:pathMatch(.*)*',
@@ -349,7 +419,7 @@ import { usePublicStore } from '@/stores/public'
 import { resolveTenantFromHostname } from '@/utils/tenantResolver'
 
 router.beforeEach(async (to, _from, next) => {
-  document.title = `CMS Ormawa | ${to.meta.title ?? 'App'}`
+  document.title = `ORMAWA ITI | ${to.meta.title ?? 'App'}`
 
   const authStore = useAuthStore()
   const publicStore = usePublicStore()
@@ -387,6 +457,15 @@ router.beforeEach(async (to, _from, next) => {
       if (authStore.role === 'Super Admin') return next({ name: 'super-admin-dashboard', replace: true })
       return next({ name: 'organization-dashboard', replace: true })
     }
+
+    // Dynamic Permission Enforcement (Super Admin retains global governance authority)
+    const requiredPermission = to.meta.permission as string | undefined
+    if (requiredPermission && authStore.role !== 'Super Admin') {
+      if (!authStore.hasPermission(requiredPermission)) {
+        return next({ name: 'organization-dashboard', replace: true })
+      }
+    }
+
     return next()
   }
 

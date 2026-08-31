@@ -13,12 +13,14 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles; 
 
-#[Fillable(['organization_id', 'name', 'email', 'password', 'status'])] 
+#[Fillable(['organization_id', 'name', 'email', 'avatar', 'password', 'status'])] 
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles, HasApiTokens; 
+
+    protected string $guard_name = 'web'; 
 
     /**
      * Get the attributes that should be cast.

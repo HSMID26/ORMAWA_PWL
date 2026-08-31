@@ -174,10 +174,53 @@
               <div>
                 <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Judul Utama Hero (Opsional)</label>
                 <input v-model="form.hero_title" type="text" :placeholder="form.nama" class="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                <p class="text-[10px] text-gray-400 mt-1">Default: Menggunakan nama resmi organisasi.</p>
               </div>
               <div>
                 <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">Subjudul Hero (Opsional)</label>
                 <input v-model="form.hero_subtitle" type="text" :placeholder="form.slogan || 'Portal Resmi Organisasi'" class="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                <p class="text-[10px] text-gray-400 mt-1">Default: Menggunakan slogan atau deskripsi singkat.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─── Live Preview Mini-Card (Stitch Style) ─────────────────────── -->
+          <div class="space-y-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                Pratinjau Langsung Hero (Live Preview)
+              </span>
+              <span class="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded dark:bg-emerald-950/40 dark:text-emerald-400">
+                Real-Time
+              </span>
+            </div>
+
+            <div
+              class="relative rounded-2xl overflow-hidden p-6 sm:p-8 text-white shadow-md transition-all duration-300"
+              :style="{ backgroundColor: form.warna_tema || '#00346F' }"
+            >
+              <!-- Subtle Background Texture -->
+              <div class="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/10 pointer-events-none"></div>
+
+              <div class="relative z-10 max-w-xl space-y-3">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-white/80 block">
+                  {{ form.jenis }} &bull; Institut Teknologi Indonesia
+                </span>
+                <h4 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-snug">
+                  {{ form.hero_title || form.nama || 'Nama Organisasi' }}
+                </h4>
+                <p class="text-xs text-white/90 leading-relaxed font-normal">
+                  {{ form.hero_subtitle || form.slogan || form.deskripsi || 'Membangun sinergi dan inovasi mahasiswa di lingkungan Institut Teknologi Indonesia.' }}
+                </p>
+
+                <div class="flex items-center gap-3 pt-2">
+                  <span class="rounded-lg bg-white px-4 py-2 text-[11px] font-bold text-gray-900 shadow-xs">
+                    Tentang Kami
+                  </span>
+                  <span class="rounded-lg border border-white/80 bg-white/10 px-4 py-2 text-[11px] font-semibold text-white">
+                    Baca Warta
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -261,7 +304,7 @@
           <div class="space-y-4 text-xs">
             <div>
               <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">SEO Title Tag</label>
-              <input v-model="form.seo_title" type="text" :placeholder="`${form.nama} | CMS ORMAWA ITI`" class="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+              <input v-model="form.seo_title" type="text" :placeholder="`${form.nama} | ORMAWA ITI`" class="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
             </div>
             <div>
               <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">SEO Meta Description</label>

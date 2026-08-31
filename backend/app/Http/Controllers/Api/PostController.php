@@ -13,9 +13,20 @@ use App\Services\NotificationService;
 class PostController extends Controller
 {
     // 1. Ambil Semua Artikel (Read List dengan Category & Tags)
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with(['user:id,name', 'category', 'tags'])->latest()->get();
+        $user = $request->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('posts.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat artikel/berita.');
+        }
+
+        $query = Post::with(['user:id,name', 'category', 'tags']);
+
+        if (!$user->hasRole('Super Admin')) {
+            $query->where('organization_id', $user->organization_id);
+        }
+
+        $posts = $query->latest()->get();
 
         return response()->json([
             'status' => 'success',
@@ -26,6 +37,12 @@ class PostController extends Controller
     // 2. Buat Artikel Baru (Create - Hasil dari TipTap Editor)
     public function store(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('posts.create'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk membuat artikel/berita.');
+        }
+
         $request->validate([
             'judul'            => 'required|string|max:255',
             'konten'           => 'required|string', 
@@ -39,12 +56,11 @@ class PostController extends Controller
             'tags.*'           => 'exists:tags,id',
         ]);
 
-        /** @var \App\Models\User $user */
-        $user = $request->user();
         $status = $request->status;
 
-        // Only Admin Organisasi and Super Admin can directly publish or reject
-        if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        // Check if user has permission to publish directly
+        $canPublish = $user->hasRole('Super Admin') || $user->can('posts.publish');
+        if (in_array($status, ['published', 'rejected']) && !$canPublish) {
             if ($status === 'published') {
                 $status = 'review';
             } else {
@@ -92,9 +108,18 @@ class PostController extends Controller
     }
 
     // 3. Ambil Detail 1 Artikel (Read Single dengan Category & Tags)
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        $post = Post::with(['user:id,name', 'category', 'tags'])->findOrFail($id);
+        $user = $request->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('posts.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat artikel/berita.');
+        }
+
+        $post = Post::withoutGlobalScopes()->with(['user:id,name', 'category', 'tags'])->findOrFail($id);
+
+        if (!$user->hasRole('Super Admin') && (int)$post->organization_id !== (int)$user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat melihat artikel organisasi lain.');
+        }
 
         return response()->json([
             'status' => 'success',
@@ -105,13 +130,22 @@ class PostController extends Controller
     // 4. Update Artikel (Update dengan Sync Kategori & Tags)
     public function update(Request $request, string $id)
     {
-        $post = Post::findOrFail($id);
+        $post = Post::withoutGlobalScopes()->findOrFail($id);
         /** @var \App\Models\User $user */
         $user = $request->user();
+
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('posts.update'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengubah artikel/berita.');
+        }
 
         // Contributor can only update their own posts
         if ($user->hasRole('Kontributor') && $post->user_id !== $user->id) {
             abort(403, 'Unauthorized. Kontributor hanya dapat mengedit artikel miliknya sendiri.');
+        }
+
+        // Strict Tenant Isolation
+        if (!$user->hasRole('Super Admin') && $post->organization_id !== $user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat mengubah artikel organisasi lain.');
         }
 
         $request->validate([
@@ -136,7 +170,8 @@ class PostController extends Controller
         if ($request->has('status')) {
             $newStatus = $request->status;
 
-            if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
+            $canPublish = $user->hasRole('Super Admin') || $user->can('posts.publish');
+            if (in_array($newStatus, ['published', 'rejected']) && !$canPublish) {
                 if ($newStatus === 'published') {
                     $newStatus = 'review';
                 } else {
@@ -204,16 +239,25 @@ class PostController extends Controller
         ], 200);
     }
 
-    // 5. Hapus Artikel (Delete)
+    // 5. Hapus Artikel
     public function destroy(Request $request, string $id)
     {
-        $post = Post::findOrFail($id);
+        $post = Post::withoutGlobalScopes()->findOrFail($id);
         /** @var \App\Models\User $user */
         $user = $request->user();
+
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('posts.delete'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk menghapus artikel/berita.');
+        }
 
         // Contributor can only delete their own posts
         if ($user->hasRole('Kontributor') && $post->user_id !== $user->id) {
             abort(403, 'Unauthorized. Kontributor hanya dapat menghapus artikel miliknya sendiri.');
+        }
+
+        // Strict Tenant Isolation
+        if (!$user->hasRole('Super Admin') && $post->organization_id !== $user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat menghapus artikel organisasi lain.');
         }
 
         $post->delete();

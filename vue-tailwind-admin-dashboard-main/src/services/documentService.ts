@@ -3,45 +3,40 @@ import api from './api'
 export interface OrgDocument {
   id: number
   name: string
+  judul?: string
   category: 'SK' | 'Proposal' | 'LPJ' | 'SOP' | 'Template' | 'Other'
+  kategori?: string
   filename: string
   file_url: string
+  url?: string
+  download_url?: string
   file_size: number
+  size?: number
+  formatted_size?: string
   file_type: string
+  mime_type?: string
   visibility: 'public' | 'internal'
   uploader_name: string
   created_at: string
 }
 
-// Local storage key for persistent document metadata across sessions (scoped to organization tenant)
-const STORAGE_KEY = 'cms_org_documents_v2'
-
 export const documentService = {
-  async list(orgId: number): Promise<OrgDocument[]> {
-    const raw = localStorage.getItem(`${STORAGE_KEY}_${orgId}`)
-    if (!raw) return []
-    try {
-      return JSON.parse(raw)
-    } catch {
-      return []
-    }
+  async list(params?: { category?: string; visibility?: string; search?: string }): Promise<OrgDocument[]> {
+    const res = await api.get('/documents', { params })
+    return res.data.data || []
   },
 
-  async create(orgId: number, doc: Omit<OrgDocument, 'id' | 'created_at'>): Promise<OrgDocument> {
-    const list = await this.list(orgId)
-    const newDoc: OrgDocument = {
-      ...doc,
-      id: Date.now(),
-      created_at: new Date().toISOString(),
-    }
-    list.unshift(newDoc)
-    localStorage.setItem(`${STORAGE_KEY}_${orgId}`, JSON.stringify(list))
-    return newDoc
+  async upload(formData: FormData): Promise<OrgDocument> {
+    const res = await api.post('/documents', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return res.data.data
   },
 
-  async remove(orgId: number, id: number): Promise<void> {
-    const list = await this.list(orgId)
-    const filtered = list.filter(d => d.id !== id)
-    localStorage.setItem(`${STORAGE_KEY}_${orgId}`, JSON.stringify(filtered))
+  async remove(id: number): Promise<void> {
+    await api.delete(`/documents/${id}`)
   }
 }
+

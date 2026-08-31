@@ -28,6 +28,7 @@ const selectedTags = ref<number[]>([])
 const activity_date = ref('')
 const activity_description = ref('')
 const announcement_date = ref('')
+const announcement_expires_at = ref('')
 const priority = ref<'low'|'normal'|'high'|'urgent'>('normal')
 
 const categoriesList = ref<Category[]>([])
@@ -80,6 +81,7 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
         title: title.value,
         content: content.value,
         effective_date: announcement_date.value || null,
+        expires_at: announcement_expires_at.value || null,
         priority: priority.value,
         meta_title: meta_title.value,
         meta_description: meta_description.value,
@@ -108,25 +110,25 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
         {{ errorMessage }}
       </div>
 
-      <div class="mb-6">
-        <label class="mb-2.5 block text-black dark:text-white">Jenis Konten</label>
-        <select 
-          v-model="contentType"
-          class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
-        >
-          <option value="post">Berita / Artikel</option>
-          <option value="activity">Agenda / Kegiatan</option>
-          <option value="announcement">Pengumuman</option>
-        </select>
-      </div>
-
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div class="md:col-span-2">
+        <div>
+          <label class="mb-2.5 block text-black dark:text-white">Tipe Konten</label>
+          <select 
+            v-model="contentType" 
+            class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+          >
+            <option value="post">Berita / Artikel</option>
+            <option value="activity">Agenda Kegiatan</option>
+            <option value="announcement">Pengumuman</option>
+          </select>
+        </div>
+
+        <div>
           <label class="mb-2.5 block text-black dark:text-white">Judul Konten</label>
           <input 
             type="text" 
             v-model="title" 
-            placeholder="Masukkan judul"
+            placeholder="Masukkan judul konten" 
             class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
           />
         </div>
@@ -136,38 +138,36 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
           <div>
             <label class="mb-2.5 block text-black dark:text-white">Kategori</label>
             <select 
-              v-model="category_id"
+              v-model="category_id" 
               class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
             >
-              <option :value="undefined">-- Pilih Kategori (Opsional) --</option>
-              <option v-for="cat in categoriesList" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
+              <option :value="null">Pilih Kategori</option>
+              <option v-for="c in categoriesList" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </div>
 
           <div>
-            <label class="mb-2.5 block text-black dark:text-white">URL Cover Image</label>
+            <label class="mb-2.5 block text-black dark:text-white">Cover Image URL</label>
             <input 
               type="text" 
               v-model="cover_image" 
-              placeholder="https://..."
+              placeholder="https://example.com/image.jpg" 
               class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
             />
           </div>
 
-          <div v-if="tagsList.length > 0" class="md:col-span-2">
-            <label class="mb-2.5 block text-black dark:text-white">Tags Terkait</label>
+          <div class="md:col-span-2">
+            <label class="mb-2.5 block text-black dark:text-white">Tags</label>
             <div class="flex flex-wrap gap-2">
-              <button
+              <button 
                 type="button"
-                v-for="t in tagsList"
+                v-for="t in tagsList" 
                 :key="t.id"
                 @click="selectedTags.includes(t.id) ? selectedTags.splice(selectedTags.indexOf(t.id), 1) : selectedTags.push(t.id)"
                 :class="[
                   'px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                  selectedTags.includes(t.id)
-                    ? 'bg-primary text-white'
+                  selectedTags.includes(t.id) 
+                    ? 'bg-primary text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-meta-4 dark:text-gray-300'
                 ]"
               >
@@ -181,6 +181,7 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
             <textarea 
               v-model="excerpt" 
               rows="2"
+              placeholder="Ringkasan singkat untuk tampilan kartu..."
               class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
             ></textarea>
           </div>
@@ -189,6 +190,7 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
             <textarea 
               v-model="content" 
               rows="6"
+              placeholder="Tulis lengkap isi artikel atau berita..."
               class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
             ></textarea>
           </div>
@@ -201,6 +203,7 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
             <textarea 
               v-model="activity_description" 
               rows="6"
+              placeholder="Jelaskan detail tujuan dan agenda kegiatan..."
               class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
             ></textarea>
           </div>
@@ -225,12 +228,23 @@ const saveContent = async (status: 'draft' | 'review' | 'published' | 'rejected'
             ></textarea>
           </div>
           <div>
-            <label class="mb-2.5 block text-black dark:text-white">Tanggal Efektif (Opsional)</label>
+            <label class="mb-2.5 block text-black dark:text-white">Tanggal Efektif (Mulai Berlaku)</label>
             <input 
               type="date" 
               v-model="announcement_date" 
               class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
             />
+            <p class="text-xs text-gray-500 mt-1">Kosongkan jika langsung tayang saat diterbitkan.</p>
+          </div>
+          <div>
+            <label class="mb-2.5 block text-black dark:text-white">Berlaku Hingga (Opsional)</label>
+            <input 
+              type="date" 
+              v-model="announcement_expires_at" 
+              :min="announcement_date || ''"
+              class="w-full rounded border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+            />
+            <p class="text-xs text-gray-500 mt-1">Kosongkan jika berlaku tanpa batas kedaluwarsa.</p>
           </div>
           <div>
             <label class="mb-2.5 block text-black dark:text-white">Prioritas</label>

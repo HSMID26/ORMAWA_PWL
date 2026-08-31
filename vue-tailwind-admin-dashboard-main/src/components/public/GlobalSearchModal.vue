@@ -10,12 +10,12 @@
       aria-label="Pencarian Global Platform"
     >
       <div
-        class="w-full max-w-xl transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all border border-slate-200 cursor-default"
+        class="w-full max-w-xl transform overflow-hidden rounded-lg bg-white shadow-2xl transition-all border border-[#C2C6D3] cursor-default"
         @click.stop
       >
         <!-- Search Input Bar -->
-        <div class="relative border-b border-slate-200 flex items-center px-4 bg-slate-50/50">
-          <svg class="h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <div class="relative border-b border-[#C2C6D3] flex items-center px-4 bg-[#F8F9FA]">
+          <svg class="h-4 w-4 text-[#737783] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -23,12 +23,12 @@
             v-model="query"
             @input="onSearch"
             type="text"
-            placeholder="Cari nama ormawa, topik berita, agenda kegiatan..."
-            class="h-12 w-full border-0 bg-transparent pl-3 pr-4 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+            placeholder="Cari nama ormawa, topik warta, agenda kegiatan..."
+            class="h-12 w-full border-0 bg-transparent pl-3 pr-4 text-xs sm:text-sm text-[#191C1D] placeholder:text-[#737783] focus:outline-none focus:ring-0"
           />
           <button
             @click="close"
-            class="rounded px-2 py-1 text-[10px] font-semibold text-slate-500 hover:bg-slate-200/60 transition"
+            class="rounded px-2 py-1 text-[10px] font-semibold text-[#737783] hover:bg-[#E7E8E9] transition cursor-pointer"
             aria-label="Tutup pencarian"
           >
             ESC
@@ -37,56 +37,92 @@
 
         <!-- Search Results List -->
         <div class="max-h-80 overflow-y-auto p-3 space-y-3">
-          <div v-if="isLoading" class="py-6 text-center text-xs text-slate-500 font-medium">
+          <div v-if="isLoading" class="py-6 text-center text-xs text-[#737783] font-medium">
             Mencari informasi...
           </div>
 
-          <div v-else-if="!query.trim()" class="py-6 text-center text-xs text-slate-400">
+          <div v-else-if="!query.trim()" class="py-6 text-center text-xs text-[#737783]">
             Ketik kata kunci untuk mencari seluruh entitas dan publikasi mahasiswa ITI.
           </div>
 
-          <div v-else-if="organizations.length === 0 && articles.length === 0" class="py-6 text-center text-xs text-slate-500">
-            Tidak ditemukan hasil untuk "<span class="font-semibold text-slate-800">{{ query }}</span>".
+          <div v-else-if="organizations.length === 0 && articles.length === 0 && agenda.length === 0 && announcements.length === 0" class="py-6 text-center text-xs text-[#737783]">
+            Tidak ditemukan hasil untuk "<span class="font-semibold text-[#191C1D]">{{ query }}</span>".
           </div>
 
           <template v-else>
             <!-- Organizations Section -->
             <div v-if="organizations.length > 0" class="space-y-1">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2.5 block">Organisasi</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F] px-2.5 block">Organisasi</span>
               <router-link
                 v-for="org in organizations"
                 :key="org.id"
                 :to="`/organizations/${org.subdomain}`"
                 @click="close"
-                class="flex items-center gap-3 rounded-lg p-2 hover:bg-slate-50 transition group"
+                class="flex items-center gap-3 rounded p-2 hover:bg-[#F8F9FA] transition group"
               >
-                <div class="h-7 w-7 rounded-md border border-slate-200 bg-white flex items-center justify-center text-xs font-bold text-slate-800 shrink-0 overflow-hidden">
+                <div class="h-7 w-7 rounded border border-[#C2C6D3] bg-white flex items-center justify-center text-xs font-bold text-[#00346F] shrink-0 overflow-hidden">
                   <img v-if="org.logo" :src="org.logo" :alt="org.nama" class="h-full w-full object-cover" />
                   <span v-else>{{ org.nama.charAt(0) }}</span>
                 </div>
                 <div class="flex-grow min-w-0">
-                  <span class="text-xs font-semibold text-slate-900 group-hover:text-blue-700 truncate block">{{ org.nama }}</span>
-                  <span class="text-[10px] text-slate-500">{{ org.jenis }} &bull; {{ org.subdomain }}.iti.ac.id</span>
+                  <span class="text-xs font-semibold text-[#191C1D] group-hover:text-[#00346F] truncate block">{{ org.nama }}</span>
+                  <span class="text-[10px] text-[#737783]">{{ org.jenis }} &bull; {{ org.subdomain }}.iti.ac.id</span>
                 </div>
-                <span class="text-xs text-slate-400 group-hover:text-blue-700 font-bold">&rarr;</span>
+                <span class="text-xs text-[#737783] group-hover:text-[#00346F] font-bold">&rarr;</span>
               </router-link>
             </div>
 
             <!-- Articles Section -->
-            <div v-if="articles.length > 0" class="space-y-1 pt-2 border-t border-slate-100">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2.5 block">Warta & Berita</span>
+            <div v-if="articles.length > 0" class="space-y-1 pt-2 border-t border-[#E1E3E4]">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F] px-2.5 block">Warta & Berita</span>
               <router-link
                 v-for="art in articles"
                 :key="art.id"
                 :to="`/organizations/${art.organization?.subdomain}/articles/${art.slug}`"
                 @click="close"
-                class="flex items-center justify-between gap-3 rounded-lg p-2 hover:bg-slate-50 transition group"
+                class="flex items-center justify-between gap-3 rounded p-2 hover:bg-[#F8F9FA] transition group"
               >
                 <div class="flex-grow min-w-0">
-                  <span class="text-xs font-semibold text-slate-900 group-hover:text-blue-700 truncate block">{{ art.judul }}</span>
-                  <span class="text-[10px] text-slate-500">{{ art.organization?.nama }} &bull; {{ new Date(art.published_at).toLocaleDateString('id-ID') }}</span>
+                  <span class="text-xs font-semibold text-[#191C1D] group-hover:text-[#00346F] truncate block">{{ art.judul }}</span>
+                  <span class="text-[10px] text-[#737783]">{{ art.organization?.nama }} &bull; {{ new Date(art.published_at).toLocaleDateString('id-ID') }}</span>
                 </div>
-                <span class="text-xs text-slate-400 group-hover:text-blue-700 font-bold">&rarr;</span>
+                <span class="text-xs text-[#737783] group-hover:text-[#00346F] font-bold">&rarr;</span>
+              </router-link>
+            </div>
+
+            <!-- Agenda Section -->
+            <div v-if="agenda.length > 0" class="space-y-1 pt-2 border-t border-[#E1E3E4]">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F] px-2.5 block">Agenda Kegiatan</span>
+              <router-link
+                v-for="ag in agenda"
+                :key="ag.id"
+                :to="`/organizations/${ag.organization?.subdomain}/agenda/${ag.id}`"
+                @click="close"
+                class="flex items-center justify-between gap-3 rounded p-2 hover:bg-[#F8F9FA] transition group"
+              >
+                <div class="flex-grow min-w-0">
+                  <span class="text-xs font-semibold text-[#191C1D] group-hover:text-[#00346F] truncate block">{{ ag.judul }}</span>
+                  <span class="text-[10px] text-[#737783]">{{ ag.organization?.nama }} &bull; {{ ag.tanggal_pelaksanaan ? new Date(ag.tanggal_pelaksanaan).toLocaleDateString('id-ID') : '-' }}</span>
+                </div>
+                <span class="text-xs text-[#737783] group-hover:text-[#00346F] font-bold">&rarr;</span>
+              </router-link>
+            </div>
+
+            <!-- Announcements Section -->
+            <div v-if="announcements.length > 0" class="space-y-1 pt-2 border-t border-[#E1E3E4]">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F] px-2.5 block">Pengumuman</span>
+              <router-link
+                v-for="ann in announcements"
+                :key="ann.id"
+                :to="`/pengumuman`"
+                @click="close"
+                class="flex items-center justify-between gap-3 rounded p-2 hover:bg-[#F8F9FA] transition group"
+              >
+                <div class="flex-grow min-w-0">
+                  <span class="text-xs font-semibold text-[#191C1D] group-hover:text-[#00346F] truncate block">{{ ann.title }}</span>
+                  <span class="text-[10px] text-[#737783]">{{ ann.organization?.nama }} &bull; {{ ann.published_at ? new Date(ann.published_at).toLocaleDateString('id-ID') : '-' }}</span>
+                </div>
+                <span class="text-xs text-[#737783] group-hover:text-[#00346F] font-bold">&rarr;</span>
               </router-link>
             </div>
           </template>
@@ -99,7 +135,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import { publicService } from '@/services/publicService'
-import type { PublicOrganization, PublicArticle } from '@/types/public'
+import type { PublicOrganization, PublicArticle, PublicAgenda, PublicAnnouncement } from '@/types/public'
 
 const props = defineProps<{ isOpen: boolean }>()
 const emit = defineEmits(['update:isOpen'])
@@ -108,6 +144,8 @@ const query = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 const organizations = ref<PublicOrganization[]>([])
 const articles = ref<PublicArticle[]>([])
+const agenda = ref<PublicAgenda[]>([])
+const announcements = ref<PublicAnnouncement[]>([])
 const isLoading = ref(false)
 
 watch(() => props.isOpen, (newVal) => {
@@ -115,6 +153,8 @@ watch(() => props.isOpen, (newVal) => {
     query.value = ''
     organizations.value = []
     articles.value = []
+    agenda.value = []
+    announcements.value = []
     nextTick(() => {
       inputRef.value?.focus()
     })
@@ -127,21 +167,25 @@ const onSearch = () => {
   if (!query.value.trim()) {
     organizations.value = []
     articles.value = []
+    agenda.value = []
+    announcements.value = []
     return
   }
   debounceTimer = setTimeout(async () => {
     isLoading.value = true
     try {
-      const [orgRes, homeRes] = await Promise.all([
+      const [orgRes, artRes, agendaRes, annRes] = await Promise.all([
         publicService.getOrganizations({ search: query.value.trim(), per_page: 5 }).catch(() => ({ data: [] })),
-        publicService.getHome().catch(() => ({ featured_articles: [] })),
+        publicService.getGlobalArticles({ search: query.value.trim(), per_page: 5 }).catch(() => ({ data: [] })),
+        publicService.getGlobalAgenda({ search: query.value.trim(), per_page: 5 }).catch(() => ({ data: [] })),
+        publicService.getGlobalAnnouncements({ search: query.value.trim(), per_page: 5 }).catch(() => ({ data: [] })),
       ])
       organizations.value = (orgRes as any).data || []
-      
-      const q = query.value.toLowerCase()
-      articles.value = (homeRes.featured_articles || []).filter((a: any) => 
-        a.judul.toLowerCase().includes(q) || a.excerpt?.toLowerCase().includes(q)
-      ).slice(0, 5)
+      articles.value = (artRes as any).data || []
+      agenda.value = (agendaRes as any).data || []
+      announcements.value = (annRes as any).data || []
+    } catch (err) {
+      console.error(err)
     } finally {
       isLoading.value = false
     }

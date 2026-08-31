@@ -155,6 +155,22 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
+  const setUser = (updatedUser: Partial<UserProfile>) => {
+    if (!user.value) return
+    user.value = { ...user.value, ...updatedUser } as UserProfile
+    if (updatedUser.role) role.value = updatedUser.role
+    if (updatedUser.organization?.id) organization_id.value = updatedUser.organization.id
+    localStorage.setItem('auth_user', JSON.stringify(user.value))
+    if (updatedUser.role) localStorage.setItem('auth_role', updatedUser.role)
+    if (updatedUser.organization?.id) localStorage.setItem('auth_organization', updatedUser.organization.id.toString())
+  }
+
+  const hasPermission = (permissionName: string): boolean => {
+    if (role.value === 'Super Admin') return true
+    if (!user.value?.permissions || !Array.isArray(user.value.permissions)) return false
+    return user.value.permissions.includes(permissionName)
+  }
+
   return {
     status,
     isAuthenticated,
@@ -169,6 +185,8 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     restoreSession,
     clearAuth,
+    setUser,
+    hasPermission,
   }
 })
 

@@ -51,7 +51,9 @@ export interface UserProfile {
   id: number
   name: string
   email: string
+  avatar?: string | null
   role: string
+  permissions?: string[]
   status?: string
   organization_id?: number | null
   organization?: Organization | null
@@ -185,5 +187,21 @@ export interface Committee {
   } | null
   organization_period?: OrganizationPeriod | null
   organization?: Organization | null
+}
+
+export interface ForgotPasswordPayload {
+  email: string
+}
+
+export interface ResetPasswordPayload {
+  token: string
+  email: string
+  password: string
+  password_confirmation: string
+}
+
+export interface PasswordResetResponse {
+  status: string
+  message: string
 }
 

@@ -11,6 +11,10 @@ class Organization extends Model
         'nama',
         'jenis',
         'subdomain',
+        'email',
+        'telepon',
+        'alamat',
+        'media_sosial',
         'logo',
         'warna_tema',
         'modul_aktif',
@@ -22,9 +26,40 @@ class Organization extends Model
     protected function casts(): array
     {
         return [
-            'modul_aktif' => 'array',
-            'label_menu'  => 'array',
+            'modul_aktif'  => 'array',
+            'label_menu'   => 'array',
+            'media_sosial' => 'array',
         ];
+    }
+
+    /**
+     * Mendapatkan link / handle akun media sosial tertentu
+     */
+    public function getSocialMedia(string $platform, ?string $default = null): ?string
+    {
+        $socials = $this->media_sosial;
+        if (!empty($socials) && is_array($socials) && !empty($socials[$platform])) {
+            return $socials[$platform];
+        }
+        return $default;
+    }
+
+    /**
+     * Format URL WhatsApp yang siap diklik (wa.me/...)
+     */
+    public function getWhatsAppUrl(): ?string
+    {
+        $phone = $this->telepon ?? $this->getSocialMedia('whatsapp');
+        if (empty($phone)) {
+            return null;
+        }
+
+        $clean = preg_replace('/[^0-9]/', '', $phone);
+        if (str_starts_with($clean, '0')) {
+            $clean = '62' . substr($clean, 1);
+        }
+
+        return "https://wa.me/{$clean}";
     }
 
     /**

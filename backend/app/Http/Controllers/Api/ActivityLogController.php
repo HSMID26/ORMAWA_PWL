@@ -15,17 +15,17 @@ class ActivityLogController extends Controller
     {
         $user = auth()->user();
 
-        // 1. Authorization: Only Super Admin and Admin Organisasi can view logs
-        if (!$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
+        // 1. Authorization: Requires activity_logs.view permission or Super Admin
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('activity_logs.view'))) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $query = ActivityLog::with(['user:id,name', 'organization:id,nama']);
 
         // 2. Tenant Isolation
-        if ($user->hasRole('Admin Organisasi')) {
+        if (!$user->hasRole('Super Admin')) {
             $query->where('organization_id', $user->organization_id);
-        } elseif ($user->hasRole('Super Admin') && $request->has('organization_id') && $request->organization_id) {
+        } elseif ($request->has('organization_id') && $request->organization_id) {
             $query->where('organization_id', $request->organization_id);
         }
 

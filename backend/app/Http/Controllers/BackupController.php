@@ -15,11 +15,22 @@ use Illuminate\Support\Str;
 class BackupController extends Controller
 {
     // 1. Ekspor Seluruh Data Konten ke File JSON
-    public function export()
+    public function export(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $orgId = $user->organization_id ?? 1;
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('organizations.manage'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengelola cadangan/arsip data.');
+        }
+        
+        if ($user->hasRole('Super Admin')) {
+            $orgId = $request->filled('organization_id') ? (int)$request->organization_id : ($user->organization_id ?? 1);
+        } else {
+            $orgId = (int)$user->organization_id;
+            if (!$orgId) {
+                abort(403, 'Unauthorized. Akun tidak terasosiasi dengan organisasi.');
+            }
+        }
 
         $organization = Organization::find($orgId);
 
@@ -61,6 +72,12 @@ class BackupController extends Controller
     // 2. Impor Data Konten dari File JSON
     public function import(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('organizations.manage'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengelola cadangan/arsip data.');
+        }
+
         $request->validate([
             'backup_file' => 'required|file|mimes:json,txt|max:10240', // Max 10MB
         ]);
@@ -76,8 +93,14 @@ class BackupController extends Controller
         }
 
         /** @var \App\Models\User $user */
-        $user  = Auth::user();
-        $orgId = $user->organization_id ?? 1;
+        if ($user->hasRole('Super Admin')) {
+            $orgId = $request->filled('organization_id') ? (int)$request->organization_id : ($user->organization_id ?? 1);
+        } else {
+            $orgId = (int)$user->organization_id;
+            if (!$orgId) {
+                abort(403, 'Unauthorized. Akun tidak terasosiasi dengan organisasi.');
+            }
+        }
 
         if (!empty($content['settings']) && $organization = Organization::find($orgId)) {
             $organization->fill([

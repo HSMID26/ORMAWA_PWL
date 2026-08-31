@@ -52,7 +52,7 @@
         </div>
       </div>
       <div class="border-t border-slate-200 bg-slate-50/70 px-4 py-4 text-center text-sm text-slate-500 sm:px-6 lg:px-8">
-        © {{ new Date().getFullYear() }} ORMAWA ITI · Powered by CMS Ormawa ITI
+        © {{ new Date().getFullYear() }} ORMAWA ITI
       </div>
     </footer>
   </div>

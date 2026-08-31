@@ -212,7 +212,8 @@ import {
   BoxIcon,
   SettingsIcon,
   CalendarClockIcon,
-  UsersIcon
+  UsersIcon,
+  ShieldCheckIcon
 } from 'lucide-vue-next';
 import SidebarWidget from "./SidebarWidget.vue";
 import { useSidebar } from "@/composables/useSidebar";
@@ -266,88 +267,85 @@ const menuGroups = computed<MenuGroup[]>(() => {
       {
         title: 'SYSTEM',
         items: [
+          { icon: ShieldCheckIcon, name: 'Role & Hak Akses', path: '/super-admin/roles' },
           { icon: SettingsIcon, name: 'Pengaturan Platform', path: '/super-admin/settings' },
         ]
       }
     ]
   }
 
-  if (role === 'Admin Organisasi') {
-    return [
-      {
-        title: 'Utama',
-        items: [
-          { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-        ]
-      },
-      {
-        title: 'Konten',
-        items: [
-          { icon: FileTextIcon, name: 'Artikel', path: '/organization/posts' },
-          { icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' },
-          { icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' },
-          { icon: PieChartIcon, name: 'Galeri', path: '/organization/gallery' },
-          { icon: FileIcon, name: 'Dokumen', path: '/organization/documents' },
-        ]
-      },
-      {
-        title: 'Organisasi',
-        items: [
-          { icon: UsersIcon, name: 'Struktur Organisasi', path: '/organization/committees' },
-          { icon: CalendarClockIcon, name: 'Manajemen Periode', path: '/organization/period' },
-          { icon: UserCircleIcon, name: 'Pengguna Organisasi', path: '/organization/users' },
-          { icon: SettingsIcon, name: 'Pengaturan Organisasi', path: '/organization/settings' },
-        ]
-      },
-      {
-        title: 'Audit Trail',
-        items: [
-          { icon: FileTextIcon, name: 'Activity Log', path: '/organization/activity-logs' },
-        ]
-      }
-    ]
+  // Organization Users: Admin Organisasi, Editor, Kontributor
+  const groups: MenuGroup[] = [
+    {
+      title: 'Utama',
+      items: [
+        { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+      ]
+    }
+  ]
+
+  // Content Group
+  const contentItems: MenuItem[] = []
+  if (authStore.hasPermission('posts.view')) {
+    contentItems.push({
+      icon: FileTextIcon,
+      name: role === 'Kontributor' ? 'Artikel Saya' : 'Artikel',
+      path: '/organization/posts'
+    })
+  }
+  if (authStore.hasPermission('agenda.view')) {
+    contentItems.push({ icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' })
+  }
+  if (authStore.hasPermission('announcements.view')) {
+    contentItems.push({ icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' })
+  }
+  if (authStore.hasPermission('gallery.view')) {
+    contentItems.push({ icon: PieChartIcon, name: 'Galeri', path: '/organization/gallery' })
+  }
+  if (authStore.hasPermission('documents.view')) {
+    contentItems.push({ icon: FileIcon, name: 'Dokumen', path: '/organization/documents' })
   }
 
-  if (role === 'Editor') {
-    return [
-      {
-        title: 'Utama',
-        items: [
-          { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-        ]
-      },
-      {
-        title: 'Manajemen Konten',
-        items: [
-          { icon: FileTextIcon, name: 'Artikel', path: '/organization/posts' },
-          { icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' },
-          { icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' },
-          { icon: PieChartIcon, name: 'Galeri', path: '/organization/gallery' },
-          { icon: FileIcon, name: 'Dokumen', path: '/organization/documents' },
-        ]
-      }
-    ]
+  if (contentItems.length > 0) {
+    groups.push({
+      title: 'Konten',
+      items: contentItems
+    })
   }
 
-  if (role === 'Kontributor') {
-    return [
-      {
-        title: 'Utama',
-        items: [
-          { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
-        ]
-      },
-      {
-        title: 'Artikel',
-        items: [
-          { icon: FileTextIcon, name: 'Artikel Saya', path: '/organization/posts' },
-          { icon: FileIcon, name: 'Tulis Artikel', path: '/organization/posts/create' },
-        ]
-      }
-    ]
+  // Organization Management Group
+  const orgItems: MenuItem[] = []
+  if (authStore.hasPermission('structure.view')) {
+    orgItems.push({ icon: UsersIcon, name: 'Struktur Organisasi', path: '/organization/committees' })
+  }
+  if (authStore.hasPermission('periods.manage')) {
+    orgItems.push({ icon: CalendarClockIcon, name: 'Manajemen Periode', path: '/organization/period' })
+  }
+  if (authStore.hasPermission('users.view')) {
+    orgItems.push({ icon: UserCircleIcon, name: 'Pengguna Organisasi', path: '/organization/users' })
+  }
+  if (authStore.hasPermission('organizations.manage')) {
+    orgItems.push({ icon: SettingsIcon, name: 'Pengaturan Organisasi', path: '/organization/settings' })
   }
 
-  return []
+  if (orgItems.length > 0) {
+    groups.push({
+      title: 'Organisasi',
+      items: orgItems
+    })
+  }
+
+  // Audit Trail Group
+  if (authStore.hasPermission('activity_logs.view')) {
+    groups.push({
+      title: 'Audit Trail',
+      items: [
+        { icon: FileTextIcon, name: 'Activity Log', path: '/organization/activity-logs' }
+      ]
+    })
+  }
+
+  return groups
 });
 
 const isActive = (path: string) => route.path === path;

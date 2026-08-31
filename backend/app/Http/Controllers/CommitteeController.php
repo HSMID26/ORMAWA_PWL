@@ -11,12 +11,19 @@ use Illuminate\Support\Facades\Storage;
 
 class CommitteeController extends Controller
 {
-    /**
-     * 1. Ambil daftar pengurus (bisa difilter berdasarkan periode string, organization_period_id, atau status)
-     */
+    // 1. Ambil daftar pengurus (bisa difilter berdasarkan periode string, organization_period_id, atau status)
     public function index(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('structure.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat data pengurus.');
+        }
+
         $query = Committee::with(['user:id,name,email', 'organizationPeriod', 'organization:id,nama']);
+
+        if (!$user->hasRole('Super Admin')) {
+            $query->where('organization_id', $user->organization_id);
+        }
 
         if ($request->has('period') && !empty($request->period)) {
             $query->where(function($q) use ($request) {
@@ -77,7 +84,16 @@ class CommitteeController extends Controller
      */
     public function show($id)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('structure.view'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat data pengurus.');
+        }
+
         $committee = Committee::with(['user:id,name,email', 'organizationPeriod', 'organization:id,nama'])->findOrFail($id);
+
+        if (!$user->hasRole('Super Admin') && (int)$committee->organization_id !== (int)$user->organization_id) {
+            abort(403, 'Unauthorized. Anda tidak dapat melihat pengurus organisasi lain.');
+        }
 
         return response()->json([
             'status' => 'success',
@@ -109,8 +125,8 @@ class CommitteeController extends Controller
     public function linkableUsers(Request $request)
     {
         $user = auth()->user();
-        if (!$user) {
-            abort(401, 'Unauthenticated.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('structure.manage'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengelola struktur pengurus.');
         }
 
         // Tentukan organization_id dari konteks login
@@ -179,8 +195,8 @@ class CommitteeController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            abort(403, 'Hanya Admin Organisasi atau Super Admin yang dapat menambah data pengurus.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('structure.manage'))) {
+            abort(403, 'Anda tidak memiliki izin untuk menambah data pengurus.');
         }
 
         $request->validate([
@@ -299,8 +315,8 @@ class CommitteeController extends Controller
     public function update(Request $request, $id)
     {
         $user = auth()->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            abort(403, 'Hanya Admin Organisasi atau Super Admin yang dapat mengubah data pengurus.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('structure.manage'))) {
+            abort(403, 'Anda tidak memiliki izin untuk mengubah data pengurus.');
         }
 
         $committee = Committee::with('user')->findOrFail($id);
@@ -363,14 +379,15 @@ class CommitteeController extends Controller
             }
         }
 
+        $updateData = $request->only(['name', 'position', 'department', 'period', 'organization_period_id', 'status', 'user_id']);
+
         if ($request->hasFile('photo')) {
             if ($committee->photo && Storage::disk('public')->exists($committee->photo)) {
                 Storage::disk('public')->delete($committee->photo);
             }
-            $committee->photo = $request->file('photo')->store('committees', 'public');
+            $updateData['photo'] = $request->file('photo')->store('committees', 'public');
         }
 
-        $updateData = $request->only(['name', 'position', 'department', 'period', 'organization_period_id', 'status', 'user_id']);
         if ($request->has('organization_period_id') && !$request->has('period')) {
             $orgPeriod = OrganizationPeriod::find($request->organization_period_id);
             if ($orgPeriod) {
@@ -434,8 +451,8 @@ class CommitteeController extends Controller
     public function destroy($id)
     {
         $user = auth()->user();
-        if (!$user || !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            abort(403, 'Hanya Admin Organisasi atau Super Admin yang dapat menghapus data pengurus.');
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('structure.manage'))) {
+            abort(403, 'Anda tidak memiliki izin untuk menghapus data pengurus.');
         }
 
         $committee = Committee::findOrFail($id);

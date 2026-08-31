@@ -1,64 +1,87 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
     <!-- Breadcrumb -->
-    <nav class="flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-      <router-link to="/" class="hover:text-slate-900">Home</router-link>
-      <span>/</span>
-      <router-link to="/organizations" class="hover:text-slate-900">Direktori Ormawa</router-link>
-      <span>/</span>
-      <router-link :to="`/organizations/${subdomain}`" class="hover:text-slate-900">{{ orgName }}</router-link>
-      <span>/</span>
-      <span class="text-slate-900 font-semibold">Dokumen</span>
+    <nav class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#424751]" aria-label="Breadcrumb">
+      <router-link to="/" class="hover:text-[#00346F]">Beranda</router-link>
+      <span class="text-[#737783]">&rsaquo;</span>
+      <router-link :to="`/organizations/${subdomain}`" class="hover:text-[#00346F]">{{ orgName }}</router-link>
+      <span class="text-[#737783]">&rsaquo;</span>
+      <span class="text-[#00346F] font-bold">Dokumen</span>
     </nav>
 
-    <div class="border-b border-slate-200 pb-4">
-      <span class="text-[11px] font-bold uppercase tracking-wider text-blue-900">Arsip Publik</span>
-      <h1 class="text-2xl sm:text-3xl font-bold text-slate-950 mt-0.5">Dokumen Resmi</h1>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="isLoading" class="py-16 text-center text-xs text-slate-500">
-      <div class="space-y-3 max-w-xl mx-auto">
-        <div v-for="i in 3" :key="i" class="h-16 rounded-xl bg-slate-100 animate-pulse"></div>
-      </div>
-      <p class="mt-4">Memuat berkas dokumen...</p>
+    <!-- Header -->
+    <div class="border-b border-[#C2C6D3] pb-4">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#00346F]">Arsip Publik</span>
+      <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#191C1D] mt-0.5">Dokumen & Arsip Resmi</h1>
+      <p class="text-xs sm:text-sm text-[#424751] mt-1">
+        Daftar Surat Keputusan, Proposal Kegiatan, LPJ, SOP, dan Formulir resmi dari {{ orgName }}.
+      </p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="errorMessage" class="py-14 text-center text-xs text-rose-600 border border-dashed border-rose-200 rounded-xl bg-rose-50/50">
-      {{ errorMessage }}
-    </div>
-    
-    <!-- Empty State -->
-    <div v-else-if="documents.length === 0" class="py-14 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-xl bg-white">
-      Belum ada dokumen publik yang dibagikan.
+    <div v-if="hasError" class="p-6 rounded border border-rose-200 bg-rose-50 text-center space-y-3">
+      <p class="text-xs sm:text-sm font-semibold text-rose-800">Gagal memuat dokumen.</p>
+      <button
+        @click="loadDocuments"
+        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded bg-rose-600 text-white hover:bg-rose-700 transition"
+      >
+        Coba Lagi
+      </button>
     </div>
 
-    <!-- Documents Archive Rows -->
-    <div v-else class="divide-y divide-slate-200 border border-slate-200 rounded-xl bg-white overflow-hidden">
+    <!-- Loading Skeleton -->
+    <div v-else-if="isLoading" class="space-y-3">
+      <div v-for="i in 4" :key="i" class="h-20 rounded bg-white border border-[#C2C6D3] animate-pulse"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="documents.length === 0" class="py-16 text-center text-xs text-[#737783] border border-dashed border-[#C2C6D3] rounded bg-white space-y-1">
+      <div class="font-bold text-sm text-[#191C1D]">Belum ada dokumen publik.</div>
+      <p>Organisasi ini belum menerbitkan dokumen untuk publik.</p>
+    </div>
+
+    <!-- Archive List -->
+    <div v-else class="rounded border border-[#C2C6D3] bg-white divide-y divide-[#E1E3E4] shadow-2xs">
       <div
         v-for="doc in documents"
         :key="doc.id"
-        class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-slate-50/70 transition"
+        class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#F8F9FA] transition duration-150"
       >
-        <div class="flex items-center gap-3.5">
-          <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-[10px] shrink-0 border border-slate-200 uppercase">
-            {{ doc.filename.split('.').pop() || 'PDF' }}
+        <div class="flex items-start gap-3.5 min-w-0">
+          <div class="h-10 w-10 rounded bg-[#F3F4F5] border border-[#C2C6D3] flex items-center justify-center text-[#00346F] shrink-0 mt-0.5">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
           </div>
-          <div>
-            <h2 class="text-xs sm:text-sm font-semibold text-slate-950">{{ doc.filename }}</h2>
-            <span class="text-[10px] text-slate-500">{{ doc.formatted_size }} &bull; Diperbarui {{ new Date(doc.created_at || '').toLocaleDateString('id-ID') }}</span>
+          <div class="space-y-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h2 class="text-xs sm:text-sm font-bold text-[#191C1D] truncate">{{ doc.name || doc.judul || doc.filename }}</h2>
+              <span
+                v-if="doc.category || doc.kategori"
+                class="shrink-0 px-2 py-0.5 text-[10px] font-bold rounded bg-[#F3F4F5] text-[#424751] border border-[#C2C6D3]"
+              >
+                {{ doc.category || doc.kategori }}
+              </span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-[11px] text-[#737783]">
+              <span class="font-mono">{{ doc.filename }}</span>
+              <span>&bull;</span>
+              <span>{{ doc.formatted_size || (doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : 'Dokumen') }}</span>
+              <span>&bull;</span>
+              <span>{{ formatDate(doc.created_at) }}</span>
+            </div>
           </div>
         </div>
 
         <a
-          :href="`/api/public/organizations/${subdomain}/documents/${doc.id}/download`"
+          :href="doc.download_url || doc.file_url || doc.url"
           target="_blank"
           download
-          class="rounded-lg bg-slate-900 hover:bg-blue-900 text-white px-3.5 py-2 text-xs font-semibold text-center transition shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-slate-900"
-          :aria-label="`Unduh berkas ${doc.filename} (${doc.formatted_size})`"
+          class="inline-flex items-center justify-center gap-1.5 rounded border border-[#00346F] bg-white hover:bg-[#00346F] hover:text-white px-4 py-2 text-xs font-semibold text-[#00346F] transition shrink-0 self-end sm:self-center"
         >
-          Unduh ({{ doc.formatted_size }}) &darr;
+          <span>Unduh</span>
+          <span v-if="doc.formatted_size" class="text-[10px] opacity-80">&bull; {{ doc.formatted_size }}</span>
+          <span>&darr;</span>
         </a>
       </div>
     </div>
@@ -66,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
@@ -77,39 +100,47 @@ const route = useRoute()
 
 const documents = ref<PublicDocument[]>([])
 const isLoading = ref(true)
-const errorMessage = ref('')
+const hasError = ref(false)
 
 const subdomain = computed(() => props.organization?.subdomain || (route.params.slug as string) || '')
 const orgName = computed(() => props.organization?.nama || 'Organisasi')
 
 useSeoMeta(() => ({
-  title: `Dokumen Publik — ${orgName.value} | CMS ORMAWA ITI`,
-  description: `Unduh berkas, SK, pedoman, dan arsip dokumen resmi dari ${orgName.value} Institut Teknologi Indonesia.`,
+  title: `Dokumen — ${orgName.value} | ORMAWA ITI`,
+  description: `Dokumen dan arsip publik resmi dari ${orgName.value} Institut Teknologi Indonesia.`,
   ogType: 'website',
 }))
 
-const loadDocs = async () => {
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+const loadDocuments = async () => {
   if (!subdomain.value) return
   isLoading.value = true
-  errorMessage.value = ''
+  hasError.value = false
   try {
-    const res = await publicService.getDocuments(subdomain.value, { per_page: 30 })
+    const res = await publicService.getDocuments(subdomain.value)
     documents.value = res.data || []
-  } catch (err: any) {
-    console.error('Failed to load documents:', err)
-    errorMessage.value = (err.status === 404 || err.response?.status === 404)
-      ? 'Modul dokumen dinonaktifkan oleh organisasi.'
-      : 'Gagal memuat berkas dokumen.'
+  } catch (err) {
+    console.error('Failed to fetch documents:', err)
+    hasError.value = true
   } finally {
     isLoading.value = false
   }
 }
 
-watch(() => subdomain.value, (newSlug) => {
-  if (newSlug) loadDocs()
+watch(() => subdomain.value, (newVal) => {
+  if (newVal) loadDocuments()
 })
 
 onMounted(() => {
-  loadDocs()
+  loadDocuments()
 })
 </script>
+

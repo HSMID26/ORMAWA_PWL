@@ -24,7 +24,7 @@
                   Selamat Datang Kembali
                 </h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                  Masuk untuk melanjutkan ke CMS ORMAWA.
+                  Masuk untuk melanjutkan ke ORMAWA ITI.
                 </p>
               </div>
                 
@@ -108,7 +108,7 @@
                           Ingat sesi saya
                         </label>
                       </div>
-                      <router-link to="/reset-password" class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400">
+                      <router-link to="/forgot-password" class="text-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400">
                         Lupa kata sandi?
                       </router-link>
                     </div>
@@ -147,9 +147,12 @@
           <div class="flex items-center justify-center z-1">
             <common-grid-shape />
             <div class="flex flex-col items-center max-w-lg text-center px-6">
-              <router-link to="/" class="block mb-8">
-                <!-- Fallback ke teks jika svg tidak tampil elegan -->
-                <h2 class="text-3xl font-extrabold text-white tracking-tight">CMS ORMAWA</h2>
+              <router-link to="/" class="flex flex-col items-center mb-6 group">
+                <div class="h-16 w-16 rounded-2xl bg-white p-2 mb-4 shadow-xl flex items-center justify-center border border-white/20 shrink-0">
+                  <img src="/images/logo/iti-logo.png" alt="Institut Teknologi Indonesia" class="h-full w-full object-contain" />
+                </div>
+                <h2 class="text-2xl font-extrabold text-white tracking-tight">ORMAWA ITI</h2>
+                <span class="text-xs text-blue-300 font-semibold uppercase tracking-wider mt-1">Institut Teknologi Indonesia</span>
               </router-link>
               <h3 class="text-xl font-bold text-white mb-4">Portal Manajemen Organisasi Kemahasiswaan</h3>
               <p class="text-base text-gray-300 dark:text-white/70 leading-relaxed">

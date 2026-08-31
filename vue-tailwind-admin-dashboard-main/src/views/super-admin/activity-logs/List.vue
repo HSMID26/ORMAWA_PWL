@@ -8,7 +8,7 @@
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 class="text-xl font-bold text-gray-900 dark:text-white">Audit Log & Aktivitas Global</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Audit trail seluruh aksi administratif dan operasional di platform CMS ORMAWA.</p>
+          <p class="text-xs text-gray-500 mt-0.5">Audit trail seluruh aksi administratif dan operasional di platform ORMAWA ITI.</p>
         </div>
       </div>
 
@@ -16,12 +16,14 @@
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <input
           v-model="searchQuery"
+          @keyup.enter="loadLogs"
           type="text"
-          placeholder="Cari deskripsi / aktor..."
+          placeholder="Cari deskripsi / aktor... (Enter)"
           class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:text-white"
         />
         <select
           v-model="selectedModule"
+          @change="loadLogs"
           class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
           <option value="">Semua Modul</option>
@@ -33,6 +35,7 @@
         </select>
         <select
           v-model="selectedAction"
+          @change="loadLogs"
           class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
           <option value="">Semua Aksi</option>
@@ -110,12 +113,18 @@
 
     </div>
 
-    <!-- Metadata Inspector Modal -->
-    <div v-if="showMetadataModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 space-y-4">
-        <div class="flex items-center justify-between border-b pb-3 dark:border-gray-700">
-          <h3 class="text-base font-bold text-gray-900 dark:text-white">Metadata Inspector</h3>
-          <button @click="showMetadataModal = false" class="text-gray-400 hover:text-gray-600">✕</button>
+    <!-- JSON Metadata Modal -->
+    <div
+      v-if="showMetadataModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+      @click.self="showMetadataModal = false"
+    >
+      <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900 space-y-4">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+          <h3 class="text-sm font-bold text-gray-900 dark:text-white">Detail Metadata Aktivitas</h3>
+          <button @click="showMetadataModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            &times;
+          </button>
         </div>
 
         <div class="rounded-xl bg-gray-950 p-4 font-mono text-xs text-green-400 overflow-x-auto max-h-80">
@@ -154,20 +163,18 @@ const showMetadataModal = ref(false)
 const activeMetadata = ref<any>(null)
 
 const filteredLogs = computed(() => {
-  return logs.value.filter((l) => {
-    const matchSearch = !searchQuery.value ||
-      l.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (l.user?.name && l.user.name.toLowerCase().includes(searchQuery.value.toLowerCase()))
-    const matchModule = !selectedModule.value || l.module === selectedModule.value
-    const matchAction = !selectedAction.value || l.action === selectedAction.value
-    return matchSearch && matchModule && matchAction
-  })
+  return logs.value
 })
 
 const loadLogs = async () => {
   isLoading.value = true
   try {
-    const res = await activityLogService.getLogs()
+    const res = await activityLogService.getLogs({
+      search: searchQuery.value || undefined,
+      module: selectedModule.value || undefined,
+      action: selectedAction.value || undefined,
+      per_page: 50
+    })
     logs.value = res.data?.data || res.data || []
   } catch (err) {
     console.error('Failed to load activity logs:', err)

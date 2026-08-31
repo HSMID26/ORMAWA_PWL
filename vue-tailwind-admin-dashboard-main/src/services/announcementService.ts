@@ -8,6 +8,7 @@ export interface Announcement {
   slug: string;
   content: string;
   effective_date: string | null;
+  expires_at?: string | null;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   status: 'draft' | 'review' | 'published' | 'rejected';
   published_at: string | null;

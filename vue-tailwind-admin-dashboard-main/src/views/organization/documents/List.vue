@@ -1,6 +1,6 @@
 <template>
   <AdminLayout>
-    <PageBreadcrumb :pageTitle="'Manajemen Dokumen Organisasi'" />
+    <PageBreadcrumb :pageTitle="'Dokumen'" />
 
     <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 lg:p-6 shadow-sm">
       <!-- ─── Header & Upload Button ─────────────────────────────────────────── -->
@@ -8,18 +8,19 @@
         <div>
           <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <FileArchiveIcon class="h-5 w-5 text-blue-500" />
-            Dokumen & Arsip Organisasi
+            Dokumen
           </h1>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Kelola SK Kepengurusan, Proposal Kegiatan, LPJ, SOP, dan Template Berkas Resmi.
+            Kelola arsip dan dokumen publik organisasi.
           </p>
         </div>
         <button
+          v-if="authStore.hasPermission('documents.create')"
           @click="openUploadModal"
-          class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-700 shadow-sm transition"
+          class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 shadow-sm transition"
         >
           <PlusIcon class="h-4 w-4" />
-          Upload Dokumen Baru
+          Upload Dokumen
         </button>
       </div>
 
@@ -103,28 +104,33 @@
 
               <!-- Kategori -->
               <td class="px-4 py-3.5">
-                <span class="rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                  {{ item.category }}
+                <span class="inline-flex rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                  {{ item.category || 'Other' }}
                 </span>
               </td>
 
               <!-- Ukuran & Format -->
-              <td class="px-4 py-3.5 text-gray-600 dark:text-gray-400 font-mono text-[11px]">
-                {{ item.file_type }} • {{ formatBytes(item.file_size) }}
+              <td class="px-4 py-3.5 font-mono text-[11px] text-gray-500">
+                <span class="font-semibold uppercase text-gray-700 dark:text-gray-300">{{ item.file_type }}</span> • {{ item.formatted_size || formatBytes(item.file_size) }}
               </td>
 
               <!-- Akses -->
               <td class="px-4 py-3.5">
                 <span
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase"
-                  :class="item.visibility === 'public' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400'"
+                  :class="[
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                    item.visibility === 'public'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                      : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                  ]"
                 >
-                  {{ item.visibility }}
+                  <span class="h-1.5 w-1.5 rounded-full" :class="item.visibility === 'public' ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                  {{ item.visibility === 'public' ? 'Publik' : 'Internal' }}
                 </span>
               </td>
 
-              <!-- Tanggal Upload -->
-              <td class="px-4 py-3.5 text-gray-500 text-[11px] whitespace-nowrap">
+              <!-- Tanggal -->
+              <td class="px-4 py-3.5 text-gray-500 text-[11px]">
                 {{ formatDate(item.created_at) }}
               </td>
 
@@ -132,8 +138,8 @@
               <td class="px-4 py-3.5 text-center">
                 <div class="flex items-center justify-center gap-1.5">
                   <a
-                    v-if="item.file_url"
-                    :href="item.file_url"
+                    v-if="item.download_url || item.file_url || item.url"
+                    :href="item.download_url || item.file_url || item.url"
                     target="_blank"
                     download
                     class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-brand-600 dark:hover:bg-gray-800 transition"
@@ -154,16 +160,16 @@
 
             <!-- Empty State -->
             <tr v-if="filteredDocs.length === 0">
-              <td colspan="6" class="px-4 py-12 text-center">
-                <FileArchiveIcon class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-700 mb-2" />
-                <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Belum Ada Dokumen</h3>
-                <p class="text-xs text-gray-400 mt-1">Unggah dokumen resmi atau proposal organisasi Anda.</p>
+              <td colspan="6" class="px-4 py-16 text-center">
+                <FileArchiveIcon class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-700 mb-2" />
+                <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Belum ada dokumen.</h3>
+                <p class="text-xs text-gray-400 mt-1">Belum ada dokumen publik yang diterbitkan organisasi.</p>
                 <button
                   @click="openUploadModal"
-                  class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+                  class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-brand-700 shadow-sm"
                 >
                   <PlusIcon class="h-3.5 w-3.5" />
-                  Upload Dokumen Pertama
+                  Upload Dokumen
                 </button>
               </td>
             </tr>
@@ -182,7 +188,7 @@
         <div class="flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800 mb-4">
           <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <UploadCloudIcon class="h-5 w-5 text-blue-500" />
-            Upload Dokumen Organisasi
+            Upload Dokumen
           </h3>
           <button @click="isUploadModalOpen = false" class="rounded-lg p-1 text-gray-400 hover:text-gray-600">
             <XIcon class="h-5 w-5" />
@@ -229,7 +235,7 @@
                 v-model="uploadForm.visibility"
                 class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
-                <option value="public">Publik (Siapa Saja)</option>
+                <option value="public">Publik (Dapat Diunduh Pengunjung)</option>
                 <option value="internal">Internal (Khusus Pengurus)</option>
               </select>
             </div>
@@ -242,6 +248,7 @@
             <input
               type="file"
               required
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.csv"
               @change="handleFileChange"
               class="w-full rounded-xl border border-gray-300 bg-transparent px-3 py-2 text-xs text-gray-700 dark:border-gray-700 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
             />
@@ -307,8 +314,8 @@ import { ref, computed, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 import { documentService, type OrgDocument } from '@/services/documentService'
-import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { useAuthStore } from '@/stores/auth'
 import {
   FileArchiveIcon,
   FileTextIcon,
@@ -320,10 +327,8 @@ import {
   XIcon
 } from 'lucide-vue-next'
 
-const authStore = useAuthStore()
 const toastStore = useToastStore()
-
-const orgId = computed(() => authStore.organization_id || (authStore.user as any)?.organization_id || authStore.user?.organization?.id || 1)
+const authStore = useAuthStore()
 
 const documents = ref<OrgDocument[]>([])
 const isLoading = ref(true)
@@ -350,7 +355,7 @@ const isDeleting = ref(false)
 const loadDocuments = async () => {
   isLoading.value = true
   try {
-    documents.value = await documentService.list(orgId.value)
+    documents.value = await documentService.list()
   } catch (error) {
     console.error('Failed to load documents:', error)
   } finally {
@@ -368,8 +373,8 @@ const filteredDocs = computed(() => {
     }
     if (searchQuery.value.trim()) {
       const q = searchQuery.value.toLowerCase()
-      const matchName = doc.name.toLowerCase().includes(q)
-      const matchFilename = doc.filename.toLowerCase().includes(q)
+      const matchName = (doc.name || '').toLowerCase().includes(q)
+      const matchFilename = (doc.filename || '').toLowerCase().includes(q)
       if (!matchName && !matchFilename) return false
     }
     return true
@@ -406,37 +411,41 @@ const openUploadModal = () => {
 const handleFileChange = (e: Event) => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files[0]) {
-    selectedFile.value = target.files[0]
+    const file = target.files[0]
+    if (file.type.startsWith('image/')) {
+      toastStore.error('File yang diunggah harus berupa dokumen (PDF, DOCX, XLSX, PPTX, ZIP, dsb). Untuk foto atau gambar, gunakan menu Galeri Foto.')
+      target.value = ''
+      selectedFile.value = null
+      return
+    }
+    selectedFile.value = file
+    if (!uploadForm.value.name) {
+      uploadForm.value.name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+    }
   }
 }
 
 const submitUpload = async () => {
   if (!uploadForm.value.name.trim() || !selectedFile.value) {
-    toastStore.error('Nama dokumen dan file wajib diisi.')
+    toastStore.error('Nama dokumen dan berkas file wajib diisi.')
     return
   }
 
   isSubmitting.value = true
   try {
-    const file = selectedFile.value
-    const fakeUrl = URL.createObjectURL(file)
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    formData.append('name', uploadForm.value.name.trim())
+    formData.append('category', uploadForm.value.category)
+    formData.append('visibility', uploadForm.value.visibility)
 
-    await documentService.create(orgId.value, {
-      name: uploadForm.value.name,
-      category: uploadForm.value.category,
-      filename: file.name,
-      file_url: fakeUrl,
-      file_size: file.size,
-      file_type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
-      visibility: uploadForm.value.visibility,
-      uploader_name: authStore.user?.name || 'Admin'
-    })
+    await documentService.upload(formData)
 
-    toastStore.success('Dokumen berhasil diunggah!')
+    toastStore.success('Dokumen berhasil diunggah ke server!')
     isUploadModalOpen.value = false
     await loadDocuments()
   } catch (error: any) {
-    toastStore.error('Gagal mengunggah dokumen: ' + error.message)
+    toastStore.error(error.response?.data?.message || 'Gagal mengunggah dokumen: ' + error.message)
   } finally {
     isSubmitting.value = false
   }
@@ -451,8 +460,8 @@ const confirmDelete = async () => {
   if (!docToDelete.value || isDeleting.value) return
   isDeleting.value = true
   try {
-    await documentService.remove(orgId.value, docToDelete.value.id)
-    toastStore.success('Dokumen berhasil dihapus.')
+    await documentService.remove(docToDelete.value.id)
+    toastStore.success('Dokumen berhasil dihapus dari sistem.')
     isDeleteOpen.value = false
     docToDelete.value = null
     await loadDocuments()

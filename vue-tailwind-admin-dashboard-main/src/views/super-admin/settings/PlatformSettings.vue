@@ -113,12 +113,19 @@
       </div>
 
       <!-- Action Button (Full Width) -->
-      <div class="xl:col-span-2 flex justify-end">
+      <div class="xl:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <span v-if="statusMessage" :class="statusType === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'" class="text-xs font-semibold">
+            {{ statusMessage }}
+          </span>
+        </div>
         <button 
           @click="saveGlobalSettings"
-          class="flex items-center justify-center rounded-lg bg-brand-500 px-8 py-3 text-sm font-medium text-white hover:bg-brand-600 transition-colors shadow-theme-xs"
+          :disabled="isSaving || isLoading"
+          class="flex items-center justify-center rounded-xl bg-brand-600 px-8 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors shadow-theme-xs disabled:opacity-50"
         >
-          Simpan Konfigurasi Global
+          <span v-if="isSaving">Menyimpan...</span>
+          <span v-else>Simpan Konfigurasi Global</span>
         </button>
       </div>
 
@@ -126,26 +133,59 @@
   </AdminLayout>
 </template>
 
-<script setup>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import api from '@/services/api'
 
 const currentPageTitle = ref('Pengaturan Sistem Pusat')
+const isLoading = ref(true)
+const isSaving = ref(false)
+const statusMessage = ref('')
+const statusType = ref<'success' | 'error'>('success')
 
 // State Global Setting (Level Super Admin)
 const globalSettings = ref({
   campusName: 'Institut Teknologi Indonesia',
   mainDomain: 'iti.ac.id',
-  defaultStorageLimit: 20, // 20 GB merujuk pada indikator antarmuka mock-up
-  autoApproveNewOrg: false, // Default false agar pendaftaran butuh approval
+  defaultStorageLimit: 20,
+  autoApproveNewOrg: false,
   maintenanceMode: false
 })
 
-const saveGlobalSettings = () => {
-  console.log('Menyimpan konfigurasi global:', globalSettings.value)
-  // Eksekusi API Update Global Settings Laravel
-  alert('Konfigurasi sistem pusat berhasil diperbarui.')
+const loadSettings = async () => {
+  isLoading.value = true
+  try {
+    const res = await api.get('/platform-settings')
+    if (res.data?.data) {
+      globalSettings.value = { ...globalSettings.value, ...res.data.data }
+    }
+  } catch (err) {
+    console.error('Failed to load platform settings:', err)
+  } finally {
+    isLoading.value = false
+  }
 }
+
+const saveGlobalSettings = async () => {
+  isSaving.value = true
+  statusMessage.value = ''
+  try {
+    const res = await api.put('/platform-settings', globalSettings.value)
+    statusType.value = 'success'
+    statusMessage.value = res.data?.message || 'Konfigurasi platform berhasil disimpan.'
+    setTimeout(() => { statusMessage.value = '' }, 4000)
+  } catch (err: any) {
+    statusType.value = 'error'
+    statusMessage.value = err.response?.data?.message || 'Gagal menyimpan konfigurasi platform.'
+  } finally {
+    isSaving.value = false
+  }
+}
+
+onMounted(() => {
+  loadSettings()
+})
 </script>
 
