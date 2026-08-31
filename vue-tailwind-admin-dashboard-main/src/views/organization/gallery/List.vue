@@ -468,6 +468,7 @@ import {
   CopyIcon,
   Trash2Icon,
   AlertTriangleIcon,
+  UploadCloudIcon,
   XIcon
 } from 'lucide-vue-next'
 

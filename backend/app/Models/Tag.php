@@ -18,7 +18,14 @@ class Tag extends Model
         parent::boot();
         static::creating(function ($tag) {
             if (empty($tag->slug)) {
-                $tag->slug = Str::slug($tag->name);
+                $baseSlug = Str::slug($tag->name) ?: 'tag';
+                $slug = $baseSlug;
+                $count = 1;
+                while (static::where('slug', $slug)->exists()) {
+                    $slug = "{$baseSlug}-{$count}";
+                    $count++;
+                }
+                $tag->slug = $slug;
             }
         });
     }

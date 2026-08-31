@@ -244,4 +244,57 @@ test('categories and tags endpoints auto-provision baseline options if empty', f
     expect($tagNames)->toContain('Prestasi');
 });
 
+test('multiple organizations can query categories simultaneously without slug collision or 500 error', function () {
+    $timestamp = microtime(true);
+    $orgA = Organization::create([
+        'nama' => 'Org A ' . $timestamp,
+        'jenis' => 'UKM',
+        'subdomain' => 'orga' . str_replace('.', '', (string)$timestamp),
+        'status' => 'active',
+    ]);
+    $userA = User::create([
+        'name' => 'Admin Org A',
+        'email' => 'admin_a_' . $timestamp . '@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $orgA->id,
+    ]);
+    $userA->assignRole('Admin Organisasi');
+
+    $orgB = Organization::create([
+        'nama' => 'Org B ' . $timestamp,
+        'jenis' => 'HMPS',
+        'subdomain' => 'orgb' . str_replace('.', '', (string)$timestamp),
+        'status' => 'active',
+    ]);
+    $userB = User::create([
+        'name' => 'Admin Org B',
+        'email' => 'admin_b_' . $timestamp . '@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $orgB->id,
+    ]);
+    $userB->assignRole('Admin Organisasi');
+
+    // Both query /api/categories -> both get 200 with baseline categories
+    $resA = $this->actingAs($userA, 'sanctum')->getJson('/api/categories');
+    $resA->assertStatus(200);
+    expect($resA->json('data'))->not->toBeEmpty();
+
+    $resB = $this->actingAs($userB, 'sanctum')->getJson('/api/categories');
+    $resB->assertStatus(200);
+    expect($resB->json('data'))->not->toBeEmpty();
+
+    // Quick add custom category for Org A
+    $createCatA = $this->actingAs($userA, 'sanctum')->postJson('/api/categories', [
+        'name' => 'Khusus Org A',
+    ]);
+    $createCatA->assertStatus(201);
+
+    // Quick add same category name for Org B -> works cleanly per org
+    $createCatB = $this->actingAs($userB, 'sanctum')->postJson('/api/categories', [
+        'name' => 'Khusus Org A',
+    ]);
+    $createCatB->assertStatus(201);
+});
+
+
 

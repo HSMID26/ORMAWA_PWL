@@ -20,7 +20,17 @@ class Category extends Model
         parent::boot();
         static::creating(function ($category) {
             if (empty($category->slug)) {
-                $category->slug = Str::slug($category->name);
+                $baseSlug = Str::slug($category->name) ?: 'kategori';
+                $slug = $baseSlug;
+                $count = 1;
+                while (static::withoutGlobalScopes()
+                    ->where('organization_id', $category->organization_id)
+                    ->where('slug', $slug)
+                    ->exists()) {
+                    $slug = "{$baseSlug}-{$count}";
+                    $count++;
+                }
+                $category->slug = $slug;
             }
         });
     }

@@ -21,10 +21,21 @@ class CategoryController extends Controller
     public static function ensureDefaultCategories(int $organizationId): void
     {
         foreach (self::DEFAULT_CATEGORIES as $cat) {
-            Category::firstOrCreate(
-                ['organization_id' => $organizationId, 'slug' => $cat['slug']],
-                ['name' => $cat['name']]
-            );
+            $exists = Category::withoutGlobalScopes()
+                ->where('organization_id', $organizationId)
+                ->where(function ($q) use ($cat) {
+                    $q->where('slug', $cat['slug'])
+                      ->orWhere('name', $cat['name']);
+                })
+                ->exists();
+
+            if (!$exists) {
+                Category::create([
+                    'organization_id' => $organizationId,
+                    'name'            => $cat['name'],
+                    'slug'            => $cat['slug'],
+                ]);
+            }
         }
     }
 
@@ -33,7 +44,11 @@ class CategoryController extends Controller
     {
         $user = auth()->user();
         if ($user && $user->organization_id) {
-            if (Category::where('organization_id', $user->organization_id)->count() === 0) {
+            $count = Category::withoutGlobalScopes()
+                ->where('organization_id', $user->organization_id)
+                ->count();
+
+            if ($count === 0) {
                 self::ensureDefaultCategories($user->organization_id);
             }
         }
@@ -50,10 +65,24 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate(['name' => 'required|string|max:255']);
+        $orgId = auth()->user()?->organization_id;
 
-        $category = Category::firstOrCreate([
-            'organization_id' => auth()->user()?->organization_id,
-            'name'            => trim($request->name),
+        $name = trim($request->name);
+        $existing = Category::withoutGlobalScopes()
+            ->where('organization_id', $orgId)
+            ->where('name', $name)
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'status' => 'success',
+                'data'   => $existing
+            ], 200);
+        }
+
+        $category = Category::create([
+            'organization_id' => $orgId,
+            'name'            => $name,
         ]);
 
         return response()->json([
