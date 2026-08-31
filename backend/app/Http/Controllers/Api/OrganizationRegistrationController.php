@@ -198,6 +198,9 @@ class OrganizationRegistrationController extends Controller
                 'warna_tema' => '#00346F', // Institutional Default
             ]);
 
+            // Provision default categories for the new organization
+            \App\Http\Controllers\CategoryController::ensureDefaultCategories($org->id);
+
             // Create User
             $user = User::create([
                 'name' => $registration->admin_first_name . ' ' . $registration->admin_last_name,

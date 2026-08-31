@@ -7,10 +7,28 @@ use Illuminate\Http\Request;
 
 class TagController extends Controller
 {
+    public const DEFAULT_TAGS = [
+        'Mahasiswa', 'Prestasi', 'Kegiatan', 'Akademik', 'Workshop', 'Seminar', 'Teknologi', 'Kepanitiaan', 'Kompetisi'
+    ];
+
+    public static function ensureDefaultTags(): void
+    {
+        foreach (self::DEFAULT_TAGS as $tagName) {
+            Tag::firstOrCreate(
+                ['name' => $tagName],
+                ['slug' => \Illuminate\Support\Str::slug($tagName)]
+            );
+        }
+    }
+
     // Ambil semua tag global
     public function index()
     {
-        $tags = Tag::latest()->get();
+        if (Tag::count() === 0) {
+            self::ensureDefaultTags();
+        }
+
+        $tags = Tag::orderBy('name')->get();
         return response()->json([
             'status' => 'success',
             'data'   => $tags

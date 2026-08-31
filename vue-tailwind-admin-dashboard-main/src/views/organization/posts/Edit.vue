@@ -321,26 +321,94 @@
           </h2>
 
           <div class="space-y-4 text-xs">
+            <!-- Kategori Dropdown -->
             <div>
-              <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Kategori Artikel
-              </label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="font-semibold text-gray-700 dark:text-gray-300">
+                  Kategori Artikel
+                </label>
+                <button
+                  type="button"
+                  @click="isAddingCategory = !isAddingCategory"
+                  class="text-[11px] font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                >
+                  {{ isAddingCategory ? 'Batal' : '+ Kategori Baru' }}
+                </button>
+              </div>
+
+              <!-- Quick Add Category Input -->
+              <div v-if="isAddingCategory" class="mb-2 flex items-center gap-2">
+                <input
+                  v-model="newCategoryName"
+                  type="text"
+                  placeholder="Nama kategori baru..."
+                  class="h-8 flex-1 rounded-lg border border-brand-300 bg-white px-2.5 text-xs text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  @keyup.enter="handleCreateCategory"
+                />
+                <button
+                  type="button"
+                  @click="handleCreateCategory"
+                  :disabled="isCreatingCategory || !newCategoryName.trim()"
+                  class="h-8 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {{ isCreatingCategory ? 'Menyimpan...' : 'Tambah' }}
+                </button>
+              </div>
+
               <select
                 v-model="form.category_id"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                :disabled="isLoading"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white disabled:opacity-60"
               >
-                <option :value="undefined">-- Pilih Kategori --</option>
+                <option v-if="isLoading" :value="undefined" disabled>Memuat daftar kategori...</option>
+                <option v-else-if="categories.length === 0" :value="undefined" disabled>Belum ada kategori tersedia</option>
+                <option v-else :value="undefined">-- Pilih Kategori --</option>
                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                   {{ cat.name }}
                 </option>
               </select>
             </div>
 
+            <!-- Tag Multi-select Chips -->
             <div>
-              <label class="block font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Pilih Tag Terkait
-              </label>
-              <div v-if="tags.length > 0" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+              <div class="flex items-center justify-between mb-2">
+                <label class="font-semibold text-gray-700 dark:text-gray-300">
+                  Pilih Tag Terkait
+                </label>
+                <button
+                  type="button"
+                  @click="isAddingTag = !isAddingTag"
+                  class="text-[11px] font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                >
+                  {{ isAddingTag ? 'Batal' : '+ Tag Baru' }}
+                </button>
+              </div>
+
+              <!-- Quick Add Tag Input -->
+              <div v-if="isAddingTag" class="mb-2 flex items-center gap-2">
+                <input
+                  v-model="newTagName"
+                  type="text"
+                  placeholder="Nama tag baru..."
+                  class="h-8 flex-1 rounded-lg border border-brand-300 bg-white px-2.5 text-xs text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  @keyup.enter="handleCreateTag"
+                />
+                <button
+                  type="button"
+                  @click="handleCreateTag"
+                  :disabled="isCreatingTag || !newTagName.trim()"
+                  class="h-8 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {{ isCreatingTag ? 'Menyimpan...' : 'Tambah' }}
+                </button>
+              </div>
+
+              <div v-if="isLoading" class="flex gap-2 animate-pulse">
+                <div class="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                <div class="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                <div class="h-6 w-14 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+              </div>
+              <div v-else-if="tags.length > 0" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                 <button
                   type="button"
                   v-for="tag in tags"
@@ -356,6 +424,7 @@
                   #{{ tag.name }}
                 </button>
               </div>
+              <p v-else class="text-[11px] text-gray-400">Belum ada data tag.</p>
             </div>
           </div>
         </div>
@@ -581,6 +650,14 @@ const readingTime = computed(() => {
   return Math.max(1, Math.ceil(words / 200))
 })
 
+const isAddingCategory = ref(false)
+const newCategoryName = ref('')
+const isCreatingCategory = ref(false)
+
+const isAddingTag = ref(false)
+const newTagName = ref('')
+const isCreatingTag = ref(false)
+
 const loadPostAndTaxonomies = async () => {
   isLoading.value = true
   try {
@@ -590,8 +667,8 @@ const loadPostAndTaxonomies = async () => {
       taxonomyService.getTags()
     ])
 
-    categories.value = catsData
-    tags.value = tagsData
+    categories.value = catsData || []
+    tags.value = tagsData || []
 
     form.value = {
       judul: postData.judul,
@@ -611,6 +688,46 @@ const loadPostAndTaxonomies = async () => {
     router.push('/organization/posts')
   } finally {
     isLoading.value = false
+  }
+}
+
+const handleCreateCategory = async () => {
+  const name = newCategoryName.value.trim()
+  if (!name) return
+
+  isCreatingCategory.value = true
+  try {
+    const created = await taxonomyService.createCategory(name)
+    categories.value.push(created)
+    form.value.category_id = created.id
+    newCategoryName.value = ''
+    isAddingCategory.value = false
+    toastStore.success(`Kategori "${created.name}" berhasil ditambahkan!`)
+  } catch (err: any) {
+    toastStore.error(err.message || 'Gagal menambahkan kategori.')
+  } finally {
+    isCreatingCategory.value = false
+  }
+}
+
+const handleCreateTag = async () => {
+  const name = newTagName.value.trim()
+  if (!name) return
+
+  isCreatingTag.value = true
+  try {
+    const created = await taxonomyService.createTag(name)
+    tags.value.push(created)
+    if (!form.value.tags.includes(created.id)) {
+      form.value.tags.push(created.id)
+    }
+    newTagName.value = ''
+    isAddingTag.value = false
+    toastStore.success(`Tag #${created.name} berhasil ditambahkan!`)
+  } catch (err: any) {
+    toastStore.error(err.message || 'Gagal menambahkan tag.')
+  } finally {
+    isCreatingTag.value = false
   }
 }
 

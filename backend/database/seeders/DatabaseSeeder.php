@@ -59,10 +59,19 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Kegiatan', 'slug' => 'kegiatan'],
             ['name' => 'Prestasi', 'slug' => 'prestasi'],
             ['name' => 'Informasi', 'slug' => 'informasi'],
+            ['name' => 'Opini', 'slug' => 'opini'],
         ] as $category) {
             Category::firstOrCreate(
                 ['organization_id' => $hmif->id, 'slug' => $category['slug']],
                 ['name' => $category['name']]
+            );
+        }
+
+        // Seed Tags Global
+        foreach (['Mahasiswa', 'Prestasi', 'Kegiatan', 'Akademik', 'Workshop', 'Seminar', 'Teknologi', 'Kepanitiaan', 'Kompetisi'] as $tagName) {
+            \App\Models\Tag::firstOrCreate(
+                ['name' => $tagName],
+                ['slug' => \Illuminate\Support\Str::slug($tagName)]
             );
         }
 

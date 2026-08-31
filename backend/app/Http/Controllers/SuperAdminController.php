@@ -50,6 +50,9 @@ class SuperAdminController extends Controller
                 'warna_tema'  => '#1d4ed8',
             ]);
 
+            // Provision default baseline categories
+            \App\Http\Controllers\CategoryController::ensureDefaultCategories($org->id);
+
             // 2. Buat Akun Admin Organisasi
             $user = User::create([
                 'name'            => trim($pending->admin_first_name . ' ' . $pending->admin_last_name),

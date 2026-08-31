@@ -208,3 +208,40 @@ test('public article detail and global categories endpoints expose category and 
     expect($data['tags'][0]['name'])->toBe('Juara 1');
 });
 
+test('categories and tags endpoints auto-provision baseline options if empty', function () {
+    $timestamp = microtime(true);
+    $freshOrg = Organization::create([
+        'nama' => 'UKM Musik ' . $timestamp,
+        'jenis' => 'UKM',
+        'subdomain' => 'musik' . str_replace('.', '', (string)$timestamp),
+        'status' => 'active',
+    ]);
+
+    $freshAdmin = User::create([
+        'name' => 'Admin Musik',
+        'email' => 'admin_musik_' . $timestamp . '@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $freshOrg->id,
+    ]);
+    $freshAdmin->assignRole('Admin Organisasi');
+
+    // Query categories as fresh organization
+    $catRes = $this->actingAs($freshAdmin, 'sanctum')->getJson('/api/categories');
+    $catRes->assertStatus(200);
+    $catNames = collect($catRes->json('data'))->pluck('name')->all();
+
+    expect($catNames)->toContain('Akademik');
+    expect($catNames)->toContain('Kegiatan');
+    expect($catNames)->toContain('Prestasi');
+    expect($catNames)->toContain('Informasi');
+
+    // Query tags
+    $tagRes = $this->actingAs($freshAdmin, 'sanctum')->getJson('/api/tags');
+    $tagRes->assertStatus(200);
+    $tagNames = collect($tagRes->json('data'))->pluck('name')->all();
+
+    expect($tagNames)->toContain('Mahasiswa');
+    expect($tagNames)->toContain('Prestasi');
+});
+
+
