@@ -163,3 +163,48 @@ test('post review workflow converts contributor published status to review with 
         'type' => 'content_published',
     ]);
 });
+
+test('public article detail and global categories endpoints expose category and tags accurately', function () {
+    $category = Category::create([
+        'organization_id' => $this->org1->id,
+        'name' => 'Prestasi Mahasiswa',
+        'slug' => 'prestasi-mahasiswa',
+    ]);
+
+    $tag = Tag::create([
+        'name' => 'Juara 1',
+        'slug' => 'juara-1',
+    ]);
+
+    $post = Post::create([
+        'organization_id' => $this->org1->id,
+        'user_id' => $this->adminOrg1->id,
+        'category_id' => $category->id,
+        'judul' => 'Tim Robotik Juara 1 Nasional',
+        'slug' => 'tim-robotik-juara-1-nasional',
+        'konten' => 'Isi artikel lengkap prestasi...',
+        'excerpt' => 'Ringkasan prestasi...',
+        'status' => 'published',
+        'published_at' => now(),
+    ]);
+    $post->tags()->sync([$tag->id]);
+
+    // Test GET /api/public/categories
+    $globalCatsRes = $this->getJson('/api/public/categories');
+    $globalCatsRes->assertStatus(200)
+        ->assertJsonFragment([
+            'name' => 'Prestasi Mahasiswa',
+            'slug' => 'prestasi-mahasiswa',
+        ]);
+
+    // Test GET /api/public/organizations/{subdomain}/articles/{slug}
+    $detailRes = $this->getJson("/api/public/organizations/{$this->org1->subdomain}/articles/{$post->slug}");
+    $detailRes->assertStatus(200);
+    $data = $detailRes->json('data');
+
+    expect($data['category'])->not->toBeNull();
+    expect($data['category']['name'])->toBe('Prestasi Mahasiswa');
+    expect($data['tags'])->toHaveCount(1);
+    expect($data['tags'][0]['name'])->toBe('Juara 1');
+});
+
