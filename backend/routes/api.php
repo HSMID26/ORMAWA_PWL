@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ActivityController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\MediaController;
@@ -10,7 +11,6 @@ use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\CommitteeController;
-use App\Http\Controllers\Api\RoleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

@@ -260,6 +260,7 @@ const menuGroups = computed<MenuGroup[]>(() => {
         title: 'MONITORING',
         items: [
           { icon: UserCircleIcon, name: 'Pengguna Global', path: '/super-admin/users' },
+          { icon: SettingsIcon, name: 'Role & Hak Akses', path: '/super-admin/roles' },
           { icon: ListIcon, name: 'Monitoring Konten', path: '/super-admin/content' },
           { icon: FileIcon, name: 'Activity Log', path: '/super-admin/activity-logs' },
         ]

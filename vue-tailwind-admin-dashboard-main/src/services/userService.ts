@@ -1,6 +1,20 @@
 import api from './api'
 import type { ApiListResponse, ApiSingleResponse, UserProfile } from '@/types/api'
 
+export interface RoleAccess {
+  id: number
+  name: string
+  permissions: string[]
+}
+
+export interface RoleAccessPayload {
+  roles: RoleAccess[]
+  permissions: { id: number; name: string; guard_name: string }[]
+  groups: Record<string, Record<string, string>>
+}
+
+export type RoleAccessResponse = RoleAccessPayload
+
 export interface UserFilterParams {
   role?: string
   status?: string
@@ -50,30 +64,17 @@ export const userService = {
   },
 }
 
-export interface RoleAccess {
-  id: number
-  name: string
-  permissions: string[]
-}
-
-export interface RoleAccessResponse {
-  roles: RoleAccess[]
-  permissions: Array<{ id: number; name: string; guard_name: string }>
-  groups: Record<string, Record<string, string>>
-}
-
 export const roleService = {
   async access() {
-    const { data } = await api.get<{ status: string; data: RoleAccessResponse }>('/roles')
+    const { data } = await api.get<{ status: string; data: RoleAccessPayload }>('/roles')
     return data.data
   },
 
   async updatePermissions(roleId: number, permissions: string[]) {
-    const { data } = await api.put<{ status: string; message: string; data: { id: number; name: string; permissions: string[] } }>(
+    const { data } = await api.put<{ status: string; message?: string; data: RoleAccess }>(
       `/roles/${roleId}/permissions`,
       { permissions }
     )
     return data.data
   },
 }
-

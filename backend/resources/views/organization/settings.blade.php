@@ -92,7 +92,151 @@
                     </div>
                 </div>
 
-                <!-- 2. Pengaturan Warna Tema (Theme Accent Color) -->
+                <!-- 2. Informasi Kontak & Tautan Media Sosial -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-2">
+                        📞 Kontak Resmi & Akun Media Sosial Ormawa
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">
+                        Informasi ini akan ditampilkan pada footer portal publik dan kartu profil organisasi Anda.
+                    </p>
+
+                    <!-- Kontak Utama -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-semibold dark:text-gray-300 mb-1">
+                                ✉️ Email Resmi Organisasi
+                            </label>
+                            <input 
+                                type="email" 
+                                name="email" 
+                                value="{{ old('email', $organization->email) }}" 
+                                placeholder="Contoh: hmif@kampus.ac.id" 
+                                class="w-full p-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold dark:text-gray-300 mb-1">
+                                📱 Nomor WhatsApp / Telepon Resmi
+                            </label>
+                            <input 
+                                type="text" 
+                                name="telepon" 
+                                value="{{ old('telepon', $organization->telepon) }}" 
+                                placeholder="Contoh: 081234567890 atau +6281234567890" 
+                                class="w-full p-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold dark:text-gray-300 mb-1">
+                                🏢 Alamat Ruang / Sekretariat Ormawa
+                            </label>
+                            <textarea 
+                                name="alamat" 
+                                rows="2" 
+                                placeholder="Contoh: Gedung PKM Lantai 2, Ruang 204, Kampus Terpadu" 
+                                class="w-full p-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                            >{{ old('alamat', $organization->alamat) }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Tautan Media Sosial -->
+                    <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+                        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                            🌐 Akun Media Sosial Resmi
+                        </h4>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Instagram -->
+                            <div>
+                                <label class="block text-xs font-semibold dark:text-gray-300 mb-1 flex items-center gap-1.5">
+                                    <span class="text-pink-500">📸</span> Instagram
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="media_sosial[instagram]" 
+                                    value="{{ old('media_sosial.instagram', $socialMedia['instagram'] ?? '') }}" 
+                                    placeholder="Contoh: @hmif_kampus atau link" 
+                                    class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                >
+                            </div>
+
+                            <!-- TikTok -->
+                            <div>
+                                <label class="block text-xs font-semibold dark:text-gray-300 mb-1 flex items-center gap-1.5">
+                                    <span class="text-slate-800 dark:text-white">🎵</span> TikTok
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="media_sosial[tiktok]" 
+                                    value="{{ old('media_sosial.tiktok', $socialMedia['tiktok'] ?? '') }}" 
+                                    placeholder="Contoh: @hmif_official atau link" 
+                                    class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                >
+                            </div>
+
+                            <!-- YouTube -->
+                            <div>
+                                <label class="block text-xs font-semibold dark:text-gray-300 mb-1 flex items-center gap-1.5">
+                                    <span class="text-red-500">▶️</span> YouTube
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="media_sosial[youtube]" 
+                                    value="{{ old('media_sosial.youtube', $socialMedia['youtube'] ?? '') }}" 
+                                    placeholder="Contoh: youtube.com/@hmif" 
+                                    class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                >
+                            </div>
+
+                            <!-- LinkedIn -->
+                            <div>
+                                <label class="block text-xs font-semibold dark:text-gray-300 mb-1 flex items-center gap-1.5">
+                                    <span class="text-blue-600">💼</span> LinkedIn
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="media_sosial[linkedin]" 
+                                    value="{{ old('media_sosial.linkedin', $socialMedia['linkedin'] ?? '') }}" 
+                                    placeholder="Contoh: linkedin.com/company/hmif" 
+                                    class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                >
+                            </div>
+
+                            <!-- X / Twitter -->
+                            <div>
+                                <label class="block text-xs font-semibold dark:text-gray-300 mb-1 flex items-center gap-1.5">
+                                    <span class="text-sky-500">🐦</span> X (Twitter)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="media_sosial[twitter_x]" 
+                                    value="{{ old('media_sosial.twitter_x', $socialMedia['twitter_x'] ?? '') }}" 
+                                    placeholder="Contoh: @hmif_kampus" 
+                                    class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                >
+                            </div>
+
+                            <!-- Website / Linktree -->
+                            <div>
+                                <label class="block text-xs font-semibold dark:text-gray-300 mb-1 flex items-center gap-1.5">
+                                    <span class="text-emerald-500">🔗</span> Website / Linktree
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="media_sosial[website]" 
+                                    value="{{ old('media_sosial.website', $socialMedia['website'] ?? '') }}" 
+                                    placeholder="Contoh: linktr.ee/hmif" 
+                                    class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Pengaturan Warna Tema (Theme Accent Color) -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-100 dark:border-gray-700">
                     <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                         🎨 Warna Tema & Identitas Visual
@@ -221,6 +365,35 @@
                         <div>
                             <label class="block text-sm font-semibold dark:text-gray-300 mb-1">Label Menu Kelola Pengurus</label>
                             <input type="text" name="label_menu[committees]" value="{{ $menuLabels['committees'] ?? 'Kelola Pengurus' }}" class="w-full p-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500" placeholder="Default: Kelola Pengurus">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Integrasi Google Analytics 4 (GA4) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-2">
+                        📊 Integrasi Google Analytics 4 (GA4)
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Masukkan Google Analytics Measurement ID untuk melacak traffic pengunjung, demografi, dan performa halaman portal Ormawa Anda secara real-time.
+                    </p>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold dark:text-gray-300 mb-1">
+                                Google Analytics Measurement ID (ID Pengukuran)
+                            </label>
+                            <div class="flex items-center gap-3">
+                                <input type="text" name="ga_tracking_id" value="{{ old('ga_tracking_id', $organization->ga_tracking_id) }}" placeholder="Contoh: G-XXXXXXXXXX" class="w-full sm:w-96 p-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 font-mono">
+                                @if(!empty($organization->ga_tracking_id))
+                                    <span class="px-3 py-2 bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 rounded-lg text-xs font-bold whitespace-nowrap">
+                                        ✅ Terpasang
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-[11px] text-gray-400 mt-1">
+                                Format: Diawali dengan <code>G-</code> diikuti kombinasi huruf & angka (misal: <code>G-ABC123XYZ0</code>). Kosongkan jika belum menggunakan GA4.
+                            </p>
                         </div>
                     </div>
                 </div>

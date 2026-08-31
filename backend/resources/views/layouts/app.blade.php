@@ -13,6 +13,21 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        @php
+            $gaTrackingId = $organization->ga_tracking_id ?? ($setting->ga_tracking_id ?? Auth::user()?->organization?->ga_tracking_id ?? null);
+        @endphp
+
+        @if(!empty($gaTrackingId))
+            <!-- Google tag (gtag.js) - Google Analytics 4 -->
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaTrackingId }}"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '{{ $gaTrackingId }}');
+            </script>
+        @endif
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -32,5 +47,8 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <!-- Global Search & Command Palette Modal (Ctrl+K) -->
+        <x-global-search-modal />
     </body>
 </html>
