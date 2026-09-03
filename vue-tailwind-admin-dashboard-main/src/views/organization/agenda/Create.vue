@@ -103,9 +103,12 @@
               v-model="form.status"
               class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="published">Published (Tampil di Website & Kalender)</option>
+              <option v-if="canPublish" value="published">Published (Tampil di Website & Kalender)</option>
               <option value="draft">Draft (Arsip Internal)</option>
             </select>
+            <p v-if="!canPublish" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+              *Sebagai Editor, agenda disimpan sebagai Draft internal sebelum dipublikasikan oleh Admin Organisasi.
+            </p>
           </div>
         </div>
 
@@ -131,16 +134,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 import { activityService } from '@/services/activityService'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { CalendarPlusIcon } from 'lucide-vue-next'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const toastStore = useToastStore()
+
+const canPublish = computed(() => authStore.hasPermission('agenda.publish') || authStore.role === 'Super Admin')
 
 const isSubmitting = ref(false)
 const locationType = ref<'offline' | 'online'>('offline')
@@ -151,7 +158,7 @@ const form = ref({
   waktu: '',
   lokasi: '',
   deskripsi: '',
-  status: 'published' as 'draft' | 'published'
+  status: (canPublish.value ? 'published' : 'draft') as 'draft' | 'published'
 })
 
 const submitForm = async () => {

@@ -64,13 +64,23 @@ class ActivityController extends Controller
         ActivityLogService::log('create', 'activities', 'Membuat agenda baru: ' . $activity->judul . ' (Status: ' . $activity->status . ')', $activity);
 
         if ($status === 'review') {
-            \App\Services\NotificationService::sendToOrganizationAdmins(
+            \App\Services\NotificationService::sendToOrganizationReviewers(
                 $activity->organization_id,
                 'content_review',
                 'Konten Menunggu Review',
-                "{$user->name} mengirim Agenda untuk direview.",
-                '/organization/activities',
-                ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id]
+                "{$user->name} mengirim Agenda '{$activity->judul}' untuk direview.",
+                '/organization/agenda',
+                ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id],
+                $user->id
+            );
+
+            \App\Services\NotificationService::send(
+                $user,
+                'content_submitted',
+                'Agenda Diajukan',
+                "Agenda '{$activity->judul}' berhasil dikirim untuk direview.",
+                '/organization/agenda',
+                ['content_id' => $activity->id, 'content_type' => 'activity']
             );
         }
 
@@ -137,6 +147,7 @@ class ActivityController extends Controller
             }
         }
 
+        $oldStatus = $activity->status;
         $activity->update($data);
 
         $action = 'update';
@@ -145,34 +156,44 @@ class ActivityController extends Controller
             $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
             $desc .= ' (Status: ' . $data['status'] . ')';
 
-            if ($action === 'submit_review') {
-                \App\Services\NotificationService::sendToOrganizationAdmins(
+            if ($action === 'submit_review' && $oldStatus !== 'review') {
+                \App\Services\NotificationService::sendToOrganizationReviewers(
                     $activity->organization_id,
                     'content_review',
                     'Konten Menunggu Review',
-                    "{$user->name} mengirim Agenda untuk direview.",
-                    '/organization/activities',
-                    ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id]
+                    "{$user->name} mengirim Agenda '{$activity->judul}' untuk direview.",
+                    '/organization/agenda',
+                    ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id],
+                    $user->id
                 );
-            } elseif ($action === 'publish' && $activity->user_id !== $user->id) {
+
+                \App\Services\NotificationService::send(
+                    $user,
+                    'content_submitted',
+                    'Agenda Diajukan',
+                    "Agenda '{$activity->judul}' berhasil dikirim untuk direview.",
+                    '/organization/agenda',
+                    ['content_id' => $activity->id, 'content_type' => 'activity']
+                );
+            } elseif ($action === 'publish' && $oldStatus !== 'published' && $activity->user_id !== $user->id) {
                 if ($activity->user) {
                     \App\Services\NotificationService::send(
                         $activity->user,
                         'content_published',
-                        'Konten Dipublikasikan',
-                        "Konten '{$activity->judul}' berhasil dipublikasikan.",
-                        '/organization/activities',
+                        'Agenda Dipublikasikan',
+                        "Agenda '{$activity->judul}' berhasil dipublikasikan.",
+                        '/organization/agenda',
                         ['content_id' => $activity->id, 'content_type' => 'activity']
                     );
                 }
-            } elseif ($action === 'reject' && $activity->user_id !== $user->id) {
+            } elseif ($action === 'reject' && $oldStatus !== 'rejected' && $activity->user_id !== $user->id) {
                 if ($activity->user) {
                     \App\Services\NotificationService::send(
                         $activity->user,
                         'content_rejected',
-                        'Konten Ditolak',
-                        "Konten '{$activity->judul}' ditolak.",
-                        '/organization/activities',
+                        'Agenda Perlu Revisi',
+                        "Agenda '{$activity->judul}' ditolak / memerlukan perbaikan.",
+                        '/organization/agenda',
                         ['content_id' => $activity->id, 'content_type' => 'activity']
                     );
                 }

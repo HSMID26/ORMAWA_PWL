@@ -57,13 +57,17 @@ class NotificationService
      * Broadcast a notification to all Admins of a specific organization.
      */
     public static function sendToOrganizationAdmins(
-        int $organizationId,
+        ?int $organizationId,
         string $type,
         string $title,
         string $message,
         ?string $actionUrl = null,
         ?array $metadata = null
     ): void {
+        if (!$organizationId) {
+            return;
+        }
+
         $orgAdmins = User::role('Admin Organisasi')
             ->where('organization_id', $organizationId)
             ->where('status', 'active')
@@ -71,6 +75,69 @@ class NotificationService
             
         foreach ($orgAdmins as $admin) {
             self::send($admin, $type, $title, $message, $actionUrl, $metadata);
+        }
+    }
+
+    /**
+     * Broadcast a notification to all Reviewers (Admin Organisasi and Editors) of a specific organization.
+     */
+    public static function sendToOrganizationReviewers(
+        ?int $organizationId,
+        string $type,
+        string $title,
+        string $message,
+        ?string $actionUrl = null,
+        ?array $metadata = null,
+        ?int $excludeUserId = null
+    ): void {
+        if (!$organizationId) {
+            return;
+        }
+
+        $query = User::where('organization_id', $organizationId)
+            ->where('status', 'active')
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['Admin Organisasi', 'Editor']);
+            });
+
+        if ($excludeUserId) {
+            $query->where('id', '!=', $excludeUserId);
+        }
+
+        $reviewers = $query->get();
+
+        foreach ($reviewers as $reviewer) {
+            self::send($reviewer, $type, $title, $message, $actionUrl, $metadata);
+        }
+    }
+
+    /**
+     * Broadcast a notification to all active members of a specific organization.
+     */
+    public static function sendToOrganizationMembers(
+        ?int $organizationId,
+        string $type,
+        string $title,
+        string $message,
+        ?string $actionUrl = null,
+        ?array $metadata = null,
+        ?int $excludeUserId = null
+    ): void {
+        if (!$organizationId) {
+            return;
+        }
+
+        $query = User::where('organization_id', $organizationId)
+            ->where('status', 'active');
+
+        if ($excludeUserId) {
+            $query->where('id', '!=', $excludeUserId);
+        }
+
+        $members = $query->get();
+
+        foreach ($members as $member) {
+            self::send($member, $type, $title, $message, $actionUrl, $metadata);
         }
     }
 

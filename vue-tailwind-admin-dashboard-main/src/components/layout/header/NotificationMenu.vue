@@ -101,8 +101,26 @@
             class="w-full text-left flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/5 transition-colors"
             :class="!notification.read_at ? 'bg-brand-50/30 dark:bg-brand-900/10' : ''"
           >
-            <span class="relative flex items-center justify-center shrink-0 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-brand-500">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span
+              class="relative flex items-center justify-center shrink-0 w-10 h-10 rounded-full"
+              :class="getNotificationBadgeClass(notification.type)"
+            >
+              <!-- Review / Clock Icon -->
+              <svg v-if="notification.type === 'content_review' || notification.type === 'content_submitted'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <!-- Published / Check Icon -->
+              <svg v-else-if="notification.type === 'content_published' || notification.type?.includes('approved')" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <!-- Rejected / X Icon -->
+              <svg v-else-if="notification.type === 'content_rejected' || notification.type?.includes('rejected')" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <!-- Default Info Icon -->
+              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
             </span>
 
             <span class="block w-full">
@@ -142,6 +160,19 @@ const unreadCount = ref(0)
 const loading = ref(false)
 const error = ref(false)
 let pollingInterval: number | null = null
+
+const getNotificationBadgeClass = (type: string) => {
+  if (type === 'content_review' || type === 'content_submitted') {
+    return 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+  }
+  if (type === 'content_published' || type?.includes('approved')) {
+    return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+  }
+  if (type === 'content_rejected' || type?.includes('rejected')) {
+    return 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+  }
+  return 'bg-brand-50 dark:bg-brand-900/30 text-brand-500 dark:text-brand-400'
+}
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value

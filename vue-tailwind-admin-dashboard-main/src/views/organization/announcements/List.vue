@@ -308,9 +308,12 @@
               v-model="modalForm.status"
               class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="published">Published (Siarkan / Jadwalkan)</option>
+              <option v-if="canPublish" value="published">Published (Siarkan / Jadwalkan)</option>
               <option value="draft">Draft (Simpan Sementara)</option>
             </select>
+            <p v-if="!canPublish" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+              *Sebagai Editor, pengumuman disimpan sebagai Draft hingga disetujui Admin Organisasi.
+            </p>
           </div>
 
           <div class="mt-6 flex justify-end gap-2.5 border-t border-gray-100 pt-4 dark:border-gray-800">
@@ -326,7 +329,7 @@
               :disabled="isSubmitting"
               class="rounded-xl bg-brand-600 px-5 py-2 font-semibold text-white hover:bg-brand-700 shadow-sm disabled:opacity-50"
             >
-              {{ isSubmitting ? 'Menyimpan...' : (editingId ? 'Perbarui Pengumuman' : 'Publikasikan') }}
+              {{ isSubmitting ? 'Menyimpan...' : (editingId ? 'Perbarui Pengumuman' : (canPublish ? 'Publikasikan' : 'Simpan Draf')) }}
             </button>
           </div>
         </form>
@@ -372,6 +375,7 @@ import { ref, computed, onMounted } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 import { announcementService, type Announcement } from '@/services/announcementService'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import {
   MegaphoneIcon,
@@ -383,7 +387,10 @@ import {
   XIcon
 } from 'lucide-vue-next'
 
+const authStore = useAuthStore()
 const toastStore = useToastStore()
+
+const canPublish = computed(() => authStore.hasPermission('announcements.publish') || authStore.role === 'Super Admin')
 
 const announcements = ref<Announcement[]>([])
 const isLoading = ref(true)
@@ -402,7 +409,7 @@ const modalForm = ref({
   priority: 'normal' as 'low' | 'normal' | 'high' | 'urgent',
   effective_date: '',
   expires_at: '',
-  status: 'published' as 'draft' | 'published'
+  status: 'draft' as 'draft' | 'published'
 })
 
 // Delete modal state

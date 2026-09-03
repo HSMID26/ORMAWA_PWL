@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { publicService } from '@/services/publicService'
 import OrganizationNavbar from '@/components/public/OrganizationNavbar.vue'
@@ -66,6 +66,32 @@ const route = useRoute()
 const org = ref<PublicOrganization | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+
+const injectGoogleAnalytics = (trackingId?: string | null) => {
+  // Remove existing org GA scripts
+  document.querySelectorAll('script[data-org-ga]').forEach(el => el.remove())
+
+  if (!trackingId || !trackingId.trim() || org.value?.status !== 'active' || org.value?.modules?.public_website_enabled === false) {
+    return
+  }
+
+  const cleanId = trackingId.trim()
+  const scriptGtag = document.createElement('script')
+  scriptGtag.async = true
+  scriptGtag.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(cleanId)}`
+  scriptGtag.setAttribute('data-org-ga', 'true')
+  document.head.appendChild(scriptGtag)
+
+  const scriptInit = document.createElement('script')
+  scriptInit.setAttribute('data-org-ga', 'true')
+  scriptInit.textContent = `
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '${cleanId}');
+  `
+  document.head.appendChild(scriptInit)
+}
 
 const loadOrg = async () => {
   const slug = (route.params.slug as string) || ''
@@ -79,6 +105,7 @@ const loadOrg = async () => {
   try {
     const data = await publicService.getOrganizationBySlug(slug)
     org.value = data
+    injectGoogleAnalytics(data?.ga_tracking_id)
   } catch (err: any) {
     error.value = err.message || 'Gagal memuat profil organisasi.'
   } finally {
@@ -92,5 +119,9 @@ watch(() => route.params.slug, () => {
 
 onMounted(() => {
   loadOrg()
+})
+
+onUnmounted(() => {
+  document.querySelectorAll('script[data-org-ga]').forEach(el => el.remove())
 })
 </script>

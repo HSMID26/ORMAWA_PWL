@@ -16,6 +16,7 @@ class Organization extends Model
         'alamat',
         'media_sosial',
         'logo',
+        'hero_image',
         'warna_tema',
         'modul_aktif',
         'label_menu',

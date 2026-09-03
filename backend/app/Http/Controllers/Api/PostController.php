@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
@@ -68,12 +69,14 @@ class PostController extends Controller
             }
         }
 
+        $coverImagePath = $this->processCoverImage($request->cover_image ?? $request->file('cover_image'));
+
         $post = Post::create([
             'judul'            => trim($request->judul),
             'slug'             => Str::slug($request->judul) . '-' . Str::random(5),
             'konten'           => $request->konten,
             'excerpt'          => $request->excerpt,
-            'cover_image'      => $request->cover_image,
+            'cover_image'      => $coverImagePath,
             'status'           => $status,
             'published_at'     => $status === 'published' ? now() : null,
             'meta_title'       => $request->meta_title,
@@ -83,20 +86,30 @@ class PostController extends Controller
             // organization_id terisi otomatis via Trait BelongsToOrganization!
         ]);
 
-        if ($request->has('tags')) {
+        if ($request->has('tags') && is_array($request->tags)) {
             $post->tags()->sync($request->tags);
         }
 
         ActivityLogService::log('create', 'posts', 'Membuat berita baru: ' . $post->judul . ' (Status: ' . $post->status . ')', $post);
 
         if ($status === 'review') {
-            NotificationService::sendToOrganizationAdmins(
+            NotificationService::sendToOrganizationReviewers(
                 $post->organization_id,
                 'content_review',
                 'Konten Menunggu Review',
-                "{$user->name} mengirim Berita untuk direview.",
+                "{$user->name} mengirim Berita '{$post->judul}' untuk direview.",
                 '/organization/posts',
-                ['content_id' => $post->id, 'content_type' => 'post', 'author_id' => $user->id]
+                ['content_id' => $post->id, 'content_type' => 'post', 'author_id' => $user->id],
+                $user->id
+            );
+
+            NotificationService::send(
+                $user,
+                'content_submitted',
+                'Artikel Diajukan',
+                "Artikel '{$post->judul}' berhasil dikirim untuk direview.",
+                '/organization/posts',
+                ['content_id' => $post->id, 'content_type' => 'post']
             );
         }
 
@@ -161,7 +174,11 @@ class PostController extends Controller
             'tags.*'           => 'exists:tags,id',
         ]);
 
-        $data = $request->only(['judul', 'konten', 'excerpt', 'cover_image', 'status', 'meta_title', 'meta_description', 'category_id']);
+        $data = $request->only(['judul', 'konten', 'excerpt', 'status', 'meta_title', 'meta_description', 'category_id']);
+
+        if ($request->has('cover_image') || $request->hasFile('cover_image')) {
+            $data['cover_image'] = $this->processCoverImage($request->cover_image ?? $request->file('cover_image'), $post->cover_image);
+        }
 
         if ($request->has('judul') && $request->judul !== $post->judul) {
             $data['slug'] = Str::slug($request->judul) . '-' . Str::random(5);
@@ -185,10 +202,11 @@ class PostController extends Controller
             }
         }
 
+        $oldStatus = $post->status;
         $post->update($data);
 
         if ($request->has('tags')) {
-            $post->tags()->sync($request->tags);
+            $post->tags()->sync($request->tags ?? []);
         }
 
         $action = 'update';
@@ -197,33 +215,43 @@ class PostController extends Controller
             $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
             $desc .= ' (Status: ' . $data['status'] . ')';
 
-            if ($action === 'submit_review') {
-                NotificationService::sendToOrganizationAdmins(
+            if ($action === 'submit_review' && $oldStatus !== 'review') {
+                NotificationService::sendToOrganizationReviewers(
                     $post->organization_id,
                     'content_review',
                     'Konten Menunggu Review',
-                    "{$user->name} mengirim Berita untuk direview.",
+                    "{$user->name} mengirim Berita '{$post->judul}' untuk direview.",
                     '/organization/posts',
-                    ['content_id' => $post->id, 'content_type' => 'post', 'author_id' => $user->id]
+                    ['content_id' => $post->id, 'content_type' => 'post', 'author_id' => $user->id],
+                    $user->id
                 );
-            } elseif ($action === 'publish' && $post->user_id !== $user->id) {
+
+                NotificationService::send(
+                    $user,
+                    'content_submitted',
+                    'Artikel Diajukan',
+                    "Artikel '{$post->judul}' berhasil dikirim untuk direview.",
+                    '/organization/posts',
+                    ['content_id' => $post->id, 'content_type' => 'post']
+                );
+            } elseif ($action === 'publish' && $oldStatus !== 'published' && $post->user_id !== $user->id) {
                 if ($post->user) {
                     NotificationService::send(
                         $post->user,
                         'content_published',
-                        'Konten Dipublikasikan',
-                        "Konten '{$post->judul}' berhasil dipublikasikan.",
+                        'Artikel Dipublikasikan',
+                        "Artikel '{$post->judul}' telah disetujui dan terbit di portal publik.",
                         '/organization/posts',
                         ['content_id' => $post->id, 'content_type' => 'post']
                     );
                 }
-            } elseif ($action === 'reject' && $post->user_id !== $user->id) {
+            } elseif ($action === 'reject' && $oldStatus !== 'rejected' && $post->user_id !== $user->id) {
                 if ($post->user) {
                     NotificationService::send(
                         $post->user,
                         'content_rejected',
-                        'Konten Ditolak',
-                        "Konten '{$post->judul}' ditolak.",
+                        'Artikel Perlu Revisi',
+                        "Artikel '{$post->judul}' ditolak / memerlukan perbaikan.",
                         '/organization/posts',
                         ['content_id' => $post->id, 'content_type' => 'post']
                     );
@@ -260,6 +288,11 @@ class PostController extends Controller
             abort(403, 'Unauthorized. Anda tidak dapat menghapus artikel organisasi lain.');
         }
 
+        if ($post->cover_image && str_starts_with($post->cover_image, '/storage/posts/covers/')) {
+            $oldPath = str_replace('/storage/', '', $post->cover_image);
+            Storage::disk('public')->delete($oldPath);
+        }
+
         $post->delete();
 
         ActivityLogService::log('delete', 'posts', 'Menghapus berita: ' . $post->judul, clone $post);
@@ -268,5 +301,60 @@ class PostController extends Controller
             'status'  => 'success',
             'message' => 'Artikel berhasil dihapus!'
         ], 200);
+    }
+
+    /**
+     * Process and store cover image from base64, uploaded file, or existing path.
+     */
+    private function processCoverImage($coverImageInput, ?string $oldCoverImage = null): ?string
+    {
+        if (empty($coverImageInput)) {
+            if ($oldCoverImage && str_starts_with($oldCoverImage, '/storage/posts/covers/')) {
+                $oldPath = str_replace('/storage/', '', $oldCoverImage);
+                Storage::disk('public')->delete($oldPath);
+            }
+            return null;
+        }
+
+        // Uploaded File object
+        if ($coverImageInput instanceof \Illuminate\Http\UploadedFile) {
+            $path = $coverImageInput->store('posts/covers', 'public');
+            if ($oldCoverImage && str_starts_with($oldCoverImage, '/storage/posts/covers/')) {
+                $oldPath = str_replace('/storage/', '', $oldCoverImage);
+                Storage::disk('public')->delete($oldPath);
+            }
+            return '/storage/' . $path;
+        }
+
+        // Base64 Data URL (e.g. data:image/png;base64,iVBORw0KGgo...)
+        if (is_string($coverImageInput) && preg_match('/^data:image\/(\w+);base64,/', $coverImageInput, $matches)) {
+            $imageType = strtolower($matches[1]);
+            if ($imageType === 'jpeg') {
+                $imageType = 'jpg';
+            }
+
+            $base64Data = substr($coverImageInput, strpos($coverImageInput, ',') + 1);
+            $decoded = base64_decode($base64Data);
+
+            if ($decoded !== false) {
+                $fileName = Str::random(40) . '.' . $imageType;
+                $path = 'posts/covers/' . $fileName;
+                Storage::disk('public')->put($path, $decoded);
+
+                if ($oldCoverImage && str_starts_with($oldCoverImage, '/storage/posts/covers/')) {
+                    $oldPath = str_replace('/storage/', '', $oldCoverImage);
+                    Storage::disk('public')->delete($oldPath);
+                }
+
+                return '/storage/' . $path;
+            }
+        }
+
+        // Existing relative or absolute path
+        if (is_string($coverImageInput)) {
+            return $coverImageInput;
+        }
+
+        return null;
     }
 }

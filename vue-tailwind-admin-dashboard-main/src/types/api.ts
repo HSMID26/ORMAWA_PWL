@@ -4,7 +4,14 @@ export interface Organization {
   jenis: 'HMPS' | 'UKM' | 'BEM' | string
   subdomain: string
   logo?: string | null
+  hero_image?: string | null
   warna_tema?: string
+  email?: string | null
+  telepon?: string | null
+  alamat?: string | null
+  media_sosial?: Record<string, any> | null
+  label_menu?: Record<string, string> | null
+  ga_tracking_id?: string | null
   modul_aktif?: Record<string, any>
   status: 'active' | 'inactive' | string
   current_period?: OrganizationPeriod

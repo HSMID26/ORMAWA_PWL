@@ -60,7 +60,7 @@
           >
             <img
               v-if="featuredArticle.cover_image"
-              :src="featuredArticle.cover_image"
+              :src="resolveImageUrl(featuredArticle.cover_image)"
               :alt="featuredArticle.judul || 'Artikel Utama'"
               class="h-full w-full object-cover object-center group-hover:scale-102 transition duration-500"
               loading="eager"
@@ -83,7 +83,7 @@
               <!-- Organization Badge -->
               <div class="flex items-center gap-2">
                 <div class="h-6 w-6 rounded border border-[#C2C6D3] bg-[#F8F9FA] overflow-hidden flex items-center justify-center shrink-0">
-                  <img v-if="featuredArticle.organization?.logo" :src="featuredArticle.organization.logo" :alt="featuredArticle.organization.nama || 'Logo Organisasi'" class="h-full w-full object-cover" />
+                  <img v-if="featuredArticle.organization?.logo" :src="resolveImageUrl(featuredArticle.organization.logo)" :alt="featuredArticle.organization.nama || 'Logo Organisasi'" class="h-full w-full object-cover" />
                   <span v-else class="text-[10px] font-bold text-[#00346F]">{{ featuredArticle.organization?.nama?.charAt(0) || 'O' }}</span>
                 </div>
                 <span class="text-xs font-bold text-[#00346F] tracking-wide truncate">
@@ -282,7 +282,7 @@
                 <router-link :to="getArticleUrl(art)" class="block h-48 w-full bg-[#F3F4F5] overflow-hidden relative">
                   <img
                     v-if="art.cover_image"
-                    :src="art.cover_image"
+                    :src="resolveImageUrl(art.cover_image)"
                     :alt="art.judul || 'Warta Mahasiswa'"
                     class="h-full w-full object-cover group-hover:scale-102 transition duration-300"
                     loading="lazy"
@@ -304,7 +304,7 @@
                   <!-- Organization Identity Context -->
                   <div class="flex items-center gap-2">
                     <div class="h-5 w-5 rounded border border-[#C2C6D3] bg-[#F8F9FA] overflow-hidden flex items-center justify-center shrink-0">
-                      <img v-if="art.organization?.logo" :src="art.organization.logo" :alt="art.organization.nama" class="h-full w-full object-cover" />
+                      <img v-if="art.organization?.logo" :src="resolveImageUrl(art.organization.logo)" :alt="art.organization.nama" class="h-full w-full object-cover" />
                       <span v-else class="text-[9px] font-bold text-[#00346F]">{{ art.organization?.nama?.charAt(0) || 'O' }}</span>
                     </div>
                     <router-link
@@ -394,6 +394,7 @@ import PublicNavbar from '@/components/public/PublicNavbar.vue'
 import PublicFooter from '@/components/public/PublicFooter.vue'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import type { PublicArticle, PublicOrganization } from '@/types/public'
 
 const route = useRoute()

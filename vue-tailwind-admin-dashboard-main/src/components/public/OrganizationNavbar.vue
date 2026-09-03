@@ -11,7 +11,7 @@
           <div
             class="h-9 w-9 rounded border border-[#C2C6D3] bg-[#F8F9FA] overflow-hidden flex items-center justify-center p-0.5 shadow-2xs group-hover:border-[#00346F] transition duration-150 shrink-0"
           >
-            <img v-if="organization.logo" :src="organization.logo" :alt="organization.nama" class="h-full w-full object-contain" />
+            <img v-if="organization.logo" :src="resolveImageUrl(organization.logo)" :alt="organization.nama" class="h-full w-full object-contain" />
             <span v-else class="font-bold text-xs text-[#00346F]">{{ organization.nama.charAt(0) }}</span>
           </div>
           <div class="leading-tight min-w-0">
@@ -30,7 +30,8 @@
             :to="`/organizations/${organization.subdomain}`"
             exact
             class="py-2 hover:text-[#00346F] transition duration-150"
-            :class="[route.name === 'public-organization-home' ? 'text-[#00346F] font-bold border-b-2 border-[#00346F]' : '']"
+            :class="[route.name === 'public-organization-home' ? 'font-bold border-b-2' : '']"
+            :style="route.name === 'public-organization-home' ? { color: organization.warna_tema || '#00346F', borderColor: organization.warna_tema || '#00346F' } : {}"
           >
             Beranda
           </router-link>
@@ -39,54 +40,60 @@
             v-if="hasModule('posts')"
             :to="`/organizations/${organization.subdomain}/articles`"
             class="py-2 hover:text-[#00346F] transition duration-150"
-            :class="[route.path.includes('/articles') ? 'text-[#00346F] font-bold border-b-2 border-[#00346F]' : '']"
+            :class="[route.path.includes('/articles') ? 'font-bold border-b-2' : '']"
+            :style="route.path.includes('/articles') ? { color: organization.warna_tema || '#00346F', borderColor: organization.warna_tema || '#00346F' } : {}"
           >
-            Berita
+            {{ organization.label_menu?.posts || organization.label_menu?.berita || 'Berita' }}
           </router-link>
 
           <router-link
             v-if="hasModule('agenda')"
             :to="`/organizations/${organization.subdomain}/agenda`"
             class="py-2 hover:text-[#00346F] transition duration-150"
-            :class="[route.path.includes('/agenda') ? 'text-[#00346F] font-bold border-b-2 border-[#00346F]' : '']"
+            :class="[route.path.includes('/agenda') ? 'font-bold border-b-2' : '']"
+            :style="route.path.includes('/agenda') ? { color: organization.warna_tema || '#00346F', borderColor: organization.warna_tema || '#00346F' } : {}"
           >
-            Agenda
+            {{ organization.label_menu?.agenda || organization.label_menu?.kegiatan || 'Agenda' }}
           </router-link>
 
           <router-link
             v-if="hasModule('announcements')"
             :to="`/organizations/${organization.subdomain}/announcements`"
             class="py-2 hover:text-[#00346F] transition duration-150"
-            :class="[route.name === 'public-organization-announcements' ? 'text-[#00346F] font-bold border-b-2 border-[#00346F]' : '']"
+            :class="[route.name === 'public-organization-announcements' ? 'font-bold border-b-2' : '']"
+            :style="route.name === 'public-organization-announcements' ? { color: organization.warna_tema || '#00346F', borderColor: organization.warna_tema || '#00346F' } : {}"
           >
-            Pengumuman
+            {{ organization.label_menu?.announcements || organization.label_menu?.pengumuman || 'Pengumuman' }}
           </router-link>
 
           <router-link
             v-if="hasModule('galeri') || hasModule('gallery')"
             :to="`/organizations/${organization.subdomain}/gallery`"
             class="py-2 hover:text-[#00346F] transition duration-150"
-            :class="[route.name === 'public-organization-gallery' ? 'text-[#00346F] font-bold border-b-2 border-[#00346F]' : '']"
+            :class="[route.name === 'public-organization-gallery' ? 'font-bold border-b-2' : '']"
+            :style="route.name === 'public-organization-gallery' ? { color: organization.warna_tema || '#00346F', borderColor: organization.warna_tema || '#00346F' } : {}"
           >
-            Galeri
+            {{ organization.label_menu?.galeri || organization.label_menu?.gallery || 'Galeri' }}
           </router-link>
 
           <router-link
             v-if="hasModule('documents')"
             :to="`/organizations/${organization.subdomain}/documents`"
             class="py-2 hover:text-[#00346F] transition duration-150"
-            :class="[route.name === 'public-organization-documents' ? 'text-[#00346F] font-bold border-b-2 border-[#00346F]' : '']"
+            :class="[route.name === 'public-organization-documents' ? 'font-bold border-b-2' : '']"
+            :style="route.name === 'public-organization-documents' ? { color: organization.warna_tema || '#00346F', borderColor: organization.warna_tema || '#00346F' } : {}"
           >
-            Dokumen
+            {{ organization.label_menu?.documents || organization.label_menu?.dokumen || 'Dokumen' }}
           </router-link>
 
           <router-link
             v-if="hasModule('structure')"
             :to="`/organizations/${organization.subdomain}/structure`"
             class="py-2 hover:text-[#00346F] transition duration-150"
-            :class="[route.name === 'public-organization-structure' ? 'text-[#00346F] font-bold border-b-2 border-[#00346F]' : '']"
+            :class="[route.name === 'public-organization-structure' ? 'font-bold border-b-2' : '']"
+            :style="route.name === 'public-organization-structure' ? { color: organization.warna_tema || '#00346F', borderColor: organization.warna_tema || '#00346F' } : {}"
           >
-            Struktur
+            {{ organization.label_menu?.structure || organization.label_menu?.struktur || 'Struktur' }}
           </router-link>
         </nav>
 
@@ -139,12 +146,12 @@
     <!-- Mobile Drawer -->
     <div v-if="isMobileMenuOpen" class="lg:hidden bg-white border-t border-[#C2C6D3] px-5 py-4 space-y-2 text-xs font-semibold shadow-sm">
       <router-link :to="`/organizations/${organization.subdomain}`" @click="isMobileMenuOpen = false" class="block py-2 text-[#191C1D] hover:text-[#00346F]">Beranda</router-link>
-      <router-link v-if="hasModule('posts')" :to="`/organizations/${organization.subdomain}/articles`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">Berita</router-link>
-      <router-link v-if="hasModule('agenda')" :to="`/organizations/${organization.subdomain}/agenda`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">Agenda</router-link>
-      <router-link v-if="hasModule('announcements')" :to="`/organizations/${organization.subdomain}/announcements`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">Pengumuman</router-link>
-      <router-link v-if="hasModule('galeri') || hasModule('gallery')" :to="`/organizations/${organization.subdomain}/gallery`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">Galeri</router-link>
-      <router-link v-if="hasModule('documents')" :to="`/organizations/${organization.subdomain}/documents`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">Dokumen</router-link>
-      <router-link v-if="hasModule('structure')" :to="`/organizations/${organization.subdomain}/structure`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">Struktur</router-link>
+      <router-link v-if="hasModule('posts')" :to="`/organizations/${organization.subdomain}/articles`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">{{ organization.label_menu?.posts || organization.label_menu?.berita || 'Berita' }}</router-link>
+      <router-link v-if="hasModule('agenda')" :to="`/organizations/${organization.subdomain}/agenda`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">{{ organization.label_menu?.agenda || organization.label_menu?.kegiatan || 'Agenda' }}</router-link>
+      <router-link v-if="hasModule('announcements')" :to="`/organizations/${organization.subdomain}/announcements`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">{{ organization.label_menu?.announcements || organization.label_menu?.pengumuman || 'Pengumuman' }}</router-link>
+      <router-link v-if="hasModule('galeri') || hasModule('gallery')" :to="`/organizations/${organization.subdomain}/gallery`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">{{ organization.label_menu?.galeri || organization.label_menu?.gallery || 'Galeri' }}</router-link>
+      <router-link v-if="hasModule('documents')" :to="`/organizations/${organization.subdomain}/documents`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">{{ organization.label_menu?.documents || organization.label_menu?.dokumen || 'Dokumen' }}</router-link>
+      <router-link v-if="hasModule('structure')" :to="`/organizations/${organization.subdomain}/structure`" @click="isMobileMenuOpen = false" class="block py-2 text-[#424751] hover:text-[#00346F]">{{ organization.label_menu?.structure || organization.label_menu?.struktur || 'Struktur' }}</router-link>
       <div class="pt-2 border-t border-[#E1E3E4]">
         <router-link to="/organizations" @click="isMobileMenuOpen = false" class="block py-2 text-[#00346F] font-bold">&larr; Kembali ke Direktori Ormawa</router-link>
       </div>
@@ -159,6 +166,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import GlobalSearchModal from '@/components/public/GlobalSearchModal.vue'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import type { PublicOrganization } from '@/types/public'
 
 const props = defineProps<{ organization: PublicOrganization }>()

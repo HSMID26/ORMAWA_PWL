@@ -3,20 +3,37 @@
     
     <!-- ─── 01. HERO BANNER (STITCH INSTITUTIONAL HERO) ──────────────────────── -->
     <section
-      class="relative text-white w-full overflow-hidden transition-colors duration-300"
-      :style="{ backgroundColor: organization.warna_tema || '#00346F' }"
+      class="relative text-white w-full overflow-hidden transition-all duration-300 bg-cover bg-center"
+      :style="heroStyle"
       style="min-height: 46vh;"
     >
-      <!-- Subtle Institutional Texture / Gradient Overlay -->
-      <div class="absolute inset-0 z-0 bg-gradient-to-tr from-black/50 via-black/20 to-white/10 pointer-events-none"></div>
+      <!-- Contrast Overlay: Darker gradient when custom hero image is active -->
+      <div
+        v-if="heroImageUrl && !hasHeroError"
+        class="absolute inset-0 z-0 bg-gradient-to-tr from-black/80 via-black/55 to-black/35 pointer-events-none"
+      ></div>
+      <!-- Subtle Institutional Texture / Gradient Overlay when fallback theme color is active -->
+      <div
+        v-else
+        class="absolute inset-0 z-0 bg-gradient-to-tr from-black/50 via-black/20 to-white/10 pointer-events-none"
+      ></div>
 
       <!-- Watermark Logo Background if available -->
       <div
         v-if="organization.logo"
         class="absolute -right-16 -bottom-16 w-96 h-96 opacity-10 pointer-events-none rounded-full overflow-hidden"
       >
-        <img :src="organization.logo" :alt="organization.nama" class="w-full h-full object-contain filter grayscale" />
+        <img :src="resolveImageUrl(organization.logo)" :alt="organization.nama" class="w-full h-full object-contain filter grayscale" />
       </div>
+
+      <!-- Hidden preloader to verify hero image validity -->
+      <img
+        v-if="heroImageUrl"
+        :src="heroImageUrl"
+        @error="onHeroError"
+        class="hidden"
+        alt="hero preloader"
+      />
 
       <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24 flex flex-col justify-center">
         <div class="max-w-3xl space-y-4">
@@ -54,7 +71,7 @@
               :to="`/organizations/${organization.subdomain}/articles`"
               class="rounded border border-white/80 bg-white/10 backdrop-blur-xs px-6 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-white/20 transition duration-150 inline-flex items-center justify-center"
             >
-              Baca Warta &rarr;
+              {{ organization.label_menu?.posts || organization.label_menu?.berita || 'Baca Warta' }} &rarr;
             </router-link>
 
             <router-link
@@ -62,7 +79,7 @@
               :to="`/organizations/${organization.subdomain}/agenda`"
               class="rounded border border-white/80 bg-white/10 backdrop-blur-xs px-6 py-3 text-xs sm:text-sm font-semibold text-white hover:bg-white/20 transition duration-150 inline-flex items-center justify-center"
             >
-              Jelajahi Agenda &rarr;
+              {{ organization.label_menu?.agenda || organization.label_menu?.kegiatan || 'Jelajahi Agenda' }} &rarr;
             </router-link>
           </div>
         </div>
@@ -77,7 +94,7 @@
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="rounded bg-amber-200 text-amber-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0">
-            Pengumuman
+            {{ organization.label_menu?.announcements || organization.label_menu?.pengumuman || 'Pengumuman' }}
           </span>
           <span class="text-xs font-bold text-[#191C1D] truncate">
             {{ latestAnnouncement.title }}
@@ -121,7 +138,7 @@
         <div class="md:col-span-5">
           <div class="rounded-xl border border-[#C2C6D3] bg-white p-6 shadow-sm space-y-5">
             <h3 class="text-sm font-bold text-[#191C1D] border-b border-[#E1E3E4] pb-3">
-              Informasi Utama
+              Informasi Utama & Kontak
             </h3>
 
             <ul class="space-y-4 text-xs">
@@ -149,52 +166,102 @@
                 </div>
               </li>
 
-              <!-- Website Resmi -->
-              <li v-if="organization.website_eksternal" class="flex items-start gap-3 pb-3 border-b border-[#F3F4F5]">
+              <!-- Alamat Sekretariat -->
+              <li v-if="organization.alamat" class="flex items-start gap-3 pb-3 border-b border-[#F3F4F5]">
                 <div class="h-8 w-8 rounded-lg bg-[#F8F9FA] text-[#00346F] flex items-center justify-center shrink-0 border border-[#E1E3E4] font-bold">
-                  🌐
+                  📍
                 </div>
                 <div class="min-w-0">
-                  <p class="text-[10px] font-bold uppercase tracking-wider text-[#737783]">Website Resmi</p>
-                  <a
-                    :href="organization.website_eksternal"
-                    target="_blank"
-                    rel="noopener"
-                    class="font-semibold text-[#00346F] hover:underline mt-0.5 truncate block"
-                  >
-                    {{ cleanUrl(organization.website_eksternal) }}
-                  </a>
-                </div>
-              </li>
-
-              <!-- Instagram -->
-              <li v-if="organization.instagram" class="flex items-start gap-3 pb-3 border-b border-[#F3F4F5]">
-                <div class="h-8 w-8 rounded-lg bg-[#F8F9FA] text-[#00346F] flex items-center justify-center shrink-0 border border-[#E1E3E4] font-bold">
-                  📸
-                </div>
-                <div class="min-w-0">
-                  <p class="text-[10px] font-bold uppercase tracking-wider text-[#737783]">Instagram</p>
-                  <a
-                    :href="getInstagramUrl(organization.instagram)"
-                    target="_blank"
-                    rel="noopener"
-                    class="font-semibold text-[#00346F] hover:underline mt-0.5 truncate block"
-                  >
-                    {{ organization.instagram.startsWith('@') ? organization.instagram : '@' + organization.instagram }}
-                  </a>
+                  <p class="text-[10px] font-bold uppercase tracking-wider text-[#737783]">Alamat Sekretariat</p>
+                  <p class="font-semibold text-[#191C1D] mt-0.5 leading-relaxed">{{ organization.alamat }}</p>
                 </div>
               </li>
 
               <!-- Email Publik -->
-              <li v-if="organization.email_publik" class="flex items-start gap-3 pb-3 border-b border-[#F3F4F5]">
+              <li v-if="organization.email || organization.email_publik" class="flex items-start gap-3 pb-3 border-b border-[#F3F4F5]">
                 <div class="h-8 w-8 rounded-lg bg-[#F8F9FA] text-[#00346F] flex items-center justify-center shrink-0 border border-[#E1E3E4] font-bold">
                   ✉️
                 </div>
                 <div class="min-w-0">
-                  <p class="text-[10px] font-bold uppercase tracking-wider text-[#737783]">Email Kontak</p>
-                  <a :href="`mailto:${organization.email_publik}`" class="font-semibold text-[#00346F] hover:underline mt-0.5 truncate block">
-                    {{ organization.email_publik }}
+                  <p class="text-[10px] font-bold uppercase tracking-wider text-[#737783]">Email Resmi</p>
+                  <a :href="`mailto:${organization.email || organization.email_publik}`" class="font-semibold text-[#00346F] hover:underline mt-0.5 truncate block">
+                    {{ organization.email || organization.email_publik }}
                   </a>
+                </div>
+              </li>
+
+              <!-- Telepon / WA -->
+              <li v-if="organization.telepon || organization.media_sosial?.whatsapp" class="flex items-start gap-3 pb-3 border-b border-[#F3F4F5]">
+                <div class="h-8 w-8 rounded-lg bg-[#F8F9FA] text-emerald-600 flex items-center justify-center shrink-0 border border-[#E1E3E4] font-bold">
+                  📞
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] font-bold uppercase tracking-wider text-[#737783]">Kontak WhatsApp / Telepon</p>
+                  <a
+                    :href="getWhatsAppUrl(organization.telepon, organization.media_sosial?.whatsapp)"
+                    target="_blank"
+                    rel="noopener"
+                    class="font-semibold text-[#00346F] hover:underline mt-0.5 truncate block"
+                  >
+                    {{ organization.telepon || organization.media_sosial?.whatsapp }}
+                  </a>
+                </div>
+              </li>
+
+              <!-- Media Sosial & Website Links -->
+              <li v-if="hasSocialMedia" class="flex items-start gap-3 pb-3 border-b border-[#F3F4F5]">
+                <div class="h-8 w-8 rounded-lg bg-[#F8F9FA] text-[#00346F] flex items-center justify-center shrink-0 border border-[#E1E3E4] font-bold">
+                  🌐
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] font-bold uppercase tracking-wider text-[#737783]">Media Sosial Resmi</p>
+                  <div class="flex flex-wrap gap-2 mt-1">
+                    <a
+                      v-if="organization.instagram || organization.media_sosial?.instagram"
+                      :href="getInstagramUrl(organization.instagram || organization.media_sosial?.instagram)"
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 hover:bg-pink-50 hover:text-pink-600 text-[11px] font-semibold transition"
+                    >
+                      Instagram
+                    </a>
+                    <a
+                      v-if="organization.media_sosial?.youtube"
+                      :href="organization.media_sosial.youtube"
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600 text-[11px] font-semibold transition"
+                    >
+                      YouTube
+                    </a>
+                    <a
+                      v-if="organization.media_sosial?.tiktok"
+                      :href="organization.media_sosial.tiktok"
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-[11px] font-semibold transition"
+                    >
+                      TikTok
+                    </a>
+                    <a
+                      v-if="organization.media_sosial?.linkedin"
+                      :href="organization.media_sosial.linkedin"
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600 text-[11px] font-semibold transition"
+                    >
+                      LinkedIn
+                    </a>
+                    <a
+                      v-if="organization.website_eksternal || organization.media_sosial?.website"
+                      :href="organization.website_eksternal || organization.media_sosial?.website"
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 hover:bg-brand-50 hover:text-brand-600 text-[11px] font-semibold transition"
+                    >
+                      Website
+                    </a>
+                  </div>
                 </div>
               </li>
 
@@ -224,7 +291,7 @@
           <div>
             <span class="text-[11px] font-bold uppercase tracking-wider text-[#00346F]">Pembaruan & Publikasi</span>
             <h2 class="text-2xl sm:text-3xl font-extrabold text-[#191C1D] mt-0.5 tracking-tight">
-              Berita & Agenda Terbaru
+              {{ formatSectionTitle }}
             </h2>
             <p class="text-xs sm:text-sm text-[#424751] mt-1">
               Informasi terkini dan agenda resmi kegiatan {{ organization.nama }}.
@@ -237,14 +304,14 @@
               :to="`/organizations/${organization.subdomain}/articles`"
               class="text-xs font-bold text-[#00346F] hover:underline"
             >
-              Semua Warta &rarr;
+              Semua {{ organization.label_menu?.posts || organization.label_menu?.berita || 'Warta' }} &rarr;
             </router-link>
             <router-link
               v-if="hasModule('agenda')"
               :to="`/organizations/${organization.subdomain}/agenda`"
               class="text-xs font-bold text-[#00346F] hover:underline"
             >
-              Semua Agenda &rarr;
+              Semua {{ organization.label_menu?.agenda || organization.label_menu?.kegiatan || 'Agenda' }} &rarr;
             </router-link>
           </div>
         </div>
@@ -283,7 +350,7 @@
               <div class="p-5 flex flex-col justify-between flex-grow space-y-3">
                 <div class="space-y-1.5">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F] block">
-                    Warta
+                    {{ organization.label_menu?.posts || organization.label_menu?.berita || 'Warta' }}
                   </span>
                   <h3 class="text-sm sm:text-base font-bold text-[#191C1D] group-hover:text-[#00346F] transition line-clamp-2 leading-snug">
                     <router-link :to="`/organizations/${organization.subdomain}/articles/${item.data.slug}`">
@@ -310,7 +377,7 @@
               <div class="p-6 flex-grow flex flex-col justify-between space-y-4">
                 <div class="space-y-2">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F] block">
-                    Agenda Resmi
+                    {{ organization.label_menu?.agenda || organization.label_menu?.kegiatan || 'Agenda Resmi' }}
                   </span>
                   <h3 class="text-base font-bold text-[#191C1D] group-hover:text-[#00346F] transition leading-snug">
                     <router-link :to="`/organizations/${organization.subdomain}/agenda`">
@@ -359,7 +426,9 @@
         >
           <div class="space-y-1">
             <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F]">Dokumentasi Visual</span>
-            <h3 class="text-sm font-bold text-[#191C1D]">Galeri Foto Kegiatan</h3>
+            <h3 class="text-sm font-bold text-[#191C1D]">
+              {{ organization.label_menu?.galeri || organization.label_menu?.gallery || 'Galeri Foto Kegiatan' }}
+            </h3>
             <p class="text-xs text-[#737783] leading-relaxed">
               Arsip foto dan dokumentasi kegiatan resmi yang diselenggarakan oleh {{ organization.nama }}.
             </p>
@@ -370,7 +439,7 @@
               :to="`/organizations/${organization.subdomain}/gallery`"
               class="inline-flex items-center gap-1.5 text-xs font-bold text-[#00346F] hover:underline"
             >
-              <span>Buka Galeri Foto</span>
+              <span>Buka {{ organization.label_menu?.galeri || organization.label_menu?.gallery || 'Galeri Foto' }}</span>
               <span>&rarr;</span>
             </router-link>
           </div>
@@ -383,7 +452,9 @@
         >
           <div class="space-y-1">
             <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F]">Arsip Resmi</span>
-            <h3 class="text-sm font-bold text-[#191C1D]">Dokumen & Berkas</h3>
+            <h3 class="text-sm font-bold text-[#191C1D]">
+              {{ organization.label_menu?.documents || organization.label_menu?.dokumen || 'Dokumen & Berkas' }}
+            </h3>
             <p class="text-xs text-[#737783] leading-relaxed">
               Unduh Surat Keputusan (SK), proposal, pedoman SOP, dan berkas format resmi.
             </p>
@@ -394,7 +465,7 @@
               :to="`/organizations/${organization.subdomain}/documents`"
               class="inline-flex items-center gap-1.5 text-xs font-bold text-[#00346F] hover:underline"
             >
-              <span>Akses Dokumen Publik</span>
+              <span>Akses {{ organization.label_menu?.documents || organization.label_menu?.dokumen || 'Dokumen Publik' }}</span>
               <span>&rarr;</span>
             </router-link>
           </div>
@@ -407,7 +478,9 @@
         >
           <div class="space-y-1">
             <span class="text-[10px] font-bold uppercase tracking-wider text-[#00346F]">Badan Pengurus</span>
-            <h3 class="text-sm font-bold text-[#191C1D]">Struktur Organisasi</h3>
+            <h3 class="text-sm font-bold text-[#191C1D]">
+              {{ organization.label_menu?.structure || organization.label_menu?.struktur || 'Struktur Organisasi' }}
+            </h3>
             <p class="text-xs text-[#737783] leading-relaxed">
               Daftar susunan fungsionaris dan divisi kepengurusan periode {{ organization.current_period?.period_name || 'aktif' }}.
             </p>
@@ -418,7 +491,7 @@
               :to="`/organizations/${organization.subdomain}/structure`"
               class="inline-flex items-center gap-1.5 text-xs font-bold text-[#00346F] hover:underline"
             >
-              <span>Lihat Bagan Struktur</span>
+              <span>Lihat {{ organization.label_menu?.structure || organization.label_menu?.struktur || 'Bagan Struktur' }}</span>
               <span>&rarr;</span>
             </router-link>
           </div>
@@ -432,9 +505,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import type {
   PublicOrganization,
   PublicArticle,
@@ -449,6 +523,48 @@ const articles = ref<PublicArticle[]>([])
 const agenda = ref<PublicAgenda[]>([])
 const announcements = ref<PublicAnnouncement[]>([])
 const gallery = ref<PublicMedia[]>([])
+const hasHeroError = ref(false)
+
+watch(() => props.organization?.hero_image, () => {
+  hasHeroError.value = false
+})
+
+const onHeroError = () => {
+  hasHeroError.value = true
+}
+
+const heroImageUrl = computed(() => {
+  return resolveImageUrl(props.organization?.hero_image)
+})
+
+const heroStyle = computed(() => {
+  const url = heroImageUrl.value
+  if (url && !hasHeroError.value) {
+    return {
+      backgroundImage: `url("${url}")`,
+      backgroundColor: props.organization?.warna_tema || '#00346F'
+    }
+  }
+  return {
+    backgroundColor: props.organization?.warna_tema || '#00346F'
+  }
+})
+
+const hasSocialMedia = computed(() => {
+  const s = props.organization.media_sosial || {}
+  return !!(props.organization.instagram || s.instagram || s.youtube || s.tiktok || s.linkedin || s.website || props.organization.website_eksternal)
+})
+
+const formatSectionTitle = computed(() => {
+  const postLabel = props.organization.label_menu?.posts || props.organization.label_menu?.berita || 'Berita'
+  const agendaLabel = props.organization.label_menu?.agenda || props.organization.label_menu?.kegiatan || 'Agenda'
+  if (hasModule('posts') && hasModule('agenda')) {
+    return `${postLabel} & ${agendaLabel} Terbaru`
+  }
+  if (hasModule('posts')) return `${postLabel} Terbaru`
+  if (hasModule('agenda')) return `${agendaLabel} Terbaru`
+  return 'Pembaruan & Publikasi'
+})
 
 const hasModule = (modName: string) => {
   if (!props.organization.modules) return true
@@ -509,15 +625,19 @@ const formatJenis = (jenis?: string) => {
   return jenis
 }
 
-const cleanUrl = (url?: string) => {
-  if (!url) return ''
-  return url.replace(/^https?:\/\//, '').replace(/\/$/, '')
-}
-
 const getInstagramUrl = (handle?: string) => {
   if (!handle) return '#'
+  if (handle.startsWith('http')) return handle
   const clean = handle.replace(/^@/, '')
   return `https://instagram.com/${clean}`
+}
+
+const getWhatsAppUrl = (phone?: string | null, waLink?: string | null) => {
+  if (waLink && waLink.startsWith('http')) return waLink
+  const raw = phone || waLink || ''
+  const clean = raw.replace(/\D/g, '')
+  const intl = clean.startsWith('0') ? '62' + clean.substring(1) : clean
+  return `https://wa.me/${intl}`
 }
 
 const formatDate = (dateStr?: string) => {
@@ -550,7 +670,7 @@ const getDay = (dateStr?: string | null) => {
 useSeoMeta(() => ({
   title: props.organization.seo_title || `${props.organization.nama} — Institut Teknologi Indonesia`,
   description: props.organization.seo_description || props.organization.deskripsi || `Portal resmi ${props.organization.nama} Institut Teknologi Indonesia.`,
-  ogImage: props.organization.og_image || props.organization.logo || undefined,
+  ogImage: props.organization.og_image || props.organization.hero_image || props.organization.logo || undefined,
   ogType: 'website',
 }))
 

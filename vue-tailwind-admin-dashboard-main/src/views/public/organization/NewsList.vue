@@ -6,14 +6,14 @@
       <span class="text-[#737783]">&rsaquo;</span>
       <router-link :to="`/organizations/${subdomain}`" class="hover:text-[#00346F]">{{ orgName }}</router-link>
       <span class="text-[#737783]">&rsaquo;</span>
-      <span class="text-[#00346F] font-bold">Warta & Berita</span>
+      <span class="text-[#00346F] font-bold">{{ pageTitle }}</span>
     </nav>
 
     <!-- Page Header -->
     <div class="border-b border-[#C2C6D3] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
       <div>
         <span class="text-[11px] font-bold uppercase tracking-wider text-[#00346F]">Publikasi Resmi</span>
-        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#191C1D] mt-0.5">Warta & Artikel</h1>
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#191C1D] mt-0.5">{{ pageTitle }}</h1>
       </div>
     </div>
 
@@ -35,7 +35,7 @@
         class="rounded border border-[#C2C6D3] bg-white overflow-hidden hover:border-[#00346F] transition duration-150 flex flex-col justify-between group shadow-2xs"
       >
         <router-link :to="`/organizations/${subdomain}/articles/${art.slug}`" class="block h-48 bg-[#F3F4F5] overflow-hidden relative">
-          <img v-if="art.cover_image" :src="art.cover_image" :alt="art.judul" class="h-full w-full object-cover group-hover:scale-102 transition duration-200" />
+          <img v-if="art.cover_image" :src="resolveImageUrl(art.cover_image)" :alt="art.judul" class="h-full w-full object-cover group-hover:scale-102 transition duration-200" />
           <div v-else class="h-full w-full flex items-center justify-center text-xs font-bold text-[#737783]">ORMAWA ITI</div>
           <span v-if="art.category" class="absolute top-3 left-3 rounded bg-white/95 px-2.5 py-0.5 text-[9px] font-bold text-[#191C1D] shadow-xs">
             {{ art.category.name }}
@@ -67,6 +67,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import type { PublicOrganization, PublicArticle } from '@/types/public'
 
 const props = defineProps<{ organization?: PublicOrganization }>()
@@ -77,10 +78,11 @@ const isLoading = ref(true)
 
 const subdomain = computed(() => props.organization?.subdomain || (route.params.slug as string) || '')
 const orgName = computed(() => props.organization?.nama || 'Organisasi')
+const pageTitle = computed(() => props.organization?.label_menu?.posts || props.organization?.label_menu?.berita || 'Warta & Artikel')
 
 useSeoMeta(() => ({
-  title: `Warta & Berita — ${orgName.value} | ORMAWA ITI`,
-  description: `Kumpulan artikel warta dan berita resmi dari ${orgName.value} Institut Teknologi Indonesia.`,
+  title: `${pageTitle.value} — ${orgName.value} | ORMAWA ITI`,
+  description: `Kumpulan artikel ${pageTitle.value.toLowerCase()} resmi dari ${orgName.value} Institut Teknologi Indonesia.`,
   ogType: 'website',
 }))
 

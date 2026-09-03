@@ -76,13 +76,23 @@ class AnnouncementController extends Controller
         ActivityLogService::log('create', 'announcements', 'Membuat pengumuman baru: ' . $announcement->title . ' (Status: ' . $announcement->status . ')', $announcement);
 
         if ($status === 'review') {
-            \App\Services\NotificationService::sendToOrganizationAdmins(
+            \App\Services\NotificationService::sendToOrganizationReviewers(
                 $announcement->organization_id,
                 'content_review',
                 'Konten Menunggu Review',
-                "{$user->name} mengirim Pengumuman untuk direview.",
+                "{$user->name} mengirim Pengumuman '{$announcement->title}' untuk direview.",
                 '/organization/announcements',
-                ['content_id' => $announcement->id, 'content_type' => 'announcement', 'author_id' => $user->id]
+                ['content_id' => $announcement->id, 'content_type' => 'announcement', 'author_id' => $user->id],
+                $user->id
+            );
+
+            \App\Services\NotificationService::send(
+                $user,
+                'content_submitted',
+                'Pengumuman Diajukan',
+                "Pengumuman '{$announcement->title}' berhasil dikirim untuk direview.",
+                '/organization/announcements',
+                ['content_id' => $announcement->id, 'content_type' => 'announcement']
             );
         }
 
@@ -94,7 +104,7 @@ class AnnouncementController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Detail pengumuman
      */
     public function show(Request $request, string $id)
     {
@@ -103,20 +113,20 @@ class AnnouncementController extends Controller
             abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat pengumuman.');
         }
 
-        $announcement = Announcement::withoutGlobalScopes()->with('user:id,name')->findOrFail($id);
+        $announcement = Announcement::withoutGlobalScopes()->findOrFail($id);
 
-        if (!$user->hasRole('Super Admin') && (int)$announcement->organization_id !== (int)$user->organization_id) {
+        if (!$user->hasRole('Super Admin') && $announcement->organization_id !== $user->organization_id) {
             abort(403, 'Unauthorized. Anda tidak dapat melihat pengumuman organisasi lain.');
         }
 
         return response()->json([
             'status' => 'success',
-            'data'   => $announcement
+            'data'   => $announcement->load(['user:id,name', 'organization:id,nama'])
         ]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update pengumuman
      */
     public function update(Request $request, string $id)
     {
@@ -132,33 +142,23 @@ class AnnouncementController extends Controller
             abort(403, 'Unauthorized. Anda tidak dapat mengubah pengumuman organisasi lain.');
         }
 
-        $effectiveDate = $request->has('effective_date') ? $request->effective_date : $announcement->effective_date?->toDateString();
-
         $request->validate([
             'title'            => 'sometimes|required|string|max:255',
             'content'          => 'sometimes|required|string',
-            'effective_date'   => 'nullable|date',
-            'expires_at'       => 'nullable|date' . ($effectiveDate ? '|after_or_equal:' . $effectiveDate : ''),
-            'priority'         => 'nullable|in:low,normal,high,urgent',
-            'status'           => 'sometimes|required|in:draft,review,published,rejected',
+            'priority'         => 'sometimes|required|in:low,normal,high,urgent',
+            'status'           => 'sometimes|required|in:draft,review,published,archived,rejected',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
-        ], [
-            'expires_at.after_or_equal' => 'Tanggal berlaku hingga harus setelah atau sama dengan tanggal efektif.',
+            'expires_at'       => 'nullable|date',
         ]);
 
-        $data = $request->only([
-            'title', 'content', 'effective_date', 'expires_at', 'priority', 'status', 'meta_title', 'meta_description'
-        ]);
-
-        if ($request->has('title') && $request->title !== $announcement->title) {
-            $data['slug'] = Str::slug($request->title) . '-' . Str::random(5);
-        }
+        $data = $request->only(['title', 'content', 'priority', 'status', 'meta_title', 'meta_description', 'expires_at']);
 
         if ($request->has('status')) {
             $newStatus = $request->status;
 
             $canPublish = $user->hasRole('Super Admin') || $user->can('announcements.publish');
+
             if (in_array($newStatus, ['published', 'rejected']) && !$canPublish) {
                 $newStatus = $announcement->status;
             }
@@ -169,6 +169,7 @@ class AnnouncementController extends Controller
             }
         }
 
+        $oldStatus = $announcement->status;
         $announcement->update($data);
 
         $action = 'update';
@@ -177,33 +178,43 @@ class AnnouncementController extends Controller
             $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
             $desc .= ' (Status: ' . $data['status'] . ')';
 
-            if ($action === 'submit_review') {
-                \App\Services\NotificationService::sendToOrganizationAdmins(
+            if ($action === 'submit_review' && $oldStatus !== 'review') {
+                \App\Services\NotificationService::sendToOrganizationReviewers(
                     $announcement->organization_id,
                     'content_review',
                     'Konten Menunggu Review',
-                    "{$user->name} mengirim Pengumuman untuk direview.",
+                    "{$user->name} mengirim Pengumuman '{$announcement->title}' untuk direview.",
                     '/organization/announcements',
-                    ['content_id' => $announcement->id, 'content_type' => 'announcement', 'author_id' => $user->id]
+                    ['content_id' => $announcement->id, 'content_type' => 'announcement', 'author_id' => $user->id],
+                    $user->id
                 );
-            } elseif ($action === 'publish' && $announcement->user_id !== $user->id) {
+
+                \App\Services\NotificationService::send(
+                    $user,
+                    'content_submitted',
+                    'Pengumuman Diajukan',
+                    "Pengumuman '{$announcement->title}' berhasil dikirim untuk direview.",
+                    '/organization/announcements',
+                    ['content_id' => $announcement->id, 'content_type' => 'announcement']
+                );
+            } elseif ($action === 'publish' && $oldStatus !== 'published' && $announcement->user_id !== $user->id) {
                 if ($announcement->user) {
                     \App\Services\NotificationService::send(
                         $announcement->user,
                         'content_published',
-                        'Konten Dipublikasikan',
-                        "Konten '{$announcement->title}' berhasil dipublikasikan.",
+                        'Pengumuman Dipublikasikan',
+                        "Pengumuman '{$announcement->title}' berhasil dipublikasikan.",
                         '/organization/announcements',
                         ['content_id' => $announcement->id, 'content_type' => 'announcement']
                     );
                 }
-            } elseif ($action === 'reject' && $announcement->user_id !== $user->id) {
+            } elseif ($action === 'reject' && $oldStatus !== 'rejected' && $announcement->user_id !== $user->id) {
                 if ($announcement->user) {
                     \App\Services\NotificationService::send(
                         $announcement->user,
                         'content_rejected',
-                        'Konten Ditolak',
-                        "Konten '{$announcement->title}' ditolak.",
+                        'Pengumuman Perlu Revisi',
+                        "Pengumuman '{$announcement->title}' ditolak / memerlukan perbaikan.",
                         '/organization/announcements',
                         ['content_id' => $announcement->id, 'content_type' => 'announcement']
                     );

@@ -41,7 +41,7 @@
           class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 shadow-sm transition disabled:opacity-50"
         >
           <SendIcon class="h-4 w-4" />
-          {{ isContributor ? 'Kirim untuk Review' : 'Publikasikan' }}
+          {{ canPublish ? 'Publikasikan' : 'Kirim untuk Review' }}
         </button>
       </div>
     </div>
@@ -230,7 +230,7 @@
               >
                 <option value="draft">Draft (Disimpan Pribadi)</option>
                 <option value="review">Ajukan Review (Menunggu Persetujuan)</option>
-                <option v-if="!isContributor" value="published">Published (Terbit Publik)</option>
+                <option v-if="canPublish" value="published">Published (Terbit Publik)</option>
               </select>
             </div>
 
@@ -249,8 +249,8 @@
               </div>
             </div>
 
-            <p v-if="isContributor" class="text-[11px] text-amber-600 dark:text-amber-400">
-              *Sebagai Kontributor, artikel akan masuk ke antrean review Admin Organisasi sebelum terbit.
+            <p v-if="!canPublish" class="text-[11px] text-amber-600 dark:text-amber-400">
+              *Artikel yang dibuat akan masuk ke antrean review Admin Organisasi sebelum terbit.
             </p>
           </div>
         </div>
@@ -267,7 +267,7 @@
               v-if="form.cover_image"
               class="relative aspect-video w-full rounded-xl overflow-hidden bg-gray-100 border border-gray-200 dark:border-gray-700 group"
             >
-              <img :src="form.cover_image" alt="Featured Image Preview" class="h-full w-full object-cover" />
+              <img :src="resolveImageUrl(form.cover_image)" alt="Featured Image Preview" class="h-full w-full object-cover" />
               <button
                 type="button"
                 @click="removeCoverImage"
@@ -512,7 +512,7 @@
             ]"
           >
             <div v-if="form.cover_image" class="mb-4 rounded-xl overflow-hidden aspect-video bg-gray-100">
-              <img :src="form.cover_image" :alt="form.judul" class="h-full w-full object-cover" />
+              <img :src="resolveImageUrl(form.cover_image)" :alt="form.judul" class="h-full w-full object-cover" />
             </div>
 
             <div class="flex items-center gap-2 text-xs text-gray-500 mb-2">
@@ -552,6 +552,7 @@ import { postService } from '@/services/postService'
 import { taxonomyService } from '@/services/taxonomyService'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import type { Category, Tag } from '@/types/api'
 import {
   PenToolIcon,
@@ -577,6 +578,7 @@ const authStore = useAuthStore()
 const toastStore = useToastStore()
 
 const isContributor = computed(() => authStore.role === 'Kontributor')
+const canPublish = computed(() => authStore.hasPermission('posts.publish') || authStore.role === 'Super Admin')
 
 const categories = ref<Category[]>([])
 const tags = ref<Tag[]>([])
@@ -602,7 +604,7 @@ const form = ref<{
   konten: '',
   excerpt: '',
   cover_image: null,
-  status: isContributor.value ? 'review' : 'published',
+  status: canPublish.value ? 'published' : 'review',
   category_id: undefined,
   tags: [],
   meta_title: '',
@@ -799,10 +801,10 @@ const savePost = async (targetStatus?: 'draft' | 'review' | 'published') => {
 }
 
 const handlePrimaryPublish = () => {
-  if (isContributor.value) {
-    savePost('review')
-  } else {
+  if (canPublish.value) {
     savePost('published')
+  } else {
+    savePost('review')
   }
 }
 

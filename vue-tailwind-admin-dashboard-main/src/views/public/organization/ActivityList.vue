@@ -6,13 +6,13 @@
       <span class="text-[#737783]">&rsaquo;</span>
       <router-link :to="`/organizations/${subdomain}`" class="hover:text-[#00346F]">{{ orgName }}</router-link>
       <span class="text-[#737783]">&rsaquo;</span>
-      <span class="text-[#00346F] font-bold">Agenda</span>
+      <span class="text-[#00346F] font-bold">{{ pageTitle }}</span>
     </nav>
 
     <!-- Page Header -->
     <div class="border-b border-[#C2C6D3] pb-4">
       <span class="text-[11px] font-bold uppercase tracking-wider text-[#00346F]">Jadwal Kegiatan</span>
-      <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#191C1D] mt-0.5">Agenda Kegiatan</h1>
+      <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#191C1D] mt-0.5">{{ pageTitle }}</h1>
     </div>
 
     <!-- Loading -->
@@ -71,10 +71,11 @@ const isLoading = ref(true)
 
 const subdomain = computed(() => props.organization?.subdomain || (route.params.slug as string) || '')
 const orgName = computed(() => props.organization?.nama || 'Organisasi')
+const pageTitle = computed(() => props.organization?.label_menu?.agenda || props.organization?.label_menu?.kegiatan || 'Agenda Kegiatan')
 
 useSeoMeta(() => ({
-  title: `Agenda Kegiatan — ${orgName.value} | ORMAWA ITI`,
-  description: `Jadwal agenda kegiatan resmi dari ${orgName.value} Institut Teknologi Indonesia.`,
+  title: `${pageTitle.value} — ${orgName.value} | ORMAWA ITI`,
+  description: `Jadwal ${pageTitle.value.toLowerCase()} resmi dari ${orgName.value} Institut Teknologi Indonesia.`,
   ogType: 'website',
 }))
 

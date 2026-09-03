@@ -19,28 +19,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Inisialisasi Permissions dan Roles beserta Default Matrix
+        // 1. Inisialisasi Canonical Permissions dan Roles Matrix (Single Source of Truth)
         \App\Http\Controllers\Api\RoleController::ensureDefaultPermissions();
-
-        // Katalog hak akses yang dipakai oleh seluruh modul platform.
-        $permissions = [
-            'manage-users', 'manage-organizations', 'manage-periods',
-            'view-content', 'create-content', 'edit-content', 'delete-content', 'publish-content',
-            'view-activity-logs', 'manage-platform-settings',
-        ];
-        foreach ($permissions as $permissionName) {
-            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
-        }
-
-        Role::findByName('Super Admin')->syncPermissions($permissions);
-        Role::findByName('Admin Organisasi')->syncPermissions([
-            'manage-users', 'view-content', 'create-content', 'edit-content', 'delete-content', 'publish-content',
-            'view-activity-logs',
-        ]);
-        Role::findByName('Editor')->syncPermissions([
-            'view-content', 'create-content', 'edit-content', 'publish-content',
-        ]);
-        Role::findByName('Kontributor')->syncPermissions(['view-content', 'create-content', 'edit-content']);
 
         // 2. Dummy Organisasi (HMPS Teknik Informatika)
         $hmif = Organization::firstOrCreate(

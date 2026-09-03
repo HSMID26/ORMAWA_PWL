@@ -4,6 +4,7 @@ export interface PublicOrganization {
   jenis: 'HMPS' | 'UKM' | 'BEM' | 'Senat' | 'Lainnya' | string
   subdomain: string
   logo?: string | null
+  hero_image?: string | null
   warna_tema?: string
   status?: string
   slogan?: string | null
@@ -11,7 +12,13 @@ export interface PublicOrganization {
   deskripsi_lengkap?: string | null
   hero_title?: string | null
   hero_subtitle?: string | null
+  email?: string | null
   email_publik?: string | null
+  telepon?: string | null
+  alamat?: string | null
+  media_sosial?: Record<string, any> | null
+  label_menu?: Record<string, string> | null
+  ga_tracking_id?: string | null
   instagram?: string | null
   website_eksternal?: string | null
   seo_title?: string | null

@@ -80,6 +80,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/users/{id}/deactivate', [UserController::class, 'deactivate']);
     Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
 
+    Route::post('/organizations/{id}/upload-logo', [OrganizationController::class, 'uploadLogo'])->name('api.organizations.upload.logo');
+    Route::post('/organizations/{id}/upload-hero', [OrganizationController::class, 'uploadHero'])->name('api.organizations.upload.hero');
+    Route::delete('/organizations/{id}/hero', [OrganizationController::class, 'removeHero'])->name('api.organizations.remove.hero');
+
     Route::apiResource('organizations', OrganizationController::class)->names([
         'index'   => 'api.organizations.index',
         'store'   => 'api.organizations.store',

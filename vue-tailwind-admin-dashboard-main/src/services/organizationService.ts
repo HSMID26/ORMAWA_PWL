@@ -35,4 +35,27 @@ export const organizationService = {
     const { data } = await api.post<ApiSingleResponse<Organization>>(`/organizations/${id}/deactivate`)
     return data.data
   },
+
+  async uploadLogo(id: number, file: File) {
+    const formData = new FormData()
+    formData.append('logo', file)
+    const { data } = await api.post<ApiSingleResponse<Organization>>(`/organizations/${id}/upload-logo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return data
+  },
+
+  async uploadHero(id: number, file: File) {
+    const formData = new FormData()
+    formData.append('hero_image', file)
+    const { data } = await api.post<ApiSingleResponse<Organization>>(`/organizations/${id}/upload-hero`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return data
+  },
+
+  async removeHero(id: number) {
+    const { data } = await api.delete<ApiSingleResponse<Organization>>(`/organizations/${id}/hero`)
+    return data
+  },
 }

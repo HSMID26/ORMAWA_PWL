@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use App\Services\ActivityLogService;
 
 class OrganizationController extends Controller
@@ -162,6 +163,9 @@ class OrganizationController extends Controller
         if ($request->has('logo')) {
             $updateData['logo'] = $request->logo;
         }
+        if ($request->has('hero_image')) {
+            $updateData['hero_image'] = $request->hero_image;
+        }
         if ($request->has('email')) {
             $updateData['email'] = $request->email;
         }
@@ -195,6 +199,130 @@ class OrganizationController extends Controller
             'status'  => 'success',
             'message' => 'Data organisasi berhasil diperbarui!',
             'data'    => $organization
+        ]);
+    }
+
+    /**
+     * Upload logo organisasi
+     */
+    public function uploadLogo(Request $request, $id)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('organizations.manage'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengunggah logo organisasi.');
+        }
+
+        if (!$user->hasRole('Super Admin') && (int)$user->organization_id !== (int)$id) {
+            abort(403, 'Unauthorized. Anda tidak dapat mengubah pengaturan organisasi lain.');
+        }
+
+        $organization = Organization::findOrFail($id);
+
+        $request->validate([
+            'logo' => 'required|file|mimes:jpeg,jpg,png,webp,avif,svg|max:5120',
+        ], [
+            'logo.required' => 'Berkas logo wajib dipilih.',
+            'logo.mimes' => 'Format logo harus berupa JPEG, JPG, PNG, WEBP, AVIF, atau SVG.',
+            'logo.max' => 'Ukuran berkas logo maksimal 5MB.',
+        ]);
+
+        $oldLogo = $organization->logo;
+        $path = $request->file('logo')->store('organizations/logos', 'public');
+        $logoUrl = '/storage/' . $path;
+
+        $organization->update(['logo' => $logoUrl]);
+
+        if ($oldLogo && str_starts_with($oldLogo, '/storage/organizations/logos/')) {
+            $oldPath = str_replace('/storage/', '', $oldLogo);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        ActivityLogService::log('update', 'organizations', 'Mengunggah logo baru organisasi: ' . $organization->nama, $organization);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logo organisasi berhasil diperbarui!',
+            'logo' => $logoUrl,
+            'data' => $organization
+        ]);
+    }
+
+    /**
+     * Upload foto hero website organisasi
+     */
+    public function uploadHero(Request $request, $id)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('organizations.manage'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengunggah foto hero website organisasi.');
+        }
+
+        if (!$user->hasRole('Super Admin') && (int)$user->organization_id !== (int)$id) {
+            abort(403, 'Unauthorized. Anda tidak dapat mengubah pengaturan organisasi lain.');
+        }
+
+        $organization = Organization::findOrFail($id);
+
+        $request->validate([
+            'hero_image' => 'required|file|mimes:jpeg,jpg,png,webp,avif|max:10240',
+        ], [
+            'hero_image.required' => 'Berkas foto hero wajib dipilih.',
+            'hero_image.mimes' => 'Format foto hero harus berupa JPG, JPEG, PNG, WEBP, atau AVIF.',
+            'hero_image.max' => 'Ukuran berkas foto hero maksimal 10MB.',
+        ]);
+
+        $oldHero = $organization->hero_image;
+        $path = $request->file('hero_image')->store('organizations/heroes', 'public');
+        $heroUrl = '/storage/' . $path;
+
+        $organization->update(['hero_image' => $heroUrl]);
+
+        if ($oldHero && str_starts_with($oldHero, '/storage/organizations/heroes/')) {
+            $oldPath = str_replace('/storage/', '', $oldHero);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        ActivityLogService::log('update', 'organizations', 'Mengunggah foto hero baru organisasi: ' . $organization->nama, $organization);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Foto hero website berhasil diperbarui!',
+            'hero_image' => $heroUrl,
+            'data' => $organization
+        ]);
+    }
+
+    /**
+     * Hapus foto hero website organisasi (kembali ke fallback theme color)
+     */
+    public function removeHero(Request $request, $id)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('organizations.manage'))) {
+            abort(403, 'Unauthorized. Anda tidak memiliki izin untuk menghapus foto hero organisasi.');
+        }
+
+        if (!$user->hasRole('Super Admin') && (int)$user->organization_id !== (int)$id) {
+            abort(403, 'Unauthorized. Anda tidak dapat mengubah pengaturan organisasi lain.');
+        }
+
+        $organization = Organization::findOrFail($id);
+
+        $oldHero = $organization->hero_image;
+        if ($oldHero && str_starts_with($oldHero, '/storage/organizations/heroes/')) {
+            $oldPath = str_replace('/storage/', '', $oldHero);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $organization->update(['hero_image' => null]);
+
+        ActivityLogService::log('update', 'organizations', 'Menghapus foto hero organisasi: ' . $organization->nama, $organization);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Foto hero berhasil dihapus.',
+            'hero_image' => null,
+            'data' => $organization
         ]);
     }
 

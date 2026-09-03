@@ -56,7 +56,7 @@
       >
         <div class="relative h-56 bg-[#F3F4F5] overflow-hidden">
           <img
-            :src="item.image_url || item.url"
+            :src="resolveImageUrl(item.image_url || item.url)"
             :alt="item.alt_text || item.title || item.judul || 'Dokumentasi'"
             class="h-full w-full object-cover group-hover:scale-105 transition duration-300"
             loading="lazy"
@@ -126,7 +126,7 @@
         <!-- Full Image Area -->
         <div class="flex-1 bg-black/60 flex items-center justify-center p-2 min-h-[300px] max-h-[65vh] overflow-hidden">
           <img
-            :src="activePhoto.image_url || activePhoto.url"
+            :src="resolveImageUrl(activePhoto.image_url || activePhoto.url)"
             :alt="activePhoto.alt_text || activePhoto.title || activePhoto.judul"
             class="max-h-[62vh] w-auto max-w-full object-contain rounded"
           />
@@ -163,6 +163,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import type { PublicOrganization, PublicMedia } from '@/types/public'
 
 const props = defineProps<{ organization?: PublicOrganization }>()

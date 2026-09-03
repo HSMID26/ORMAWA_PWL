@@ -134,7 +134,7 @@
           class="group inline-flex items-center gap-3 p-3 rounded-lg border border-[#C2C6D3] bg-white hover:border-[#00346F] hover:bg-[#F8F9FA] transition-all mb-6 w-full shadow-2xs"
         >
           <div class="w-10 h-10 rounded bg-white flex items-center justify-center border border-[#E7E8E9] overflow-hidden shrink-0 p-1">
-            <img v-if="orgLogo" :src="orgLogo" :alt="orgName" class="w-full h-full object-contain" />
+            <img v-if="orgLogo" :src="resolveImageUrl(orgLogo)" :alt="orgName" class="w-full h-full object-contain" />
             <span v-else class="text-xs font-bold text-[#00346F]">{{ orgName.charAt(0).toUpperCase() }}</span>
           </div>
           <div class="flex-grow min-w-0">
@@ -152,7 +152,7 @@
       <!-- Featured Image (16:9 Aspect Ratio) -->
       <figure v-if="article.cover_image" class="mb-8">
         <img
-          :src="article.cover_image"
+          :src="resolveImageUrl(article.cover_image)"
           :alt="article.judul || 'Dokumentasi Artikel'"
           class="w-full h-auto rounded-xl border border-[#C2C6D3] object-cover aspect-[16/9] shadow-2xs"
           loading="eager"
@@ -275,7 +275,7 @@
               >
                 <img
                   v-if="rel.cover_image"
-                  :src="rel.cover_image"
+                  :src="resolveImageUrl(rel.cover_image)"
                   :alt="rel.judul || 'Artikel Terkait'"
                   class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                   loading="lazy"
@@ -329,6 +329,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import type { PublicOrganization, PublicArticle } from '@/types/public'
 
 const props = defineProps<{ organization?: PublicOrganization }>()
@@ -401,7 +402,7 @@ const twitterShareUrl = computed(() => {
 useSeoMeta(() => ({
   title: article.value ? `${article.value.seo?.meta_title || article.value.judul} — ${orgName.value} | ORMAWA ITI` : 'Warta Organisasi',
   description: article.value?.seo?.meta_description || article.value?.excerpt || article.value?.konten?.slice(0, 160),
-  image: article.value?.seo?.og_image || article.value?.cover_image || orgLogo.value || undefined,
+  ogImage: resolveImageUrl(article.value?.seo?.og_image || article.value?.cover_image || orgLogo.value) || undefined,
   ogType: 'article',
   publishedTime: article.value?.published_at,
   author: article.value?.author?.name,
@@ -409,7 +410,7 @@ useSeoMeta(() => ({
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: article.value.judul,
-    image: article.value.cover_image ? [article.value.cover_image] : [],
+    image: article.value.cover_image ? [resolveImageUrl(article.value.cover_image)] : [],
     datePublished: article.value.published_at,
     author: [{
       '@type': 'Person',
@@ -420,7 +421,7 @@ useSeoMeta(() => ({
       name: orgName.value,
       logo: orgLogo.value ? {
         '@type': 'ImageObject',
-        url: orgLogo.value
+        url: resolveImageUrl(orgLogo.value)
       } : undefined
     },
     description: article.value.excerpt || article.value.seo?.meta_description,
