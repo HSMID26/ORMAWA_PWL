@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\Category;
+use App\Models\Tag;
 use App\Models\PageView;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -14,21 +16,24 @@ class PostWebController extends Controller
     public function index()
     {
         // Trait BelongsToOrganization otomatis menyaring post sesuai organisasi user
-        $posts = Post::with(['user', 'organization'])->latest()->get();
+        $posts = Post::with(['user', 'organization', 'category'])->latest()->get();
 
         return view('posts.index', compact('posts'));
     }
 
-    // 2. Halaman Form Buat Artikel Baru (Editor TipTap)
+    // 2. Halaman Form Buat Artikel Baru (Editor TipTap Modern)
     public function create()
     {
-        return view('posts.create');
+        $categories = Category::all();
+        $tags = Tag::all();
+
+        return view('posts.create', compact('categories', 'tags'));
     }
 
     // 3. Halaman Detail Artikel (Termasuk Pencatatan PageView)
     public function show(Request $request, Post $post)
     {
-        $post->load(['user', 'organization']);
+        $post->load(['user', 'organization', 'category', 'tags']);
 
         // Catat PageView internal traffic
         try {
@@ -48,16 +53,24 @@ class PostWebController extends Controller
     // 4. Halaman Form Edit Artikel
     public function edit(Post $post)
     {
-        return view('posts.edit', compact('post'));
+        $post->load(['tags', 'category', 'user']);
+        $categories = Category::all();
+        $tags = Tag::all();
+
+        return view('posts.edit', compact('post', 'categories', 'tags'));
     }
 
     // 5. Proses Update Artikel (via Form / Fetch Web)
     public function update(Request $request, Post $post)
     {
         $request->validate([
-            'judul'  => 'required|string|max:255',
-            'konten' => 'required|string',
-            'status' => 'required|in:draft,published',
+            'judul'       => 'required|string|max:255',
+            'konten'      => 'required|string',
+            'status'      => 'required|in:draft,published',
+            'category_id' => 'nullable|exists:categories,id',
+            'tags'        => 'nullable|array',
+            'cover_image' => 'nullable|string',
+            'excerpt'     => 'nullable|string',
         ]);
 
         if ($request->judul !== $post->judul) {
@@ -65,10 +78,18 @@ class PostWebController extends Controller
         }
 
         $post->update([
-            'judul'  => $request->judul,
-            'konten' => $request->konten,
-            'status' => $request->status,
+            'judul'        => $request->judul,
+            'konten'       => $request->konten,
+            'status'       => $request->status,
+            'category_id'  => $request->category_id,
+            'cover_image'  => $request->cover_image,
+            'excerpt'      => $request->excerpt,
+            'published_at' => $request->status === 'published' && !$post->published_at ? now() : $post->published_at,
         ]);
+
+        if ($request->has('tags')) {
+            $post->tags()->sync($request->tags);
+        }
 
         ActivityLogService::log('update', 'posts', 'Memperbarui artikel: ' . $post->judul, $post);
 
@@ -76,7 +97,7 @@ class PostWebController extends Controller
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Artikel berhasil diperbarui!',
-                'data'    => $post
+                'data'    => $post->load(['category', 'tags'])
             ]);
         }
 

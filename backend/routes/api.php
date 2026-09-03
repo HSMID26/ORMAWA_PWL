@@ -36,8 +36,8 @@ Route::prefix('public')->group(function () {
     Route::get('/sitemap', [PublicController::class, 'sitemap']);
 });
 
-// Protected Routes 
-Route::middleware(['auth:sanctum'])->group(function () {
+    // Protected Routes 
+    Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     // API Media Library Management
     Route::get('/media', [MediaController::class, 'index']);

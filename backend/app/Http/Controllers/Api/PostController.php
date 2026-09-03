@@ -31,7 +31,7 @@ class PostController extends Controller
             'konten'           => 'required|string', 
             'excerpt'          => 'nullable|string',
             'cover_image'      => 'nullable|string',
-            'status'           => 'required|in:draft,review,published,rejected',
+            'status'           => 'required|in:draft,published',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
             'category_id'      => 'nullable|exists:categories,id',
@@ -42,15 +42,6 @@ class PostController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
         $status = $request->status;
-
-        // Only Admin Organisasi and Super Admin can directly publish or reject
-        if (in_array($status, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-            if ($status === 'published') {
-                $status = 'review';
-            } else {
-                $status = 'draft';
-            }
-        }
 
         $post = Post::create([
             'judul'            => trim($request->judul),
@@ -119,7 +110,7 @@ class PostController extends Controller
             'konten'           => 'sometimes|required|string',
             'excerpt'          => 'nullable|string',
             'cover_image'      => 'nullable|string',
-            'status'           => 'sometimes|required|in:draft,review,published,rejected',
+            'status'           => 'sometimes|required|in:draft,published',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
             'category_id'      => 'nullable|exists:categories,id',
@@ -135,14 +126,6 @@ class PostController extends Controller
 
         if ($request->has('status')) {
             $newStatus = $request->status;
-
-            if (in_array($newStatus, ['published', 'rejected']) && !$user->hasRole(['Super Admin', 'Admin Organisasi'])) {
-                if ($newStatus === 'published') {
-                    $newStatus = 'review';
-                } else {
-                    $newStatus = $post->status;
-                }
-            }
             $data['status'] = $newStatus;
 
             if ($newStatus === 'published' && $post->status !== 'published') {

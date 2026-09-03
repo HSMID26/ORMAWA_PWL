@@ -54,6 +54,9 @@ Route::middleware('auth')->group(function () {
     
     // Rute Manajemen Media Galeri
     Route::get('/media', [MediaWebController::class, 'index'])->name('media.index');
+    Route::get('/media/picker', [MediaWebController::class, 'picker'])->name('media.picker');
+    Route::post('/media/upload', [MediaController::class, 'upload'])->name('media.upload');
+    Route::delete('/media/{id}', [MediaController::class, 'destroy'])->name('media.destroy');
 
     // Kategori & Tag Routes
     Route::get('/categories', [CategoryController::class, 'index']);
