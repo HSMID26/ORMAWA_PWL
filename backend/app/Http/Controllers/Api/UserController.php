@@ -126,7 +126,7 @@ class UserController extends Controller
     /**
      * Detail User
      */
-    public function show(Request $request, $id)
+    public function show(Request $request, string $id)
     {
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
@@ -152,7 +152,7 @@ class UserController extends Controller
     /**
      * Update data User
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, string $id)
     {
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
@@ -292,7 +292,7 @@ class UserController extends Controller
     /**
      * Hapus User
      */
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, string $id)
     {
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
@@ -322,7 +322,7 @@ class UserController extends Controller
     /**
      * Activate User (Super Admin & Admin Organisasi)
      */
-    public function activate(Request $request, $id)
+    public function activate(Request $request, string $id)
     {
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
@@ -353,7 +353,7 @@ class UserController extends Controller
     /**
      * Deactivate User (Super Admin & Admin Organisasi)
      */
-    public function deactivate(Request $request, $id)
+    public function deactivate(Request $request, string $id)
     {
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();
@@ -401,7 +401,7 @@ class UserController extends Controller
     /**
      * Reset Password User
      */
-    public function resetPassword(Request $request, $id)
+    public function resetPassword(Request $request, string $id)
     {
         /** @var \App\Models\User $authUser */
         $authUser = $request->user();

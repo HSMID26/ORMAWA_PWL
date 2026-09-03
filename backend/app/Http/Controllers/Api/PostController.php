@@ -49,7 +49,7 @@ class PostController extends Controller
             'konten'           => 'required|string', 
             'excerpt'          => 'nullable|string',
             'cover_image'      => 'nullable|string',
-            'status'           => 'required|in:draft,review,published,rejected',
+            'status'           => 'required|in:draft,review,published,archived,rejected',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
             'category_id'      => 'nullable|exists:categories,id',
@@ -70,7 +70,6 @@ class PostController extends Controller
         }
 
         $coverImagePath = $this->processCoverImage($request->cover_image ?? $request->file('cover_image'));
-
         $post = Post::create([
             'judul'            => trim($request->judul),
             'slug'             => Str::slug($request->judul) . '-' . Str::random(5),
@@ -166,7 +165,7 @@ class PostController extends Controller
             'konten'           => 'sometimes|required|string',
             'excerpt'          => 'nullable|string',
             'cover_image'      => 'nullable|string',
-            'status'           => 'sometimes|required|in:draft,review,published,rejected',
+            'status'           => 'sometimes|required|in:draft,review,published,archived,rejected',
             'meta_title'       => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
             'category_id'      => 'nullable|exists:categories,id',
@@ -186,7 +185,6 @@ class PostController extends Controller
 
         if ($request->has('status')) {
             $newStatus = $request->status;
-
             $canPublish = $user->hasRole('Super Admin') || $user->can('posts.publish');
             if (in_array($newStatus, ['published', 'rejected']) && !$canPublish) {
                 if ($newStatus === 'published') {

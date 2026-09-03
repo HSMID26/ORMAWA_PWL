@@ -31,6 +31,13 @@ class Media extends Model
         'taken_at' => 'date',
     ];
 
+    protected $appends = [
+        'url',
+        'formatted_size',
+        'is_image',
+        'is_video',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -46,8 +53,28 @@ class Media extends Model
         return url(Storage::url($this->path));
     }
 
+    /**
+     * Format ukuran file menjadi satuan yang mudah dibaca (KB / MB)
+     */
+    public function getFormattedSizeAttribute(): string
+    {
+        $bytes = (int) $this->size;
+        if ($bytes <= 0) return '0 B';
+
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $power = floor(log($bytes, 1024));
+        $power = min($power, count($units) - 1);
+
+        return round($bytes / pow(1024, $power), 1) . ' ' . $units[$power];
+    }
+
     public function getIsImageAttribute(): bool
     {
         return str_starts_with($this->mime_type ?? '', 'image/');
+    }
+
+    public function getIsVideoAttribute(): bool
+    {
+        return str_starts_with($this->mime_type ?? '', 'video/');
     }
 }

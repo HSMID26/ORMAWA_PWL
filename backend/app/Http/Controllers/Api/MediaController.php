@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Media;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -13,7 +14,7 @@ use Intervention\Image\Encoders\WebpEncoder;
 
 class MediaController extends Controller
 {
-    // 1. Ambil Daftar Foto Galeri Organisasi (Images Only)
+    // 1. Ambil Daftar Foto Galeri / Media Organisasi
     public function index(Request $request)
     {
         $user = $request->user();
@@ -21,20 +22,31 @@ class MediaController extends Controller
             abort(403, 'Unauthorized. Anda tidak memiliki izin untuk melihat galeri foto.');
         }
 
-        // Strict query: Galeri HANYA mengambil media bertipe gambar
-        $query = Media::with(['user:id,name', 'organization:id,nama,subdomain'])
-            ->where('mime_type', 'like', 'image/%');
+        $query = Media::with(['user:id,name', 'organization:id,nama,subdomain'])->latest();
 
         if (!$user->hasRole('Super Admin')) {
             $query->where('organization_id', $user->organization_id);
+        }
+
+        if ($request->filled('type')) {
+            $type = $request->type;
+            if ($type === 'image') {
+                $query->where('mime_type', 'like', 'image/%');
+            } elseif ($type === 'video') {
+                $query->where('mime_type', 'like', 'video/%');
+            }
+        } else {
+            // Default filter for gallery: ambil media bertipe gambar
+            $query->where('mime_type', 'like', 'image/%');
         }
 
         if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
 
-        if ($request->filled('search')) {
-            $s = trim($request->search);
+        $searchTerm = $request->search ?: $request->q;
+        if (!empty($searchTerm)) {
+            $s = trim($searchTerm);
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                   ->orWhere('filename', 'like', "%{$s}%")
@@ -43,7 +55,7 @@ class MediaController extends Controller
             });
         }
 
-        $mediaList = $query->latest()->get()->map(function ($item) {
+        $mediaList = $query->get()->map(function ($item) {
             $orgSubdomain = $item->organization?->subdomain ?? 'org';
             return [
                 'id'             => $item->id,
@@ -61,9 +73,10 @@ class MediaController extends Controller
                 'url'            => $item->url,
                 'image_url'      => $item->url,
                 'size'           => $item->size,
-                'formatted_size' => $item->size ? round($item->size / 1024, 1) . ' KB' : '0 B',
+                'formatted_size' => $item->formatted_size,
                 'mime_type'      => $item->mime_type,
-                'is_image'       => true,
+                'is_image'       => $item->is_image,
+                'is_video'       => $item->is_video,
                 'uploader'       => $item->user->name ?? 'System',
                 'organization'   => $item->organization ? [
                     'id'        => $item->organization->id,
@@ -80,99 +93,163 @@ class MediaController extends Controller
         ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    // 2. Upload Foto Galeri Baru (Images Only)
+    // 2. Upload Media Baru (Single / Multi-file, Gambar WebP atau Video)
     public function upload(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user() ?? Auth::user();
         if (!$user || (!$user->hasRole('Super Admin') && !$user->can('gallery.create'))) {
             abort(403, 'Unauthorized. Anda tidak memiliki izin untuk mengunggah foto galeri.');
         }
 
-        $request->validate([
-            'image'    => 'required|file|max:20480|mimes:jpg,jpeg,png,webp,avif',
-            'name'     => 'nullable|string|max:255',
-            'title'    => 'nullable|string|max:255',
-            'caption'  => 'nullable|string|max:1000',
-            'taken_at' => 'nullable|date',
-            'alt_text' => 'nullable|string|max:255',
-            'category' => 'nullable|string|max:100',
-        ], [
-            'image.required' => 'Berkas foto wajib dipilih.',
-            'image.mimes'    => 'File yang diunggah harus berupa foto atau gambar (JPG, PNG, WebP, AVIF).',
-            'image.max'      => 'Ukuran foto maksimal adalah 20MB.',
-        ]);
+        // Support both single 'image'/'file' or multiple 'files'/'images'
+        $files = [];
+        if ($request->hasFile('files')) {
+            $files = $request->file('files');
+        } elseif ($request->hasFile('images')) {
+            $files = $request->file('images');
+        } elseif ($request->hasFile('image')) {
+            $files = [$request->file('image')];
+        } elseif ($request->hasFile('file')) {
+            $files = [$request->file('file')];
+        }
 
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $mimeType = $file->getMimeType() ?: '';
-            $isImage = str_starts_with($mimeType, 'image/');
+        if (empty($files)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Tidak ada file yang dipilih untuk diunggah.',
+            ], 422);
+        }
 
-            if (! $isImage) {
+        // Validate that all files are valid image/media files
+        foreach ($files as $file) {
+            if (!$file || !$file->isValid()) continue;
+            $mime = $file->getMimeType() ?: '';
+            if (!str_starts_with($mime, 'image/') && !str_starts_with($mime, 'video/')) {
                 return response()->json([
-                    'status' => 'error',
+                    'status'  => 'error',
                     'message' => 'File yang diunggah harus berupa foto atau gambar.',
+                    'errors'  => [
+                        'image' => ['File yang diunggah harus berupa foto atau gambar (JPG, PNG, WebP, AVIF).']
+                    ]
                 ], 422);
             }
-            
-            $manager = new ImageManager(new Driver());
-            $image = $manager->decode($file->get());
+        }
 
-            // Resize gambar besar agar upload lebih ringan tanpa merusak rasio (max width 1920px untuk galeri HD)
-            if ($image->width() > 1920) {
-                $image->scale(1920);
+        $uploadedMedia = [];
+        $userId = $user?->id;
+        $orgId = $user?->organization_id;
+        if ($user?->hasRole('Super Admin') && $request->filled('organization_id')) {
+            $orgId = $request->organization_id;
+        }
+
+        foreach ($files as $file) {
+            if (!$file || !$file->isValid()) continue;
+
+            $mimeType = $file->getMimeType() ?: '';
+            $origName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $origName);
+
+            if (str_starts_with($mimeType, 'image/')) {
+                // Image Processing & WebP Conversion
+                try {
+                    $manager = new ImageManager(new Driver());
+                    $image = $manager->decode($file->get());
+
+                    // Resize bila resolusi terlalu besar (max width 1920px untuk galeri HD)
+                    if ($image->width() > 1920) {
+                        $image->scale(1920);
+                    }
+
+                    $encoded = $image->encode(new WebpEncoder(80, true));
+                    $filename = $cleanName . '_' . time() . '_' . uniqid() . '.webp';
+                    $path = 'gallery-images/' . $filename;
+
+                    Storage::disk('public')->put($path, (string) $encoded);
+                    $finalMime = 'image/webp';
+                    $finalSize = Storage::disk('public')->size($path);
+                } catch (\Throwable $e) {
+                    $filename = $cleanName . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $path = $file->storeAs('gallery-images', $filename, 'public');
+                    $finalMime = $mimeType;
+                    $finalSize = $file->getSize();
+                }
+            } else {
+                // Video or Document Processing
+                $filename = $cleanName . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('media-gallery', $filename, 'public');
+                $finalMime = $mimeType;
+                $finalSize = $file->getSize();
             }
 
-            $encoded = $image->encode(new WebpEncoder(80, true));
-
-            $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-            $filename = $originalName . '_' . time() . '.webp';
-            $path = 'gallery-images/' . $filename;
-
-            Storage::disk('public')->put($path, (string) $encoded);
-
-            $user = $request->user();
-            $orgId = $user?->organization_id;
-            if ($user?->hasRole('Super Admin') && $request->filled('organization_id')) {
-                $orgId = $request->organization_id;
-            }
-
-            $name = $request->title ?: ($request->name ?: $originalName);
+            $name = $request->title ?: ($request->name ?: $origName);
 
             $media = Media::create([
                 'organization_id' => $orgId,
-                'user_id'         => Auth::id() ?? $user?->id,
+                'user_id'         => $userId,
                 'name'            => $name,
                 'caption'         => $request->caption,
                 'taken_at'        => $request->taken_at,
                 'alt_text'        => $request->alt_text ?: $name,
                 'category'        => $request->category ?? 'Dokumentasi',
-                'visibility'      => 'public',
+                'visibility'      => $request->visibility ?? 'public',
                 'filename'        => $filename,
                 'path'            => $path,
-                'mime_type'       => 'image/webp',
-                'size'            => Storage::disk('public')->size($path),
+                'mime_type'       => $finalMime,
+                'size'            => $finalSize,
             ]);
 
+            $uploadedMedia[] = [
+                'id'             => $media->id,
+                'filename'       => $media->filename,
+                'url'            => $media->url,
+                'formatted_size' => $media->formatted_size,
+                'mime_type'      => $media->mime_type,
+                'is_image'       => $media->is_image,
+                'is_video'       => $media->is_video,
+                'name'           => $media->name,
+                'title'          => $media->name,
+                'caption'        => $media->caption,
+                'taken_at'       => $media->taken_at?->toDateString(),
+                'alt_text'       => $media->alt_text,
+                'category'       => $media->category,
+            ];
+        }
+
+        $count = count($uploadedMedia);
+        if ($count > 0) {
+            ActivityLogService::log('create', 'media', "Mengunggah {$count} berkas media baru ke Galeri Media");
+        }
+
+        // Return single response if single upload for TipTap & existing forms compatibility
+        if (count($uploadedMedia) === 1) {
+            $single = $uploadedMedia[0];
             return response()->json([
-                'status'    => 'success',
-                'id'        => $media->id,
-                'type'      => 'image',
-                'title'     => $media->name,
-                'name'      => $media->name,
-                'judul'     => $media->name,
-                'caption'   => $media->caption,
-                'deskripsi' => $media->caption,
-                'taken_at'  => $media->taken_at?->toDateString(),
-                'alt_text'  => $media->alt_text,
-                'url'       => $media->url,
-                'image_url' => $media->url,
+                'status'         => 'success',
+                'id'             => $single['id'],
+                'type'           => $single['is_image'] ? 'image' : 'video',
+                'title'          => $single['name'],
+                'name'           => $single['name'],
+                'judul'          => $single['name'],
+                'caption'        => $single['caption'],
+                'deskripsi'      => $single['caption'],
+                'taken_at'       => $single['taken_at'],
+                'alt_text'       => $single['alt_text'],
+                'url'            => $single['url'],
+                'image_url'      => $single['url'],
+                'formatted_size' => $single['formatted_size'],
+                'mime_type'      => $single['mime_type'],
+                'is_image'       => $single['is_image'],
+                'is_video'       => $single['is_video'],
+                'data'           => $single,
+                'message'        => 'Berkas berhasil diunggah!'
             ], 200, [], JSON_UNESCAPED_SLASHES);
         }
 
         return response()->json([
-            'status'  => 'error',
-            'message' => 'Upload gagal',
-        ], 400);
+            'status'  => 'success',
+            'message' => "Berhasil mengunggah {$count} berkas media!",
+            'data'    => $uploadedMedia
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
     // 3. Update Metadata Media (Foto Galeri / Dokumen)
@@ -248,6 +325,8 @@ class MediaController extends Controller
             abort(403, 'Unauthorized. Anda tidak dapat menghapus media milik organisasi lain.');
         }
 
+        $fileName = $media->filename;
+
         // Hapus file fisik di storage jika ada
         if ($media->path && Storage::disk('public')->exists($media->path)) {
             Storage::disk('public')->delete($media->path);
@@ -256,9 +335,11 @@ class MediaController extends Controller
         // Hapus record di database
         $media->delete();
 
+        ActivityLogService::log('delete', 'media', "Menghapus berkas media: {$fileName}");
+
         return response()->json([
             'status'  => 'success',
-            'message' => 'File media berhasil dihapus'
+            'message' => "Berkas media '{$fileName}' berhasil dihapus!"
         ]);
     }
 
@@ -308,7 +389,7 @@ class MediaController extends Controller
                 'file_type'     => strtoupper(pathinfo($item->filename, PATHINFO_EXTENSION) ?: 'FILE'),
                 'size'          => $item->size,
                 'file_size'     => $item->size,
-                'formatted_size'=> $item->size ? round($item->size / 1024, 1) . ' KB' : '0 B',
+                'formatted_size'=> $item->formatted_size,
                 'url'           => $item->url,
                 'file_url'      => $item->url,
                 'download_url'  => url("/api/public/organizations/{$orgSubdomain}/documents/{$item->id}/download"),
@@ -323,7 +404,7 @@ class MediaController extends Controller
         ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
-    // 5. Upload Dokumen Baru (Documents Only)
+    // 6. Upload Dokumen Baru (Documents Only)
     public function uploadDocument(Request $request)
     {
         $user = $request->user();
@@ -394,7 +475,7 @@ class MediaController extends Controller
                 'file_type'     => strtoupper(pathinfo($media->filename, PATHINFO_EXTENSION) ?: 'FILE'),
                 'size'          => $media->size,
                 'file_size'     => $media->size,
-                'formatted_size'=> $media->size ? round($media->size / 1024, 1) . ' KB' : '0 B',
+                'formatted_size'=> $media->formatted_size,
                 'url'           => $media->url,
                 'file_url'      => $media->url,
                 'download_url'  => url("/api/public/organizations/{$orgSubdomain}/documents/{$media->id}/download"),

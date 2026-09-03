@@ -43,8 +43,8 @@ Route::prefix('public')->group(function () {
     Route::get('/sitemap', [PublicController::class, 'sitemap']);
 });
 
-// Protected Routes 
-Route::middleware(['auth:sanctum'])->group(function () {
+    // Protected Routes 
+    Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/profile', [AuthController::class, 'me']);
     Route::patch('/profile', [AuthController::class, 'updateProfile']);
