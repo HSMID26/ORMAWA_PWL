@@ -30,7 +30,8 @@ class OrganizationRegistration extends Model
     ];
 
     protected $casts = [
-        'reviewed_at' => 'datetime',
+        'reviewed_at'    => 'datetime',
+        'admin_password' => 'hashed',
     ];
 
     public function reviewer()

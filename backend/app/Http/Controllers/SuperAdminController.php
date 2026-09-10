@@ -14,10 +14,22 @@ use Illuminate\Support\Facades\DB;
 class SuperAdminController extends Controller
 {
     /**
+     * Helper to verify Super Admin role
+     */
+    protected function authorizeSuperAdmin(): void
+    {
+        if (!auth()->user() || !auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Akses ditolak. Tindakan ini hanya dapat dilakukan oleh Super Admin.');
+        }
+    }
+
+    /**
      * Tampilkan daftar pengajuan registrasi Ormawa yang masuk (Pending & Riwayat)
      */
     public function pendingRegistrations()
     {
+        $this->authorizeSuperAdmin();
+
         $requests = OrganizationRegistration::where('status', 'pending')->latest()->get();
         $history  = OrganizationRegistration::whereIn('status', ['approved', 'rejected'])->latest()->take(20)->get();
 
@@ -29,6 +41,8 @@ class SuperAdminController extends Controller
      */
     public function approve($id)
     {
+        $this->authorizeSuperAdmin();
+
         $pending = OrganizationRegistration::findOrFail($id);
 
         DB::transaction(function () use ($pending) {
@@ -96,6 +110,8 @@ class SuperAdminController extends Controller
      */
     public function reject(Request $request, $id)
     {
+        $this->authorizeSuperAdmin();
+
         $pending = OrganizationRegistration::findOrFail($id);
         
         $alasan = $request->input('alasan_penolakan', $request->input('rejection_reason', 'Pengajuan pendaftaran tidak memenuhi kriteria dan persyaratan.'));

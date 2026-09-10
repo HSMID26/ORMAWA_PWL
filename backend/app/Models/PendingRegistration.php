@@ -19,4 +19,15 @@ class PendingRegistration extends Model
         'status',
         'alasan_penolakan',
     ];
+
+    protected $hidden = [
+        'admin_password',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'admin_password' => 'hashed',
+        ];
+    }
 }

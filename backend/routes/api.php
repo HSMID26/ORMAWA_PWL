@@ -17,11 +17,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\PublicController;
 
 // Public Routes (Accessible without Authentication)
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::post('/register/organization', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store']);
-Route::post('/organization-registrations', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
+Route::post('/register/organization', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store'])->middleware('throttle:10,1');
+Route::post('/organization-registrations', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store'])->middleware('throttle:10,1');
 
 Route::prefix('public')->group(function () {
     Route::get('/home', [PublicController::class, 'home']);

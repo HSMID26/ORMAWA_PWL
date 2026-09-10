@@ -735,7 +735,7 @@ class PublicController extends Controller
             ->where('id', '!=', $post->id);
 
         if ($post->category_id) {
-            $relatedQuery->orderByRaw("CASE WHEN category_id = {$post->category_id} THEN 0 ELSE 1 END");
+            $relatedQuery->orderByRaw("CASE WHEN category_id = ? THEN 0 ELSE 1 END", [(int) $post->category_id]);
         }
 
         $related = $relatedQuery

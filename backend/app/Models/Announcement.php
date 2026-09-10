@@ -28,9 +28,21 @@ class Announcement extends Model
 
     protected $casts = [
         'effective_date' => 'date',
-        'expires_at' => 'date',
-        'published_at' => 'datetime',
+        'expires_at'     => 'date',
+        'published_at'   => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function ($announcement) {
+            if (!empty($announcement->content)) {
+                $announcement->content = \App\Services\SecurityService::sanitizeHtml($announcement->content);
+            }
+            if (!empty($announcement->title)) {
+                $announcement->title = \App\Services\SecurityService::sanitizePlainString($announcement->title);
+            }
+        });
+    }
 
     public function user(): BelongsTo
     {

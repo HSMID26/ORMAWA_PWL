@@ -56,7 +56,7 @@
 
                 <!-- Content Rendered HTML from TipTap -->
                 <article class="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
-                    {!! $post->konten !!}
+                    {!! \App\Services\SecurityService::sanitizeHtml($post->konten) !!}
                 </article>
 
             </div>
