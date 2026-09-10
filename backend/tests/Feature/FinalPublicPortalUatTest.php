@@ -377,6 +377,7 @@ class FinalPublicPortalUatTest extends TestCase
             'filename' => 'kegiatan-makrab.webp',
             'path' => 'media/kegiatan-makrab.webp',
             'mime_type' => 'image/webp',
+            'is_published_to_gallery' => true,
             'size' => 4096,
         ]);
 

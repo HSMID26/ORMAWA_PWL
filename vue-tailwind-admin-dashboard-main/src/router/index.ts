@@ -343,10 +343,16 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'announcements.view', title: 'Pengumuman' },
     },
     {
+      path: '/organization/media',
+      name: 'organization-media',
+      component: () => import('@/views/organization/media/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'gallery.view', title: 'Media Library' },
+    },
+    {
       path: '/organization/gallery',
       name: 'organization-gallery',
       component: () => import('@/views/organization/gallery/List.vue'),
-      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'gallery.view', title: 'Gallery' },
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'gallery.view', title: 'Galeri Publik' },
     },
     {
       path: '/organization/documents',
@@ -459,8 +465,7 @@ router.beforeEach(async (to, _from, next) => {
     }
 
     const allowedRoles = to.meta.roles as string[] | undefined
-    if (allowedRoles && authStore.role && !allowedRoles.includes(authStore.role)) {
-      if (authStore.role === 'Super Admin') return next({ name: 'super-admin-dashboard', replace: true })
+    if (allowedRoles && authStore.role && authStore.role !== 'Super Admin' && !allowedRoles.includes(authStore.role)) {
       return next({ name: 'organization-dashboard', replace: true })
     }
 

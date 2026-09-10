@@ -139,8 +139,9 @@ test('2, 3, 4. gallery endpoint excludes DOCX, PDF, and XLSX', function () {
         'path'            => 'gallery-images/makrab.webp',
         'mime_type'       => 'image/webp',
         'category'        => 'Dokumentasi',
-        'visibility'      => 'public',
-        'size'            => 4096,
+        'visibility'              => 'public',
+        'is_published_to_gallery' => true,
+        'size'                    => 4096,
     ]);
 
     // Admin Gallery list (GET /api/media)

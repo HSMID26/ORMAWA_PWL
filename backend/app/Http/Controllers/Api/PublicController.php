@@ -871,6 +871,7 @@ class PublicController extends Controller
         $query = Media::withoutGlobalScopes()
             ->where('organization_id', $org->id)
             ->where('mime_type', 'like', 'image/%')
+            ->where('is_published_to_gallery', true)
             ->where(function ($q) {
                 $q->whereNull('visibility')->orWhere('visibility', '!=', 'internal');
             })

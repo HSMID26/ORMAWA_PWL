@@ -128,6 +128,7 @@ Route::prefix('public')->group(function () {
     Route::post('/upload-image', [MediaController::class, 'upload'])->name('api.upload.image');
     Route::put('/media/{id}', [MediaController::class, 'update'])->name('api.media.update');
     Route::patch('/media/{id}', [MediaController::class, 'update'])->name('api.media.update.patch');
+    Route::patch('/media/{id}/toggle-gallery', [MediaController::class, 'toggleGalleryPublish'])->name('api.media.toggle.gallery');
     Route::delete('/media/{id}', [MediaController::class, 'destroy'])->name('api.media.destroy');
 
     // Documents Management

@@ -24,11 +24,13 @@ class Media extends Model
         'mime_type',
         'category',
         'visibility',
+        'is_published_to_gallery',
         'size',
     ];
 
     protected $casts = [
-        'taken_at' => 'date',
+        'taken_at'                => 'date',
+        'is_published_to_gallery' => 'boolean',
     ];
 
     protected $appends = [
@@ -76,5 +78,25 @@ class Media extends Model
     public function getIsVideoAttribute(): bool
     {
         return str_starts_with($this->mime_type ?? '', 'video/');
+    }
+
+    /**
+     * Cek apakah media ini sedang digunakan oleh artikel organisasi
+     */
+    public function getUsedInArticlesAttribute(): array
+    {
+        $path = $this->path;
+        $filename = $this->filename;
+
+        return Post::withoutGlobalScopes()
+            ->where('organization_id', $this->organization_id)
+            ->where(function ($q) use ($path, $filename) {
+                $q->where('cover_image', 'like', "%{$path}%")
+                  ->orWhere('cover_image', 'like', "%{$filename}%")
+                  ->orWhere('konten', 'like', "%{$path}%")
+                  ->orWhere('konten', 'like', "%{$filename}%");
+            })
+            ->get(['id', 'judul', 'slug', 'status'])
+            ->toArray();
     }
 }

@@ -338,6 +338,7 @@ class PublicPortalTest extends TestCase
             'filename' => 'foto-juara.webp',
             'path' => 'media/foto-juara.webp',
             'mime_type' => 'image/webp',
+            'is_published_to_gallery' => true,
             'size' => 2048,
         ]);
 

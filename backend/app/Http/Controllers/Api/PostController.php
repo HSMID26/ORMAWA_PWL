@@ -69,7 +69,7 @@ class PostController extends Controller
             }
         }
 
-        $coverImagePath = $this->processCoverImage($request->cover_image ?? $request->file('cover_image'));
+        $coverImagePath = $this->processCoverImage($request->cover_image ?? $request->file('cover_image'), null, $user);
         $post = Post::create([
             'judul'            => trim($request->judul),
             'slug'             => Str::slug($request->judul) . '-' . Str::random(5),
@@ -176,7 +176,7 @@ class PostController extends Controller
         $data = $request->only(['judul', 'konten', 'excerpt', 'status', 'meta_title', 'meta_description', 'category_id']);
 
         if ($request->has('cover_image') || $request->hasFile('cover_image')) {
-            $data['cover_image'] = $this->processCoverImage($request->cover_image ?? $request->file('cover_image'), $post->cover_image);
+            $data['cover_image'] = $this->processCoverImage($request->cover_image ?? $request->file('cover_image'), $post->cover_image, $user);
         }
 
         if ($request->has('judul') && $request->judul !== $post->judul) {
@@ -304,7 +304,7 @@ class PostController extends Controller
     /**
      * Process and store cover image from base64, uploaded file, or existing path.
      */
-    private function processCoverImage($coverImageInput, ?string $oldCoverImage = null): ?string
+    private function processCoverImage($coverImageInput, ?string $oldCoverImage = null, ?\App\Models\User $user = null): ?string
     {
         if (empty($coverImageInput)) {
             if ($oldCoverImage && str_starts_with($oldCoverImage, '/storage/posts/covers/')) {
@@ -350,6 +350,24 @@ class PostController extends Controller
 
         // Existing relative or absolute path
         if (is_string($coverImageInput)) {
+            // Cross-tenant media reference validation
+            $rawPath = parse_url($coverImageInput, PHP_URL_PATH) ?? $coverImageInput;
+            $cleanPath = ltrim(str_replace('/storage/', '', $rawPath), '/');
+            if (str_starts_with($cleanPath, 'storage/')) {
+                $cleanPath = substr($cleanPath, 8);
+            }
+
+            if (!empty($cleanPath) && $user && !$user->hasRole('Super Admin')) {
+                $refMedia = \App\Models\Media::withoutGlobalScopes()
+                    ->where('path', $cleanPath)
+                    ->orWhere('filename', basename($cleanPath))
+                    ->first();
+
+                if ($refMedia && (int)$refMedia->organization_id !== (int)$user->organization_id) {
+                    abort(403, 'Unauthorized. Anda tidak dapat menggunakan media milik organisasi lain.');
+                }
+            }
+
             return $coverImageInput;
         }
 

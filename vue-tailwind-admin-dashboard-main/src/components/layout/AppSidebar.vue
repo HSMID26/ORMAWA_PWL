@@ -213,7 +213,9 @@ import {
   SettingsIcon,
   CalendarClockIcon,
   UsersIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  FolderArchiveIcon,
+  ImageIcon
 } from 'lucide-vue-next';
 import SidebarWidget from "./SidebarWidget.vue";
 import { useSidebar } from "@/composables/useSidebar";
@@ -300,7 +302,7 @@ const menuGroups = computed<MenuGroup[]>(() => {
     contentItems.push({ icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' })
   }
   if (authStore.hasPermission('gallery.view')) {
-    contentItems.push({ icon: PieChartIcon, name: 'Galeri', path: '/organization/gallery' })
+    contentItems.push({ icon: ImageIcon, name: 'Galeri', path: '/organization/gallery' })
   }
   if (authStore.hasPermission('documents.view')) {
     contentItems.push({ icon: FileIcon, name: 'Dokumen', path: '/organization/documents' })
@@ -348,31 +350,31 @@ const menuGroups = computed<MenuGroup[]>(() => {
   return groups
 });
 
-const isActive = (path: string) => route.path === path;
+const isActive = (path?: string) => {
+  if (!path) return false;
+  const currentPath = route.path;
+
+  // Exact match
+  if (currentPath === path) return true;
+
+  // Subroute / child path match (e.g. /organization/gallery/123 or /organization/posts/create)
+  if (path !== '/' && currentPath.startsWith(path + '/')) return true;
+
+  return false;
+};
 
 const toggleSubmenu = (groupIndex: number, itemIndex: number) => {
   const key = `${groupIndex}-${itemIndex}`;
   openSubmenu.value = openSubmenu.value === key ? null : key;
 };
 
-const isAnySubmenuRouteActive = computed(() => {
-  return menuGroups.value.some((group) =>
-    group.items.some(
-      (item) =>
-        item.subItems && item.subItems.some((subItem) => isActive(subItem.path))
-    )
-  );
-});
-
 const isSubmenuOpen = (groupIndex: number, itemIndex: number) => {
   const key = `${groupIndex}-${itemIndex}`;
-  return (
-    openSubmenu.value === key ||
-    (isAnySubmenuRouteActive.value &&
-      menuGroups.value[groupIndex]?.items[itemIndex]?.subItems?.some((subItem) =>
-        isActive(subItem.path)
-      ))
-  );
+  const item = menuGroups.value[groupIndex]?.items[itemIndex];
+  const hasActiveChild = item?.subItems?.some((subItem) => isActive(subItem.path)) || false;
+
+  // Dropdown is open if manually toggled open OR if any child submenu is active for the current route
+  return openSubmenu.value === key || hasActiveChild;
 };
 
 const startTransition = (el: Element) => {

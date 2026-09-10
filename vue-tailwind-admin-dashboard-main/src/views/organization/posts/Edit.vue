@@ -72,130 +72,17 @@
           </div>
         </div>
 
-        <!-- Rich Content Editor -->
-        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
-          <!-- Editor Toolbar -->
-          <div class="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50/80 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-800/60 text-xs">
-            <button
-              type="button"
-              @click="insertFormat('h1')"
-              class="rounded px-2 py-1 font-bold text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Heading 1"
-            >
-              H1
-            </button>
-            <button
-              type="button"
-              @click="insertFormat('h2')"
-              class="rounded px-2 py-1 font-bold text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Heading 2"
-            >
-              H2
-            </button>
-            <button
-              type="button"
-              @click="insertFormat('h3')"
-              class="rounded px-2 py-1 font-bold text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Heading 3"
-            >
-              H3
-            </button>
-
-            <span class="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-1"></span>
-
-            <button
-              type="button"
-              @click="insertFormat('bold')"
-              class="rounded p-1.5 font-bold text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Tebal (Bold)"
-            >
-              <BoldIcon class="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              @click="insertFormat('italic')"
-              class="rounded p-1.5 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Miring (Italic)"
-            >
-              <ItalicIcon class="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              @click="insertFormat('underline')"
-              class="rounded p-1.5 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Garis Bawah (Underline)"
-            >
-              <UnderlineIcon class="h-4 w-4" />
-            </button>
-
-            <span class="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-1"></span>
-
-            <button
-              type="button"
-              @click="insertFormat('bullet')"
-              class="rounded p-1.5 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Daftar Poin (Bullet List)"
-            >
-              <ListIcon class="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              @click="insertFormat('numbered')"
-              class="rounded p-1.5 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Daftar Angka (Numbered List)"
-            >
-              <ListOrderedIcon class="h-4 w-4" />
-            </button>
-
-            <span class="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-1"></span>
-
-            <button
-              type="button"
-              @click="insertFormat('quote')"
-              class="rounded p-1.5 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Kutipan (Quote)"
-            >
-              <QuoteIcon class="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              @click="insertFormat('link')"
-              class="rounded p-1.5 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Sisipkan Tautan (Link)"
-            >
-              <LinkIcon class="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              @click="insertFormat('divider')"
-              class="rounded p-1.5 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
-              title="Garis Pemisah (Divider)"
-            >
-              <MinusIcon class="h-4 w-4" />
-            </button>
-          </div>
-
-          <!-- Content Text Area -->
-          <div class="p-6">
-            <textarea
-              ref="editorTextarea"
-              v-model="form.konten"
-              required
-              rows="18"
-              placeholder="Tulis artikel Anda di sini..."
-              class="w-full resize-y border-0 bg-transparent text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-gray-100 font-normal"
-            ></textarea>
-          </div>
-
-          <!-- Editor Footer Status -->
-          <div class="flex items-center justify-between border-t border-gray-100 bg-gray-50 px-6 py-2.5 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-800/40">
-            <div class="flex items-center gap-4">
-              <span><strong>{{ wordCount }}</strong> Kata</span>
-              <span><strong>{{ charCount }}</strong> Karakter</span>
-              <span>Perkiraan baca: <strong>~{{ readingTime }} Menit</strong></span>
-            </div>
-            <span class="text-[11px] text-gray-400">Tekan Shift+Enter untuk baris baru</span>
-          </div>
+        <!-- Rich Content Editor (TipTap) -->
+        <div class="space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+            Isi Konten Artikel <span class="text-rose-500">*</span>
+          </label>
+          <RichTextEditor
+            ref="richEditorRef"
+            v-model="form.konten"
+            placeholder="Tulis artikel Anda di sini. Gunakan tombol Sisipkan Foto di toolbar untuk menambahkan gambar..."
+            @open-media-picker="isInlineMediaPickerOpen = true"
+          />
         </div>
 
         <!-- Ringkasan Singkat (Excerpt) -->
@@ -269,37 +156,66 @@
           </div>
         </div>
 
-        <!-- Panel 2: Featured Image (Gambar Sampul) -->
+                <!-- Panel 2: Featured Image (Gambar Sampul) -->
         <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-4 pb-2 border-b border-gray-100 dark:border-gray-800">
-            Gambar Sampul (Featured Image)
-          </h2>
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-gray-800">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+              Gambar Sampul (Featured Image)
+            </h2>
+            <button
+              v-if="form.cover_image"
+              type="button"
+              @click="isCoverMediaPickerOpen = true"
+              class="text-[11px] font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 inline-flex items-center gap-1 transition cursor-pointer"
+            >
+              <ImageIcon class="h-3.5 w-3.5" />
+              Ganti Foto
+            </button>
+          </div>
 
           <div class="space-y-3">
+            <!-- Preview Box when cover exists -->
             <div
               v-if="form.cover_image"
               class="relative aspect-video w-full rounded-xl overflow-hidden bg-gray-100 border border-gray-200 dark:border-gray-700 group"
             >
               <img :src="resolveImageUrl(form.cover_image)" alt="Featured Image Preview" class="h-full w-full object-cover" />
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  @click="isCoverMediaPickerOpen = true"
+                  class="rounded-lg bg-white/95 px-3 py-1.5 text-xs font-semibold text-gray-800 hover:bg-white transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <ImageIcon class="h-3.5 w-3.5 text-brand-600" />
+                  Ganti Foto
+                </button>
+                <button
+                  type="button"
+                  @click="removeCoverImage"
+                  class="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Trash2Icon class="h-3.5 w-3.5" />
+                  Hapus
+                </button>
+              </div>
+            </div>
+
+            <!-- Single Add Cover Button (opens Media Picker Modal) -->
+            <div v-else>
               <button
                 type="button"
-                @click="removeCoverImage"
-                class="absolute right-2 top-2 rounded-lg bg-black/60 p-1.5 text-white hover:bg-rose-600 transition"
-                title="Hapus Gambar"
+                @click="isCoverMediaPickerOpen = true"
+                class="w-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-6 text-center hover:border-brand-500 cursor-pointer dark:border-gray-700 dark:hover:border-brand-400 transition bg-gray-50/50 dark:bg-gray-800/30 group"
               >
-                <XIcon class="h-4 w-4" />
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400 mb-2 group-hover:scale-110 transition">
+                  <PlusIcon class="h-5 w-5" />
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Pilih / Tambah Gambar Sampul</span>
+                <span class="text-[10px] text-gray-400 mt-1">Pilih dari pustaka media atau upload foto baru</span>
               </button>
             </div>
 
-            <div v-else>
-              <label class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-4 text-center hover:border-brand-500 cursor-pointer dark:border-gray-700 dark:hover:border-brand-400 transition">
-                <UploadCloudIcon class="h-8 w-8 text-gray-400 mb-1" />
-                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Ganti Gambar Sampul</span>
-                <span class="text-[10px] text-gray-400 mt-0.5">JPG, PNG, WebP (Max 5MB)</span>
-                <input type="file" accept="image/*" @change="handleImageUpload" class="hidden" />
-              </label>
-            </div>
-
+            <!-- Alt Text for SEO -->
             <div>
               <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">
                 Alt Text Gambar (SEO & Aksesibilitas)
@@ -307,7 +223,7 @@
               <input
                 v-model="altText"
                 type="text"
-                placeholder="Deskripsi gambar untuk pembaca..."
+                placeholder="Deskripsi gambar untuk pembaca tuna netra & search engine..."
                 class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white"
               />
             </div>
@@ -480,6 +396,24 @@
       </div>
     </div>
 
+    <!-- ─── Modal Media Picker for Cover Image ──────────────────────────────── -->
+    <MediaPickerModal
+      :isOpen="isCoverMediaPickerOpen"
+      mode="article"
+      title="Pilih Gambar Sampul Artikel"
+      @close="isCoverMediaPickerOpen = false"
+      @select="handleCoverMediaSelect"
+    />
+
+    <!-- ─── Modal Media Picker for Inline Content ─────────────────────────────── -->
+    <MediaPickerModal
+      :isOpen="isInlineMediaPickerOpen"
+      mode="article"
+      title="Sisipkan Foto ke Isi Artikel"
+      @close="isInlineMediaPickerOpen = false"
+      @select="handleInlineMediaSelect"
+    />
+
     <!-- ─── Modal Live Preview ────────────────────────────────────────────────── -->
     <div
       v-if="isPreviewModalOpen"
@@ -558,8 +492,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
+import MediaPickerModal from '@/components/organization/MediaPickerModal.vue'
+import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import { postService } from '@/services/postService'
 import { taxonomyService } from '@/services/taxonomyService'
+import type { MediaItem } from '@/services/mediaService'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { resolveImageUrl } from '@/utils/imageUrl'
@@ -572,13 +509,18 @@ import {
   BoldIcon,
   ItalicIcon,
   UnderlineIcon,
+  StrikethroughIcon,
   ListIcon,
   ListOrderedIcon,
   QuoteIcon,
   LinkIcon,
   MinusIcon,
+  CodeIcon,
+  AlignCenterIcon,
+  AlignRightIcon,
   UploadCloudIcon,
   XIcon,
+  ImageIcon,
   MonitorIcon,
   SmartphoneIcon
 } from 'lucide-vue-next'
@@ -600,8 +542,35 @@ const isPreviewModalOpen = ref(false)
 const previewDevice = ref<'desktop' | 'mobile'>('desktop')
 const altText = ref('')
 const authorName = ref('')
+const isCoverMediaPickerOpen = ref(false)
+const isInlineMediaPickerOpen = ref(false)
 
-const editorTextarea = ref<HTMLTextAreaElement | null>(null)
+const handleCoverMediaSelect = (item: MediaItem) => {
+  form.value.cover_image = item.url || item.image_url || null
+  if (!altText.value) {
+    altText.value = item.alt_text || item.title || item.name || ''
+  }
+}
+
+const handleInlineMediaSelect = (item: MediaItem) => {
+  const alt = item.alt_text || item.title || item.name || 'Foto Dokumentasi'
+  const title = item.caption || item.alt_text || item.title || ''
+  const imgUrl = resolveImageUrl(item.image_url || item.url)
+
+  if (richEditorRef.value?.insertImage) {
+    richEditorRef.value.insertImage({
+      src: imgUrl,
+      alt,
+      title,
+      caption: title
+    })
+  }
+
+  isInlineMediaPickerOpen.value = false
+}
+
+
+const richEditorRef = ref<any>(null)
 
 const form = ref<{
   judul: string
@@ -742,49 +711,12 @@ const toggleTag = (tagId: number) => {
   }
 }
 
-const handleImageUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    const file = target.files[0]
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      form.value.cover_image = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-}
 
 const removeCoverImage = () => {
   form.value.cover_image = null
   altText.value = ''
 }
 
-const insertFormat = (type: string) => {
-  const el = editorTextarea.value
-  if (!el) return
-
-  const start = el.selectionStart
-  const end = el.selectionEnd
-  const selectedText = form.value.konten.substring(start, end)
-
-  let replacement = ''
-  switch (type) {
-    case 'h1': replacement = `\n# ${selectedText || 'Heading 1'}\n`; break
-    case 'h2': replacement = `\n## ${selectedText || 'Heading 2'}\n`; break
-    case 'h3': replacement = `\n### ${selectedText || 'Heading 3'}\n`; break
-    case 'bold': replacement = `**${selectedText || 'Teks Tebal'}**`; break
-    case 'italic': replacement = `*${selectedText || 'Teks Miring'}*`; break
-    case 'underline': replacement = `<u>${selectedText || 'Teks Garis Bawah'}</u>`; break
-    case 'bullet': replacement = `\n- ${selectedText || 'Poin daftar'}\n`; break
-    case 'numbered': replacement = `\n1. ${selectedText || 'Poin bernomor'}\n`; break
-    case 'quote': replacement = `\n> ${selectedText || 'Kutipan teks penting'}\n`; break
-    case 'link': replacement = `[${selectedText || 'Teks Tautan'}](https://example.com)`; break
-    case 'divider': replacement = `\n\n---\n\n`; break
-    default: replacement = selectedText
-  }
-
-  form.value.konten = form.value.konten.substring(0, start) + replacement + form.value.konten.substring(end)
-}
 
 const savePost = async (targetStatus?: 'draft' | 'review' | 'published' | 'rejected') => {
   if (!form.value.judul.trim()) {

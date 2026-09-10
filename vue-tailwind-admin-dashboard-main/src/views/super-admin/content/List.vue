@@ -22,9 +22,9 @@
         <button
           v-for="tab in contentTabs"
           :key="tab.key"
-          @click="activeTab = tab.key"
+          @click="setTab(tab.key)"
           :class="[
-            'rounded-xl px-4 py-2 text-xs font-semibold transition',
+            'rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer',
             activeTab === tab.key
               ? 'bg-brand-600 text-white shadow-xs'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -39,8 +39,8 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Cari judul konten..."
-          class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:text-white"
+          :placeholder="searchPlaceholder"
+          class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:text-white"
         />
         <select
           v-model="selectedOrgId"
@@ -55,11 +55,9 @@
           v-model="selectedStatus"
           class="h-10 w-full rounded-xl border border-gray-300 bg-transparent px-3.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">Semua Status</option>
-          <option value="published">Published</option>
-          <option value="review">In Review</option>
-          <option value="draft">Draft</option>
-          <option value="rejected">Rejected</option>
+          <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
         </select>
       </div>
 
@@ -97,7 +95,7 @@
                 </td>
                 <td class="px-4 py-3 text-xs text-gray-500">{{ post.created_at ? new Date(post.created_at).toLocaleDateString('id-ID') : '-' }}</td>
                 <td class="px-4 py-3 text-center">
-                  <button @click="inspectPost(post)" class="rounded-lg p-1 text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-900/20">
+                  <button @click="inspectPost(post)" class="rounded-lg p-1 text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-900/20" title="Lihat Detail">
                     <EyeIcon class="h-4 w-4" />
                   </button>
                 </td>
@@ -159,7 +157,7 @@
                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ ann.judul }}</td>
                 <td class="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{{ ann.organization?.nama || '-' }}</td>
                 <td class="px-4 py-3">
-                  <span class="rounded-md bg-yellow-50 px-2 py-0.5 text-xs font-semibold text-yellow-700">{{ ann.prioritas || 'Normal' }}</span>
+                  <span class="rounded-md bg-yellow-50 px-2 py-0.5 text-xs font-semibold text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300">{{ ann.prioritas || 'Normal' }}</span>
                 </td>
                 <td class="px-4 py-3">
                   <span :class="getStatusBadgeClass(ann.status)">{{ ann.status }}</span>
@@ -176,15 +174,56 @@
         <div v-if="filteredMedia.length === 0" class="py-12 text-center text-sm text-gray-500">
           Tidak ada berkas media yang cocok.
         </div>
-        <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
-          <div v-for="m in filteredMedia" :key="m.id" class="rounded-xl border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-800 dark:bg-gray-800/50">
-            <div class="h-28 w-full overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              <img v-if="m.mime_type && m.mime_type.startsWith('image/')" :src="m.url || m.path" class="h-full w-full object-cover" />
-              <FileTextIcon v-else class="h-10 w-10 text-gray-400" />
+        <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <div
+            v-for="m in filteredMedia"
+            :key="m.id"
+            class="group rounded-xl border border-gray-200 bg-white p-2.5 shadow-2xs transition hover:shadow-md dark:border-gray-800 dark:bg-gray-800/60 flex flex-col justify-between"
+          >
+            <div>
+              <div class="h-28 w-full overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center relative">
+                <img
+                  v-if="m.mime_type && m.mime_type.startsWith('image/')"
+                  :src="resolveImageUrl(m.url || (m as any).image_url || m.path)"
+                  :alt="(m as any).title || (m as any).name || m.filename"
+                  class="h-full w-full object-cover transition group-hover:scale-105 duration-200"
+                  loading="lazy"
+                />
+                <FileTextIcon v-else class="h-10 w-10 text-gray-400" />
+              </div>
+              <div class="mt-2">
+                <p
+                  class="text-xs font-semibold text-gray-900 dark:text-white truncate"
+                  :title="(m as any).title || (m as any).name || m.filename"
+                >
+                  {{ (m as any).title || (m as any).name || m.filename }}
+                </p>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  {{ m.organization?.nama || 'Platform' }}
+                </p>
+              </div>
             </div>
-            <div class="mt-2">
-              <p class="text-xs font-semibold text-gray-900 dark:text-white truncate">{{ m.filename }}</p>
-              <p class="text-[10px] text-gray-500 truncate">{{ m.organization?.nama || 'Platform' }}</p>
+
+            <!-- Publication Status Badge based on is_published_to_gallery -->
+            <div class="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+              <span
+                v-if="(m as any).is_published_to_gallery"
+                class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                Tayang di Publik
+              </span>
+              <span
+                v-else
+                class="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
+                Tidak Tayang di Publik
+              </span>
+
+              <span v-if="(m as any).category" class="text-[9px] text-gray-400 dark:text-gray-500 truncate max-w-[60px]">
+                {{ (m as any).category }}
+              </span>
             </div>
           </div>
         </div>
@@ -197,10 +236,10 @@
       <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 space-y-4 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between border-b pb-3 dark:border-gray-700">
           <div>
-            <span class="rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700">Inspector Detail (Read-Only)</span>
+            <span class="rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">Inspector Detail (Read-Only)</span>
             <h3 class="text-lg font-bold text-gray-900 dark:text-white mt-1">{{ activePost?.judul }}</h3>
           </div>
-          <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-600">✕</button>
+          <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">✕</button>
         </div>
 
         <div class="grid grid-cols-2 gap-3 text-xs">
@@ -227,9 +266,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { EyeIcon, FileTextIcon } from 'lucide-vue-next'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
+import { resolveImageUrl } from '@/utils/imageUrl'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 import { contentService } from '@/services/contentService'
 import { organizationService } from '@/services/organizationService'
@@ -259,10 +299,55 @@ const contentTabs = [
   { key: 'media', label: 'Galeri & Berkas' },
 ]
 
+// Tab switching helper with automatic status filter reset
+const setTab = (tabKey: string) => {
+  activeTab.value = tabKey
+  selectedStatus.value = ''
+}
+
+// Watch activeTab to ensure selectedStatus is always reset when switching tabs
+watch(activeTab, () => {
+  selectedStatus.value = ''
+})
+
+// Dynamic search placeholder based on domain/activeTab
+const searchPlaceholder = computed(() => {
+  if (activeTab.value === 'media') {
+    return 'Cari foto berdasarkan judul, caption, atau nama file...'
+  }
+  if (activeTab.value === 'activities') {
+    return 'Cari agenda berdasarkan nama kegiatan...'
+  }
+  if (activeTab.value === 'announcements') {
+    return 'Cari pengumuman berdasarkan judul...'
+  }
+  return 'Cari artikel berdasarkan judul...'
+})
+
+// Dynamic status dropdown options based on activeTab
+const statusOptions = computed(() => {
+  if (activeTab.value === 'media') {
+    return [
+      { value: '', label: 'Semua Status' },
+      { value: 'published', label: 'Tayang di Publik' },
+      { value: 'unpublished', label: 'Tidak Tayang di Publik' },
+    ]
+  }
+
+  return [
+    { value: '', label: 'Semua Status' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+    { value: 'archived', label: 'Archived' },
+  ]
+})
+
 const filteredPosts = computed(() => {
   return posts.value.filter((p) => {
-    const matchSearch = !searchQuery.value || p.judul.toLowerCase().includes(searchQuery.value.toLowerCase())
-    const matchOrg = selectedOrgId.value === null || p.organization_id === selectedOrgId.value
+    const search = searchQuery.value.toLowerCase().trim()
+    const matchSearch = !search || (p.judul && p.judul.toLowerCase().includes(search))
+    const orgId = p.organization_id ?? p.organization?.id
+    const matchOrg = selectedOrgId.value === null || orgId === selectedOrgId.value
     const matchStatus = !selectedStatus.value || p.status === selectedStatus.value
     return matchSearch && matchOrg && matchStatus
   })
@@ -270,8 +355,12 @@ const filteredPosts = computed(() => {
 
 const filteredActivities = computed(() => {
   return activities.value.filter((a) => {
-    const matchSearch = !searchQuery.value || (a.nama_kegiatan && a.nama_kegiatan.toLowerCase().includes(searchQuery.value.toLowerCase()))
-    const matchOrg = selectedOrgId.value === null || a.organization_id === selectedOrgId.value
+    const search = searchQuery.value.toLowerCase().trim()
+    const matchSearch = !search ||
+      (a.nama_kegiatan && a.nama_kegiatan.toLowerCase().includes(search)) ||
+      (a.judul && a.judul.toLowerCase().includes(search))
+    const orgId = a.organization_id ?? a.organization?.id
+    const matchOrg = selectedOrgId.value === null || orgId === selectedOrgId.value
     const matchStatus = !selectedStatus.value || a.status === selectedStatus.value
     return matchSearch && matchOrg && matchStatus
   })
@@ -279,31 +368,53 @@ const filteredActivities = computed(() => {
 
 const filteredAnnouncements = computed(() => {
   return announcements.value.filter((an) => {
-    const matchSearch = !searchQuery.value || an.judul.toLowerCase().includes(searchQuery.value.toLowerCase())
-    const matchOrg = selectedOrgId.value === null || an.organization_id === selectedOrgId.value
+    const search = searchQuery.value.toLowerCase().trim()
+    const matchSearch = !search || (an.judul && an.judul.toLowerCase().includes(search))
+    const orgId = an.organization_id ?? an.organization?.id
+    const matchOrg = selectedOrgId.value === null || orgId === selectedOrgId.value
     const matchStatus = !selectedStatus.value || an.status === selectedStatus.value
     return matchSearch && matchOrg && matchStatus
   })
 })
 
 const filteredMedia = computed(() => {
-  return media.value.filter((m) => {
-    const matchSearch = !searchQuery.value || (m.filename && m.filename.toLowerCase().includes(searchQuery.value.toLowerCase()))
-    const matchOrg = selectedOrgId.value === null || m.organization_id === selectedOrgId.value
-    return matchSearch && matchOrg
+  return media.value.filter((m: any) => {
+    // 1. Search Query
+    const search = searchQuery.value.toLowerCase().trim()
+    const matchSearch = !search ||
+      (m.filename && m.filename.toLowerCase().includes(search)) ||
+      (m.name && m.name.toLowerCase().includes(search)) ||
+      (m.title && m.title.toLowerCase().includes(search)) ||
+      (m.judul && m.judul.toLowerCase().includes(search)) ||
+      (m.caption && m.caption.toLowerCase().includes(search)) ||
+      (m.alt_text && m.alt_text.toLowerCase().includes(search))
+
+    // 2. Organization Filter
+    const orgId = m.organization_id ?? m.organization?.id
+    const matchOrg = selectedOrgId.value === null || orgId === selectedOrgId.value
+
+    // 3. Status Filter (is_published_to_gallery)
+    let matchStatus = true
+    if (selectedStatus.value === 'published') {
+      matchStatus = Boolean(m.is_published_to_gallery)
+    } else if (selectedStatus.value === 'unpublished') {
+      matchStatus = !m.is_published_to_gallery
+    }
+
+    return matchSearch && matchOrg && matchStatus
   })
 })
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
     case 'published':
-      return 'inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700'
+      return 'inline-flex rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300'
     case 'review':
-      return 'inline-flex rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-semibold text-yellow-800'
+      return 'inline-flex rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300'
     case 'rejected':
-      return 'inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700'
+      return 'inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300'
     default:
-      return 'inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600'
+      return 'inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300'
   }
 }
 
