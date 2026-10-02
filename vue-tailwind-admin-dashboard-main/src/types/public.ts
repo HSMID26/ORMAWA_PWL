@@ -20,7 +20,15 @@ export interface PublicOrganization {
   label_menu?: Record<string, string> | null
   ga_tracking_id?: string | null
   instagram?: string | null
+  facebook?: string | null
+  youtube?: string | null
+  tiktok?: string | null
+  linkedin?: string | null
+  whatsapp?: string | null
   website_eksternal?: string | null
+  copyright?: string | null
+  footer_copyright?: string | null
+  footer_description?: string | null
   seo_title?: string | null
   seo_description?: string | null
   og_image?: string | null
@@ -184,6 +192,44 @@ export interface PublicHomeSummary {
     total_articles: number
     total_agenda: number
   }
+  platform_settings?: PlatformSettings
+}
+
+export interface PlatformSettings {
+  campusName?: string
+  mainDomain?: string
+  defaultStorageLimit?: number
+  autoApproveNewOrg?: boolean
+  maintenanceMode?: boolean
+  heroBadge?: string
+  heroTitle?: string
+  heroSubtitle?: string
+  heroImage?: string | null
+  heroCtaText?: string
+  heroCtaLink?: string
+  heroSecondaryCtaText?: string
+  heroSecondaryCtaLink?: string
+  introBadge?: string
+  introTitle?: string
+  introDescription?: string
+  showStatsSection?: boolean
+  showIntroSection?: boolean
+  showQuickLinks?: boolean
+  showLatestArticles?: boolean
+  showUpcomingAgenda?: boolean
+  showAnnouncements?: boolean
+  // Platform Footer Settings
+  footerDescription?: string
+  footerAddress?: string
+  footerEmail?: string
+  footerPhone?: string
+  footerWhatsapp?: string
+  footerInstagram?: string
+  footerFacebook?: string
+  footerYoutube?: string
+  footerTiktok?: string
+  footerWebsite?: string
+  footerCopyright?: string
 }
 
 export interface PublicPaginationMeta {

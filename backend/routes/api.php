@@ -40,11 +40,12 @@ Route::prefix('public')->group(function () {
     Route::get('/organizations/{slug}/documents', [PublicController::class, 'documents']);
     Route::get('/organizations/{slug}/documents/{id}/download', [PublicController::class, 'downloadDocument']);
     Route::get('/organizations/{slug}/structure', [PublicController::class, 'structure']);
+    Route::get('/platform-settings', [PublicController::class, 'platformSettings']);
     Route::get('/sitemap', [PublicController::class, 'sitemap']);
 });
 
     // Protected Routes 
-    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum', 'active.org'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/profile', [AuthController::class, 'me']);
     Route::patch('/profile', [AuthController::class, 'updateProfile']);
@@ -75,6 +76,8 @@ Route::prefix('public')->group(function () {
     Route::put('/organization-periods/{period}', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'update']);
     Route::post('/organization-periods/{period}/approve', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'approve']);
     Route::post('/organization-periods/{period}/reject', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'reject']);
+    Route::post('/organization-periods/{period}/activate', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'activate']);
+    Route::post('/organization-periods/{period}/deactivate', [\App\Http\Controllers\Api\OrganizationPeriodController::class, 'deactivate']);
 
     Route::post('/users/{id}/activate', [UserController::class, 'activate']);
     Route::post('/users/{id}/deactivate', [UserController::class, 'deactivate']);

@@ -456,20 +456,26 @@ class FinalPublicPortalUatTest extends TestCase
             ->postJson("/api/organizations/{$this->org->id}/deactivate")
             ->assertStatus(200);
 
-        // 3. Public access returns 404
-        $this->getJson('/api/public/organizations/hmif')->assertStatus(404);
+        // 3. Task 2: Public access remains 200 (visible to public)
+        $this->getJson('/api/public/organizations/hmif')->assertStatus(200);
 
-        // 4. Directory excludes inactive organization
+        // 4. Directory still includes organization
         $resDir = $this->getJson('/api/public/organizations');
         $slugs = collect($resDir->json('data'))->pluck('subdomain')->all();
-        $this->assertNotContains('hmif', $slugs);
+        $this->assertContains('hmif', $slugs);
 
-        // 5. Super Admin reactivates organization
+        // 5. Internal user login is blocked
+        $this->postJson('/api/login', [
+            'email' => $this->adminOrg->email,
+            'password' => 'password123',
+        ])->assertStatus(403);
+
+        // 6. Super Admin reactivates organization
         $this->withHeader('Authorization', "Bearer {$superToken}")
             ->postJson("/api/organizations/{$this->org->id}/activate")
             ->assertStatus(200);
 
-        // 6. Public access restored
+        // 7. Public access still OK
         $this->getJson('/api/public/organizations/hmif')->assertStatus(200);
     }
 

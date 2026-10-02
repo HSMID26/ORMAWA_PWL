@@ -29,9 +29,14 @@ class PublicPortalTest extends TestCase
     {
         parent::setUp();
 
-        Role::firstOrCreate(['name' => 'Admin Organisasi', 'guard_name' => 'web']);
+        $adminRole = Role::firstOrCreate(['name' => 'Admin Organisasi', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'Editor', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'Kontributor', 'guard_name' => 'web']);
+
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'announcements.create', 'guard_name' => 'web']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'announcements.publish', 'guard_name' => 'web']);
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'announcements.view', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo(['announcements.create', 'announcements.publish', 'announcements.view']);
 
         $this->orgA = Organization::create([
             'nama' => 'UKM Robotik ITI',
@@ -128,7 +133,7 @@ class PublicPortalTest extends TestCase
         $this->assertEquals('Robotik Juara 1 Nasional', $articles[0]['judul']);
     }
 
-    public function test_guest_can_list_active_organizations_and_inactive_are_hidden(): void
+    public function test_guest_can_list_organizations_in_public_directory(): void
     {
         $response = $this->getJson('/api/public/organizations');
 
@@ -138,7 +143,7 @@ class PublicPortalTest extends TestCase
 
         $this->assertContains('robotik', $slugs);
         $this->assertContains('hmif', $slugs);
-        $this->assertNotContains('nonaktif', $slugs);
+        $this->assertContains('nonaktif', $slugs);
     }
 
     public function test_guest_can_view_organization_profile_by_slug(): void
@@ -156,13 +161,10 @@ class PublicPortalTest extends TestCase
         ]);
     }
 
-    public function test_guest_gets_404_for_non_existent_or_inactive_organization(): void
+    public function test_guest_gets_404_for_non_existent_organization(): void
     {
         $response404 = $this->getJson('/api/public/organizations/tidak-ada');
         $response404->assertStatus(404);
-
-        $responseInactive = $this->getJson('/api/public/organizations/nonaktif');
-        $responseInactive->assertStatus(404);
     }
 
     public function test_guest_can_view_published_articles_only(): void
@@ -446,7 +448,7 @@ class PublicPortalTest extends TestCase
             'status' => 'draft',
         ]);
 
-        // 3. Published post for Inactive Org (Must NOT appear)
+        // 3. Published post for Inactive Org (Task 2: Published content remains accessible)
         Post::create([
             'organization_id' => $this->inactiveOrg->id,
             'user_id' => $this->authorA->id,
@@ -461,11 +463,11 @@ class PublicPortalTest extends TestCase
 
         $response->assertStatus(200);
         $articles = $response->json('data');
-        $this->assertCount(1, $articles);
-        $this->assertEquals('Inovasi Robot Line Follower', $articles[0]['judul']);
-        $this->assertEquals('robotik', $articles[0]['organization']['subdomain']);
+        $this->assertCount(2, $articles);
+        $this->assertEquals('Inovasi Robot Line Follower', $articles[1]['judul']);
+        $this->assertEquals('robotik', $articles[1]['organization']['subdomain']);
         $this->assertArrayHasKey('meta', $response->json());
-        $this->assertEquals(1, $response->json('meta.total'));
+        $this->assertEquals(2, $response->json('meta.total'));
     }
 
     public function test_global_articles_filters_by_search_and_organization(): void
@@ -622,7 +624,7 @@ class PublicPortalTest extends TestCase
     public function test_announcement_end_to_end_lifecycle_and_visibility_rules(): void
     {
         // 1. Admin creates published announcement via admin API
-        $this->actingAs($this->authorA);
+        $this->actingAs($this->authorA, 'sanctum');
         $createRes = $this->postJson('/api/announcements', [
             'title' => 'Perekrutan Anggota Baru 2026',
             'content' => 'Perekrutan dibuka untuk seluruh mahasiswa angkatan baru.',
@@ -647,7 +649,7 @@ class PublicPortalTest extends TestCase
         $this->assertTrue(collect($globalRes->json('data'))->contains('title', 'Perekrutan Anggota Baru 2026'));
 
         // 3b. Announcement with null effective_date is immediately public
-        $this->actingAs($this->authorA);
+        $this->actingAs($this->authorA, 'sanctum');
         $nullDateRes = $this->postJson('/api/announcements', [
             'title' => 'Pengumuman Langsung Tayang',
             'content' => 'Pengumuman tanpa tanggal efektif harus langsung tayang.',
@@ -749,7 +751,7 @@ class PublicPortalTest extends TestCase
         $invalidDateRes->assertJsonValidationErrors(['expires_at']);
         $this->app['auth']->forgetGuards();
 
-        // 6. Inactive organization's announcement is hidden globally
+        // 6. Inactive organization's announcement remains visible globally per Task 2 requirements
         Announcement::create([
             'organization_id' => $this->inactiveOrg->id,
             'user_id' => $this->authorA->id,
@@ -760,7 +762,7 @@ class PublicPortalTest extends TestCase
             'status' => 'published',
         ]);
         $inactiveGlobalCheck = $this->getJson('/api/public/announcements');
-        $this->assertFalse(collect($inactiveGlobalCheck->json('data'))->contains('title', 'Inactive Org Announcement'));
+        $this->assertTrue(collect($inactiveGlobalCheck->json('data'))->contains('title', 'Inactive Org Announcement'));
 
         // 7. Disabled announcements module hides announcements from public org endpoint (404) & global hub
         $this->orgA->update(['modul_aktif' => ['announcements' => false, 'posts' => true]]);

@@ -301,8 +301,9 @@ const menuGroups = computed<MenuGroup[]>(() => {
   if (authStore.hasPermission('announcements.view')) {
     contentItems.push({ icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' })
   }
-  if (authStore.hasPermission('gallery.view')) {
-    contentItems.push({ icon: ImageIcon, name: 'Galeri', path: '/organization/gallery' })
+  if (authStore.hasPermission('gallery.view') || role === 'Admin Organisasi' || role === 'Editor') {
+    contentItems.push({ icon: FolderArchiveIcon, name: 'Media Library', path: '/organization/media' })
+    contentItems.push({ icon: ImageIcon, name: 'Galeri Publik', path: '/organization/gallery' })
   }
   if (authStore.hasPermission('documents.view')) {
     contentItems.push({ icon: FileIcon, name: 'Dokumen', path: '/organization/documents' })

@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Global Security Headers & HTTPS Enforcement
         $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
+
+        // Aliases
+        $middleware->alias([
+            'active.org' => \App\Http\Middleware\EnsureActiveOrganization::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

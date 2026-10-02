@@ -11,7 +11,7 @@
       >
         <!-- Full-Width Background Image -->
         <img
-          src="/images/campus/iti-campus-hero.jpg"
+          :src="heroImageUrl"
           alt="Institut Teknologi Indonesia dan kawasan kegiatan kemahasiswaan"
           class="absolute inset-0 w-full h-full object-cover object-center scale-100 transition-transform duration-700 motion-safe:hover:scale-[1.01]"
           loading="eager"
@@ -30,40 +30,42 @@
             <!-- Eyebrow Badge -->
             <div class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 backdrop-blur-xs px-3.5 py-1 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-white shadow-2xs">
               <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-              <span>PORTAL ORGANISASI KEMAHASISWAAN ITI</span>
+              <span>{{ platformSettings.heroBadge || 'PORTAL ORGANISASI KEMAHASISWAAN ITI' }}</span>
             </div>
 
             <!-- Headline H1 -->
-            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-white tracking-tight leading-[1.12] text-balance">
-              Temukan Organisasi,<br class="hidden sm:inline" />
-              Kegiatan, dan Kabar Mahasiswa
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-[52px] font-extrabold text-white tracking-tight leading-[1.12] text-balance whitespace-pre-line">
+              {{ platformSettings.heroTitle || 'Temukan Organisasi,\nKegiatan, dan Kabar Mahasiswa' }}
             </h1>
 
             <!-- Description -->
             <p class="text-sm sm:text-base text-white/90 max-w-xl leading-relaxed font-normal">
-              Platform resmi untuk menemukan organisasi mahasiswa, warta, agenda, dan informasi kemahasiswaan Institut Teknologi Indonesia.
+              {{ platformSettings.heroSubtitle || 'Platform resmi untuk menemukan organisasi mahasiswa, warta, agenda, dan informasi kemahasiswaan Institut Teknologi Indonesia.' }}
             </p>
 
             <!-- Actions -->
             <div class="pt-2 flex flex-wrap items-center gap-3.5">
               <router-link
-                to="/organizations"
+                :to="platformSettings.heroCtaLink || '/organizations'"
                 class="rounded-lg bg-white text-[#00346F] hover:bg-[#F3F4F5] px-6 py-3 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white flex items-center gap-2"
               >
-                <span>Jelajahi Organisasi</span>
+                <span>{{ platformSettings.heroCtaText || 'Jelajahi Organisasi' }}</span>
                 <span>&rarr;</span>
               </router-link>
 
               <router-link
-                to="/berita"
+                :to="platformSettings.heroSecondaryCtaLink || '/berita'"
                 class="rounded-lg border border-white/30 bg-white/10 backdrop-blur-xs hover:bg-white/20 px-5 py-3 text-xs sm:text-sm font-semibold text-white transition duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white shadow-2xs"
               >
-                Lihat Berita
+                {{ platformSettings.heroSecondaryCtaText || 'Lihat Berita' }}
               </router-link>
             </div>
 
             <!-- Live Compact Fact Strip (Counters) -->
-            <div class="pt-4 border-t border-white/20 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/85 font-medium">
+            <div
+              v-if="platformSettings.showStatsSection !== false"
+              class="pt-4 border-t border-white/20 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/85 font-medium"
+            >
               <div class="flex items-center gap-1.5">
                 <span class="font-bold text-white">{{ stats.total_organizations }}</span>
                 <span>Organisasi Terdaftar</span>
@@ -85,7 +87,10 @@
       </section>
 
       <!-- ─── 02. PRIMARY PUBLIC NAVIGATION ("Jelajahi Portal") ─────── -->
-      <section class="py-10 sm:py-12 bg-white border-y border-[#C2C6D3]">
+      <section
+        v-if="platformSettings.showQuickLinks !== false"
+        class="py-10 sm:py-12 bg-white border-y border-[#C2C6D3]"
+      >
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           
           <div>
@@ -190,14 +195,21 @@
       </section>
 
       <!-- ─── 03. SHORT INSTITUTIONAL INTRODUCTION ──────────────────── -->
-      <section class="py-12 sm:py-16 bg-[#F8F9FA]">
+      <section
+        v-if="platformSettings.showIntroSection !== false"
+        class="py-12 sm:py-16 bg-[#F8F9FA]"
+      >
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           
           <div class="max-w-2xl space-y-2">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-[#00346F]">Pusat Kemahasiswaan ITI</span>
-            <h2 class="text-2xl sm:text-3xl font-extrabold text-[#191C1D]">Ekosistem Organisasi Mahasiswa ITI</h2>
-            <p class="text-xs sm:text-sm text-[#424751] leading-relaxed">
-              ORMAWA ITI menghimpun informasi publik organisasi mahasiswa Institut Teknologi Indonesia dalam satu portal yang terintegrasi, transparan, dan mudah diakses.
+            <span class="text-[11px] font-bold uppercase tracking-wider text-[#00346F]">
+              {{ platformSettings.introBadge || 'Pusat Kemahasiswaan ITI' }}
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-[#191C1D]">
+              {{ platformSettings.introTitle || 'Ekosistem Organisasi Mahasiswa ITI' }}
+            </h2>
+            <p class="text-xs sm:text-sm text-[#424751] leading-relaxed whitespace-pre-line">
+              {{ platformSettings.introDescription || 'ORMAWA ITI menghimpun informasi publik organisasi mahasiswa Institut Teknologi Indonesia dalam satu portal yang terintegrasi, transparan, dan mudah diakses.' }}
             </p>
           </div>
 
@@ -245,16 +257,17 @@
 
     </main>
 
-    <PublicFooter />
+    <PublicFooter :platformSettings="platformSettings" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import PublicNavbar from '@/components/public/PublicNavbar.vue'
 import PublicFooter from '@/components/public/PublicFooter.vue'
 import { publicService } from '@/services/publicService'
 import { useSeoMeta } from '@/composables/useSeoMeta'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 const stats = ref({
   total_organizations: 0,
@@ -262,7 +275,55 @@ const stats = ref({
   total_agenda: 0,
 })
 
-const isLoadingStats = ref(true)
+interface PlatformSettingsState {
+  heroBadge?: string
+  heroTitle?: string
+  heroSubtitle?: string
+  heroImage?: string | null
+  heroCtaText?: string
+  heroCtaLink?: string
+  heroSecondaryCtaText?: string
+  heroSecondaryCtaLink?: string
+  introBadge?: string
+  introTitle?: string
+  introDescription?: string
+  showStatsSection?: boolean
+  showIntroSection?: boolean
+  showQuickLinks?: boolean
+  showLatestArticles?: boolean
+  showUpcomingAgenda?: boolean
+  showAnnouncements?: boolean
+  [key: string]: any
+}
+
+const platformSettings = ref<PlatformSettingsState>({
+  heroBadge: 'PORTAL ORGANISASI KEMAHASISWAAN ITI',
+  heroTitle: 'Temukan Organisasi,\nKegiatan, dan Kabar Mahasiswa',
+  heroSubtitle: 'Platform resmi untuk menemukan organisasi mahasiswa, warta, agenda, dan informasi kemahasiswaan Institut Teknologi Indonesia.',
+  heroImage: null,
+  heroCtaText: 'Jelajahi Organisasi',
+  heroCtaLink: '/organizations',
+  heroSecondaryCtaText: 'Lihat Berita',
+  heroSecondaryCtaLink: '/berita',
+  introBadge: 'Pusat Kemahasiswaan ITI',
+  introTitle: 'Ekosistem Organisasi Mahasiswa ITI',
+  introDescription: 'ORMAWA ITI menghimpun informasi publik organisasi mahasiswa Institut Teknologi Indonesia dalam satu portal yang terintegrasi, transparan, dan mudah diakses.',
+  showStatsSection: true,
+  showIntroSection: true,
+  showQuickLinks: true,
+  showLatestArticles: true,
+  showUpcomingAgenda: true,
+  showAnnouncements: true,
+})
+
+const heroImageUrl = computed(() => {
+  if (platformSettings.value.heroImage) {
+    return resolveImageUrl(platformSettings.value.heroImage)
+  }
+  return '/images/campus/iti-campus-hero.jpg'
+})
+
+const isLoading = ref(true)
 
 onMounted(async () => {
   try {
@@ -274,16 +335,19 @@ onMounted(async () => {
         total_agenda: data.stats.total_agenda ?? 0,
       }
     }
+    if (data?.platform_settings) {
+      platformSettings.value = { ...platformSettings.value, ...data.platform_settings }
+    }
   } catch (err) {
     console.error('Failed to load portal stats:', err)
   } finally {
-    isLoadingStats.value = false
+    isLoading.value = false
   }
 })
 
 useSeoMeta(() => ({
   title: 'Portal Kemahasiswaan — ORMAWA ITI',
-  description: 'Platform resmi untuk menemukan organisasi mahasiswa, warta, agenda, dan informasi kemahasiswaan Institut Teknologi Indonesia.',
+  description: platformSettings.value.heroSubtitle || 'Platform resmi untuk menemukan organisasi mahasiswa, warta, agenda, dan informasi kemahasiswaan Institut Teknologi Indonesia.',
   ogType: 'website',
   jsonLd: {
     '@context': 'https://schema.org',

@@ -96,59 +96,54 @@ class OrganizationPeriodController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Validation against overlap if it's active immediately? 
-        // Renewal is pending, but Super Admin might setup active directly if "Set Initial Period".
-        $status = auth()->user()->hasRole('Super Admin') ? 'active' : 'pending';
-        
-        // Cek overlap jika akan langsung aktif
-        if ($status === 'active') {
-             $overlap = $organization->periods()->where('status', 'active')
-                  ->where(function($q) use ($validated) {
-                       $q->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                         ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                         ->orWhere(function($q2) use ($validated) {
-                              $q2->where('start_date', '<=', $validated['start_date'])
-                                 ->where('end_date', '>=', $validated['end_date']);
-                         });
-                  })->exists();
-                  
-             if ($overlap) {
-                 return response()->json(['message' => 'Tanggal periode bertabrakan dengan periode lain pada organisasi ini.'], 422);
-             }
-        }
+        return DB::transaction(function () use ($organization, $validated, $user, $request) {
+            $status = $user->hasRole('Super Admin') ? 'active' : 'pending';
+            if ($request->has('status') && in_array($request->status, ['active', 'pending', 'expired', 'rejected'])) {
+                if ($user->hasRole('Super Admin')) {
+                    $status = $request->status;
+                }
+            }
 
-        $period = $organization->periods()->create([
-            'period_name' => trim($validated['period_name']),
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'status' => $status,
-            'notes' => $validated['notes'] ?? null,
-            'approved_by' => $status === 'active' ? auth()->id() : null,
-            'approved_at' => $status === 'active' ? now() : null,
-        ]);
+            // If active, deactivate any previous active periods for this organization
+            if ($status === 'active') {
+                OrganizationPeriod::where('organization_id', $organization->id)
+                    ->where('status', 'active')
+                    ->update(['status' => 'expired']);
+            }
 
-        if ($status === 'pending') {
-            ActivityLogService::log('create', 'organization_periods', 'Mengajukan perpanjangan periode: ' . $period->period_name, clone $period);
-            
-            // Notify Super Admin
-            NotificationService::sendToSuperAdmins(
-                'period_renewal_submitted',
-                'Pengajuan Perpanjangan Periode',
-                "{$organization->nama} mengajukan perpanjangan periode {$period->period_name}.",
-                '/super-admin/organizations/periods',
-                ['organization_id' => $organization->id, 'period_id' => $period->id]
-            );
-        } else {
-            ActivityLogService::log('create', 'organization_periods', 'Menyiapkan periode awal: ' . $period->period_name, clone $period);
-        }
+            $period = $organization->periods()->create([
+                'period_name' => trim($validated['period_name']),
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'status' => $status,
+                'notes' => $validated['notes'] ?? null,
+                'approved_by' => $status === 'active' ? $user->id : null,
+                'approved_at' => $status === 'active' ? now() : null,
+            ]);
 
-        $period->load(['reviewer', 'organization']);
+            if ($status === 'pending') {
+                ActivityLogService::log('create', 'organization_periods', 'Mengajukan perpanjangan periode: ' . $period->period_name, clone $period);
+                
+                // Notify Super Admin
+                NotificationService::sendToSuperAdmins(
+                    'period_renewal_submitted',
+                    'Pengajuan Perpanjangan Periode',
+                    "{$organization->nama} mengajukan perpanjangan periode {$period->period_name}.",
+                    '/super-admin/periods',
+                    ['organization_id' => $organization->id, 'period_id' => $period->id]
+                );
+            } else {
+                ActivityLogService::log('create', 'organization_periods', 'Menyiapkan periode: ' . $period->period_name, clone $period);
+            }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => $status === 'active' ? 'Periode berhasil ditambahkan.' : 'Pengajuan periode berhasil dikirim.',
-            'data' => $period
-        ], 201);
+            $period->load(['reviewer', 'organization']);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $status === 'active' ? 'Periode berhasil ditambahkan dan berstatus aktif.' : 'Pengajuan periode berhasil dikirim.',
+                'data' => $period
+            ], 201);
+        });
     }
 
     /**
@@ -259,7 +254,7 @@ class OrganizationPeriodController extends Controller
     }
 
     /**
-     * Super Admin Approve
+     * Super Admin Approve (Automatically deactivates any previously active period)
      */
     public function approve($id)
     {
@@ -267,55 +262,124 @@ class OrganizationPeriodController extends Controller
             abort(403, 'Hanya Super Admin yang dapat melakukan persetujuan.');
         }
 
-        $period = OrganizationPeriod::with('organization.users')->findOrFail($id);
+        return DB::transaction(function () use ($id) {
+            $period = OrganizationPeriod::with('organization.users')->findOrFail($id);
 
-        if ($period->status === 'active') {
-            return response()->json(['message' => 'Periode ini sudah aktif.'], 422);
+            if ($period->status === 'active') {
+                return response()->json(['message' => 'Periode ini sudah aktif.'], 422);
+            }
+
+            // Deactivate any currently active periods for this organization
+            OrganizationPeriod::where('organization_id', $period->organization_id)
+                ->where('id', '!=', $period->id)
+                ->where('status', 'active')
+                ->update(['status' => 'expired']);
+
+            $period->update([
+                'status' => 'active',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+
+            ActivityLogService::log('approve', 'organization_periods', 'Persetujuan perpanjangan periode: ' . $period->period_name, clone $period);
+
+            // Notify Admin Organisasi
+            $adminUsers = $period->organization->users()->whereHas('roles', function($q) {
+                $q->where('name', 'Admin Organisasi');
+            })->get();
+
+            foreach ($adminUsers as $admin) {
+                NotificationService::send(
+                    $admin,
+                    'period_renewal_approved',
+                    'Periode Disetujui',
+                    "Periode {$period->period_name} organisasi {$period->organization->nama} telah disetujui dan berstatus Aktif.",
+                    '/organization/period'
+                );
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Periode berhasil disetujui dan diaktifkan. Periode aktif sebelumnya otomatis dinonaktifkan.',
+                'data' => $period->load(['organization', 'reviewer'])
+            ]);
+        });
+    }
+
+    /**
+     * Super Admin Activate Period
+     */
+    public function activate($id)
+    {
+        if (!auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Hanya Super Admin yang diizinkan mengaktifkan periode.');
         }
 
-        // Cek overlap
-        $overlap = $period->organization->periods()->where('status', 'active')
-            ->where(function($q) use ($period) {
-                $q->whereBetween('start_date', [$period->start_date, $period->end_date])
-                  ->orWhereBetween('end_date', [$period->start_date, $period->end_date])
-                  ->orWhere(function($q2) use ($period) {
-                       $q2->where('start_date', '<=', $period->start_date)
-                          ->where('end_date', '>=', $period->end_date);
-                  });
-            })->exists();
+        return DB::transaction(function () use ($id) {
+            $period = OrganizationPeriod::with('organization.users')->findOrFail($id);
 
-        if ($overlap) {
-            return response()->json(['message' => 'Gagal approve: Tanggal periode ini tumpang tindih dengan periode aktif lain milik organisasi ini.'], 422);
-        }
+            // Deactivate any currently active periods for this organization
+            OrganizationPeriod::where('organization_id', $period->organization_id)
+                ->where('id', '!=', $period->id)
+                ->where('status', 'active')
+                ->update(['status' => 'expired']);
 
-        $period->update([
-            'status' => 'active',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
+            $period->update([
+                'status' => 'active',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
 
-        ActivityLogService::log('approve', 'organization_periods', 'Persetujuan perpanjangan periode: ' . $period->period_name, clone $period);
+            ActivityLogService::log('period_activate', 'organization_periods', 'Super Admin mengaktifkan periode: ' . $period->period_name, clone $period);
 
-        // Notify Admin Organisasi
-        $adminUsers = $period->organization->users()->whereHas('roles', function($q) {
-            $q->where('name', 'Admin Organisasi');
-        })->get();
-
-        foreach ($adminUsers as $admin) {
-            NotificationService::send(
-                $admin,
-                'period_renewal_approved',
-                'Periode Disetujui',
-                "Periode {$period->period_name} organisasi {$period->organization->nama} telah disetujui.",
+            NotificationService::sendToOrganizationAdmins(
+                $period->organization_id,
+                'period_activated',
+                'Periode Diaktifkan',
+                "Periode {$period->period_name} organisasi {$period->organization->nama} telah diaktifkan oleh Super Admin.",
                 '/organization/period'
             );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Periode berhasil diaktifkan. Periode aktif sebelumnya otomatis dinonaktifkan.',
+                'data' => $period->load(['organization', 'reviewer'])
+            ]);
+        });
+    }
+
+    /**
+     * Super Admin Deactivate Period
+     */
+    public function deactivate($id)
+    {
+        if (!auth()->user()->hasRole('Super Admin')) {
+            abort(403, 'Hanya Super Admin yang diizinkan menonaktifkan periode.');
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Periode berhasil disetujui.',
-            'data' => $period
-        ]);
+        return DB::transaction(function () use ($id) {
+            $period = OrganizationPeriod::with('organization.users')->findOrFail($id);
+
+            $period->update([
+                'status' => 'expired',
+            ]);
+
+            ActivityLogService::log('period_deactivate', 'organization_periods', 'Super Admin menonaktifkan periode: ' . $period->period_name, clone $period);
+
+            NotificationService::sendToOrganizationAdmins(
+                $period->organization_id,
+                'period_deactivated',
+                'Periode Dinonaktifkan',
+                "Periode {$period->period_name} organisasi {$period->organization->nama} telah dinonaktifkan oleh Super Admin.",
+                '/organization/period'
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Periode berhasil dinonaktifkan.',
+                'data' => $period->load(['organization', 'reviewer'])
+            ]);
+        });
     }
 
     /**

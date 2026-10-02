@@ -60,6 +60,7 @@ class AnnouncementController extends Controller
         }
 
         $announcement = Announcement::create([
+            'organization_id'  => $user->organization_id,
             'user_id'          => $user->id,
             'title'            => $request->title,
             'slug'             => Str::slug($request->title) . '-' . Str::random(5),

@@ -99,12 +99,12 @@ class OrganizationMicrositeTest extends TestCase
         ]);
     }
 
-    public function test_inactive_organization_returns_404(): void
+    public function test_inactive_organization_remains_visible_on_public_portal(): void
     {
         $this->org->update(['status' => 'inactive']);
 
         $response = $this->getJson('/api/public/organizations/hmps-ti');
-        $response->assertStatus(404);
+        $response->assertStatus(200);
     }
 
     public function test_disabled_public_website_returns_unavailable_status(): void

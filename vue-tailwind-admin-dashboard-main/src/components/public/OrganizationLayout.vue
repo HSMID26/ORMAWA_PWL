@@ -49,7 +49,7 @@
       <main id="main-content" class="flex-grow">
         <router-view :organization="org" />
       </main>
-      <PublicFooter />
+      <PublicFooter :organization="org" />
     </template>
   </div>
 </template>

@@ -41,6 +41,16 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Cek jika organisasi nonaktif (Task 2)
+        if ($user->organization_id && !$user->hasRole('Super Admin')) {
+            $organization = $user->organization;
+            if ($organization && $organization->status === 'inactive') {
+                return response()->json([
+                    'message' => 'Organisasi Anda sedang dinonaktifkan oleh Super Admin. Akses dashboard dan manajemen internal tidak tersedia.',
+                ], 403);
+            }
+        }
+
         // Generate Sanctum Token with Expiration
         $expirationMinutes = config('sanctum.expiration', 1440);
         $expiresAt = $expirationMinutes ? now()->addMinutes($expirationMinutes) : null;

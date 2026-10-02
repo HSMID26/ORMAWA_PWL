@@ -38,6 +38,16 @@ export const organizationPeriodService = {
     return data.data
   },
 
+  async activatePeriod(id: number) {
+    const { data } = await api.post<ApiSingleResponse<OrganizationPeriod>>(`/organization-periods/${id}/activate`)
+    return data.data
+  },
+
+  async deactivatePeriod(id: number) {
+    const { data } = await api.post<ApiSingleResponse<OrganizationPeriod>>(`/organization-periods/${id}/deactivate`)
+    return data.data
+  },
+
   async rejectPeriod(id: number, reason: string) {
     const { data } = await api.post<ApiSingleResponse<OrganizationPeriod>>(`/organization-periods/${id}/reject`, { reason })
     return data.data

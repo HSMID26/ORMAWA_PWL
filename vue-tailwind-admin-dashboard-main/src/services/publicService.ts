@@ -9,6 +9,7 @@ import type {
   PublicCommittee,
   PublicHomeSummary,
   PublicPaginationMeta,
+  PlatformSettings,
 } from '@/types/public'
 
 export interface PublicPaginationResponse<T> {
@@ -21,6 +22,12 @@ export const publicService = {
   // GET /api/public/home
   async getHome(): Promise<PublicHomeSummary> {
     const res = await apiClient.get('/public/home')
+    return res.data.data
+  },
+
+  // GET /api/public/platform-settings
+  async getPlatformSettings(): Promise<PlatformSettings> {
+    const res = await apiClient.get('/public/platform-settings')
     return res.data.data
   },
 

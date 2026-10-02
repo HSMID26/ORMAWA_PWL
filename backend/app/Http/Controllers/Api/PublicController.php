@@ -22,11 +22,10 @@ class PublicController extends Controller
     private function resolveOrganization(string $slug): Organization
     {
         $org = Organization::where('subdomain', strtolower(trim($slug)))
-            ->where('status', 'active')
             ->first();
 
         if (!$org) {
-            abort(404, 'Organisasi tidak ditemukan atau belum aktif.');
+            abort(404, 'Organisasi tidak ditemukan.');
         }
 
         return $org;
@@ -51,8 +50,15 @@ class PublicController extends Controller
             'documents' => ['documents', 'dokumen'],
             'dokumen' => ['documents', 'dokumen'],
             'posts' => ['posts', 'berita', 'articles'],
+            'berita' => ['posts', 'berita', 'articles'],
+            'articles' => ['posts', 'berita', 'articles'],
             'agenda' => ['agenda', 'kegiatan', 'activities'],
-            'structure' => ['structure', 'struktur'],
+            'kegiatan' => ['agenda', 'kegiatan', 'activities'],
+            'activities' => ['agenda', 'kegiatan', 'activities'],
+            'structure' => ['structure', 'struktur', 'pengurus'],
+            'struktur' => ['structure', 'struktur', 'pengurus'],
+            'contact' => ['contact', 'kontak'],
+            'kontak' => ['contact', 'kontak'],
         ];
 
         $keysToCheck = $aliasMap[$moduleKey] ?? [$moduleKey];
@@ -82,14 +88,30 @@ class PublicController extends Controller
     }
 
     /**
+     * GET /api/public/platform-settings
+     * Public platform settings including homepage customization and platform footer
+     */
+    public function platformSettings()
+    {
+        $defaults = \App\Http\Controllers\Api\PlatformSettingController::getDefaultSettings();
+        $cachedSettings = \Illuminate\Support\Facades\Cache::get(\App\Http\Controllers\Api\PlatformSettingController::CACHE_KEY, []);
+        $platformSettings = array_merge($defaults, is_array($cachedSettings) ? $cachedSettings : []);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $platformSettings,
+        ]);
+    }
+
+    /**
      * 1. GET /api/public/home
      * Aggregated portal homepage data
      */
     public function home()
     {
-        // 1. Active Organizations for Directory Preview
-        $organizations = Organization::where('status', 'active')
-            ->select(['id', 'nama', 'jenis', 'subdomain', 'logo', 'warna_tema', 'modul_aktif'])
+        // 1. Organizations for Directory Preview (Active & Inactive visible in public directory)
+        $organizations = Organization::query()
+            ->select(['id', 'nama', 'jenis', 'subdomain', 'logo', 'warna_tema', 'modul_aktif', 'status'])
             ->withCount([
                 'posts' => fn($q) => $q->where('status', 'published'),
                 'activities' => fn($q) => $q->where('status', 'published'),
@@ -105,6 +127,7 @@ class PublicController extends Controller
                     'subdomain' => $org->subdomain,
                     'logo' => $org->logo,
                     'warna_tema' => $org->warna_tema,
+                    'status' => $org->status,
                     'slogan' => $org->modul_aktif['slogan'] ?? null,
                     'deskripsi' => $org->modul_aktif['deskripsi'] ?? null,
                     'posts_count' => $org->posts_count,
@@ -115,7 +138,6 @@ class PublicController extends Controller
         // 2. Featured / Latest Published Articles
         $articles = Post::withoutGlobalScopes()
             ->where('status', 'published')
-            ->whereHas('organization', fn($q) => $q->where('status', 'active'))
             ->with([
                 'organization:id,nama,subdomain,logo,warna_tema',
                 'user:id,name',
@@ -132,7 +154,6 @@ class PublicController extends Controller
         $agenda = Activity::withoutGlobalScopes()
             ->where('status', 'published')
             ->whereDate('tanggal_pelaksanaan', '>=', $today)
-            ->whereHas('organization', fn($q) => $q->where('status', 'active'))
             ->with('organization:id,nama,subdomain,logo,warna_tema')
             ->orderBy('tanggal_pelaksanaan', 'asc')
             ->take(6)
@@ -152,8 +173,7 @@ class PublicController extends Controller
                   ->orWhereDate('expires_at', '>=', $today);
             })
             ->whereHas('organization', function ($q) {
-                $q->where('status', 'active')
-                  ->where(function ($sub) {
+                $q->where(function ($sub) {
                       $sub->whereNull('modul_aktif->announcements')
                           ->orWhere('modul_aktif->announcements', '!=', false);
                   })
@@ -174,6 +194,10 @@ class PublicController extends Controller
             ->get()
             ->map(fn($ann) => $this->formatAnnouncement($ann));
 
+        $defaults = \App\Http\Controllers\Api\PlatformSettingController::getDefaultSettings();
+        $cachedSettings = \Illuminate\Support\Facades\Cache::get(\App\Http\Controllers\Api\PlatformSettingController::CACHE_KEY, []);
+        $platformSettings = array_merge($defaults, is_array($cachedSettings) ? $cachedSettings : []);
+
         return response()->json([
             'status' => 'success',
             'data' => [
@@ -181,8 +205,9 @@ class PublicController extends Controller
                 'featured_articles' => $articles,
                 'upcoming_agenda' => $agenda,
                 'active_announcements' => $announcements,
+                'platform_settings' => $platformSettings,
                 'stats' => [
-                    'total_organizations' => Organization::where('status', 'active')->count(),
+                    'total_organizations' => Organization::count(),
                     'total_articles' => Post::withoutGlobalScopes()->where('status', 'published')->count(),
                     'total_agenda' => Activity::withoutGlobalScopes()->where('status', 'published')->count(),
                 ]
@@ -196,8 +221,8 @@ class PublicController extends Controller
      */
     public function organizations(Request $request)
     {
-        $query = Organization::where('status', 'active')
-            ->select(['id', 'nama', 'jenis', 'subdomain', 'logo', 'warna_tema', 'modul_aktif'])
+        $query = Organization::query()
+            ->select(['id', 'nama', 'jenis', 'subdomain', 'logo', 'warna_tema', 'modul_aktif', 'status'])
             ->withCount([
                 'posts' => fn($q) => $q->where('status', 'published'),
                 'activities' => fn($q) => $q->where('status', 'published'),
@@ -227,6 +252,7 @@ class PublicController extends Controller
                 'subdomain' => $org->subdomain,
                 'logo' => $org->logo,
                 'warna_tema' => $org->warna_tema,
+                'status' => $org->status,
                 'slogan' => $org->modul_aktif['slogan'] ?? null,
                 'deskripsi' => $org->modul_aktif['deskripsi'] ?? null,
                 'posts_count' => $org->posts_count,
@@ -256,8 +282,7 @@ class PublicController extends Controller
         $query = Post::withoutGlobalScopes()
             ->where('status', 'published')
             ->whereHas('organization', function ($q) {
-                $q->where('status', 'active')
-                  ->where(function ($sub) {
+                $q->where(function ($sub) {
                       $sub->whereNull('modul_aktif->posts')
                           ->orWhere('modul_aktif->posts', true);
                   })
@@ -353,8 +378,7 @@ class PublicController extends Controller
     {
         $categories = Category::withoutGlobalScopes()
             ->whereHas('posts', function ($q) {
-                $q->where('status', 'published')
-                  ->whereHas('organization', fn($o) => $o->where('status', 'active'));
+                $q->where('status', 'published');
             })
             ->select(['id', 'name', 'slug'])
             ->distinct()
@@ -376,8 +400,7 @@ class PublicController extends Controller
         $query = Activity::withoutGlobalScopes()
             ->where('status', 'published')
             ->whereHas('organization', function ($q) {
-                $q->where('status', 'active')
-                  ->where(function ($sub) {
+                $q->where(function ($sub) {
                       $sub->whereNull('modul_aktif->agenda')
                           ->orWhere('modul_aktif->agenda', true);
                   })
@@ -464,8 +487,7 @@ class PublicController extends Controller
                   ->orWhereDate('expires_at', '>=', $today);
             })
             ->whereHas('organization', function ($q) {
-                $q->where('status', 'active')
-                  ->where(function ($sub) {
+                $q->where(function ($sub) {
                       $sub->whereNull('modul_aktif->announcements')
                           ->orWhere('modul_aktif->announcements', '!=', false);
                   })
@@ -604,10 +626,22 @@ class PublicController extends Controller
                 'alamat' => $org->alamat ?? null,
                 'media_sosial' => $org->media_sosial ?? ($modules['media_sosial'] ?? [
                     'instagram' => $modules['instagram'] ?? null,
+                    'facebook' => $modules['facebook'] ?? null,
+                    'youtube' => $modules['youtube'] ?? null,
+                    'tiktok' => $modules['tiktok'] ?? null,
+                    'linkedin' => $modules['linkedin'] ?? null,
                     'website' => $modules['website_eksternal'] ?? null,
+                    'whatsapp' => $modules['whatsapp'] ?? null,
                 ]),
-                'instagram' => $modules['instagram'] ?? ($org->media_sosial['instagram'] ?? null),
-                'website_eksternal' => $modules['website_eksternal'] ?? ($org->media_sosial['website'] ?? null),
+                'instagram' => $org->media_sosial['instagram'] ?? ($modules['instagram'] ?? null),
+                'facebook' => $org->media_sosial['facebook'] ?? ($modules['facebook'] ?? null),
+                'youtube' => $org->media_sosial['youtube'] ?? ($modules['youtube'] ?? null),
+                'tiktok' => $org->media_sosial['tiktok'] ?? ($modules['tiktok'] ?? null),
+                'linkedin' => $org->media_sosial['linkedin'] ?? ($modules['linkedin'] ?? null),
+                'website_eksternal' => $org->media_sosial['website'] ?? ($modules['website_eksternal'] ?? null),
+                'copyright' => $modules['copyright'] ?? ($modules['footer_copyright'] ?? null),
+                'footer_copyright' => $modules['copyright'] ?? ($modules['footer_copyright'] ?? null),
+                'footer_description' => $modules['footer_description'] ?? ($modules['deskripsi'] ?? null),
                 'label_menu' => $org->label_menu ?? [],
                 'ga_tracking_id' => $org->ga_tracking_id ?? null,
                 'seo_title' => $modules['seo_title'] ?? "{$org->nama} | ORMAWA ITI",
@@ -1049,8 +1083,8 @@ class PublicController extends Controller
         $urls[] = ['loc' => "{$appUrl}/", 'priority' => '1.0', 'changefreq' => 'daily'];
         $urls[] = ['loc' => "{$appUrl}/organizations", 'priority' => '0.9', 'changefreq' => 'daily'];
 
-        // Active Organizations
-        $activeOrgs = Organization::where('status', 'active')->get();
+        // All Organizations
+        $activeOrgs = Organization::all();
         foreach ($activeOrgs as $org) {
             $modules = $org->modul_aktif ?? [];
             if (($modules['public_website_enabled'] ?? true) === false) {
@@ -1077,10 +1111,9 @@ class PublicController extends Controller
             }
         }
 
-        // Published Articles (Only from active orgs with posts module enabled)
+        // Published Articles (Only from orgs with posts module enabled)
         $articles = Post::withoutGlobalScopes()
             ->where('status', 'published')
-            ->whereHas('organization', fn($q) => $q->where('status', 'active'))
             ->with('organization:id,subdomain,modul_aktif')
             ->get();
 

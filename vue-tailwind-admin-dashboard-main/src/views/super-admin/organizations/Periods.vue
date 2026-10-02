@@ -214,6 +214,26 @@
                       Edit
                     </button>
 
+                    <!-- Active Toggle: Deactivate Button -->
+                    <button 
+                      v-if="period.status === 'active'" 
+                      @click="deactivatePeriod(period.id)" 
+                      class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20 transition-colors"
+                      title="Nonaktifkan Periode"
+                    >
+                      Nonaktifkan
+                    </button>
+
+                    <!-- Inactive Toggle: Activate Button -->
+                    <button 
+                      v-else-if="period.status !== 'pending'" 
+                      @click="activatePeriod(period.id)" 
+                      class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 transition-colors"
+                      title="Jadikan Aktif (Otomatis nonaktifkan periode aktif lain)"
+                    >
+                      Aktifkan
+                    </button>
+
                     <!-- Approve Button (if pending) -->
                     <button 
                       v-if="period.status === 'pending'" 
@@ -704,14 +724,38 @@ const executeSubmit = async () => {
 }
 
 const approvePeriod = async (id: number) => {
-    if (!confirm('Setujui pengajuan perpanjangan periode ini?')) return
+    if (!confirm('Setujui pengajuan perpanjangan periode ini? Periode aktif sebelumnya akan otomatis dinonaktifkan.')) return
     
     try {
         await organizationPeriodService.approvePeriod(id)
-        toastStore.success('Periode berhasil disetujui.')
+        toastStore.success('Periode berhasil disetujui dan diaktifkan.')
         await loadData()
     } catch (error: any) {
         toastStore.error(error.response?.data?.message || 'Gagal menyetujui periode.')
+    }
+}
+
+const activatePeriod = async (id: number) => {
+    if (!confirm('Aktifkan periode ini? Periode aktif sebelumnya untuk organisasi ini akan otomatis dinonaktifkan.')) return
+    
+    try {
+        await organizationPeriodService.activatePeriod(id)
+        toastStore.success('Periode berhasil diaktifkan.')
+        await loadData()
+    } catch (error: any) {
+        toastStore.error(error.response?.data?.message || 'Gagal mengaktifkan periode.')
+    }
+}
+
+const deactivatePeriod = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin menonaktifkan periode ini?')) return
+    
+    try {
+        await organizationPeriodService.deactivatePeriod(id)
+        toastStore.success('Periode berhasil dinonaktifkan.')
+        await loadData()
+    } catch (error: any) {
+        toastStore.error(error.response?.data?.message || 'Gagal menonaktifkan periode.')
     }
 }
 
