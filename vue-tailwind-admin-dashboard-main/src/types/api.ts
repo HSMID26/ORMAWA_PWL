@@ -61,6 +61,7 @@ export interface UserProfile {
   avatar?: string | null
   role: string
   permissions?: string[]
+  two_factor_enabled?: boolean
   status?: string
   organization_id?: number | null
   organization?: Organization | null
@@ -70,9 +71,20 @@ export interface UserProfile {
 
 export interface AuthResponse {
   message: string
-  access_token: string
-  token_type: string
-  user: UserProfile
+  access_token?: string
+  token_type?: string
+  user?: UserProfile
+  status?: string
+  mfa_required?: boolean
+  mfa_token?: string
+}
+
+export interface MfaSetupResponse {
+  status: string
+  secret: string
+  otpauth_url: string
+  recovery_codes: string[]
+  current_otp?: string
 }
 
 export interface ApiListResponse<T> {

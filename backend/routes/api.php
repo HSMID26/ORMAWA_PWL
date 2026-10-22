@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\PublicController;
 
 // Public Routes (Accessible without Authentication)
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+Route::post('/mfa/verify', [AuthController::class, 'verifyMfa'])->middleware('throttle:5,1');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 Route::post('/register/organization', [\App\Http\Controllers\Api\OrganizationRegistrationController::class, 'store'])->middleware('throttle:10,1');
@@ -50,8 +51,14 @@ Route::prefix('public')->group(function () {
     Route::get('/profile', [AuthController::class, 'me']);
     Route::patch('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/profile', [AuthController::class, 'updateProfile']);
-    Route::put('/password', [AuthController::class, 'updatePassword']);
-    Route::patch('/password', [AuthController::class, 'updatePassword']);
+    Route::put('/password', [AuthController::class, 'updatePassword'])->middleware('throttle:6,1');
+    Route::patch('/password', [AuthController::class, 'updatePassword'])->middleware('throttle:6,1');
+
+    // MFA Management
+    Route::post('/mfa/setup', [AuthController::class, 'setupMfa']);
+    Route::post('/mfa/confirm', [AuthController::class, 'confirmMfa'])->middleware('throttle:5,1');
+    Route::post('/mfa/disable', [AuthController::class, 'disableMfa'])->middleware('throttle:5,1');
+    Route::post('/mfa/recovery-codes', [AuthController::class, 'regenerateRecoveryCodes'])->middleware('throttle:5,1');
 
     // API Media Library Management
     Route::get('/media', [MediaController::class, 'index']);
