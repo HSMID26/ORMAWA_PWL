@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ActivityController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\AnnouncementController;
+use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\CommitteeController;
@@ -154,9 +155,16 @@ Route::prefix('public')->group(function () {
     Route::get('/tags', [TagController::class, 'index'])->name('api.tags.index');
     Route::post('/tags', [TagController::class, 'store'])->name('api.tags.store');
 
+    // Members / Manajemen Anggota
+    Route::get('/members/template', [MemberController::class, 'template'])->name('api.members.template');
+    Route::get('/members/export', [MemberController::class, 'export'])->name('api.members.export');
+    Route::post('/members/import', [MemberController::class, 'import'])->name('api.members.import');
+    Route::apiResource('/members', MemberController::class)->names('api.members');
+
     // Committees / Pengurus
     Route::get('/organization-users/linkable', [CommitteeController::class, 'linkableUsers'])->name('api.organization_users.linkable');
     Route::get('/committees/linkable-users', [CommitteeController::class, 'linkableUsers'])->name('api.committees.linkable_users');
+    Route::get('/committees/linkable-members', [CommitteeController::class, 'linkableMembers'])->name('api.committees.linkable_members');
     Route::get('/committees', [CommitteeController::class, 'index'])->name('api.committees.index');
     Route::get('/committees/{id}', [CommitteeController::class, 'show'])->name('api.committees.show');
     Route::post('/committees', [CommitteeController::class, 'store'])->name('api.committees.store');

@@ -40,6 +40,8 @@ export interface OrganizationPeriod {
   start_date: string
   end_date: string
   status: 'pending' | 'active' | 'expired' | 'rejected' | string
+  calculated_status?: 'ongoing' | 'expired' | 'upcoming' | string
+  is_ongoing?: boolean
   notes?: string
   rejection_reason?: string
   approved_by?: number
@@ -183,20 +185,18 @@ export interface Media {
   organization?: { id: number; nama: string } | null
 }
 
-export interface Committee {
+export interface Member {
   id: number
   organization_id: number
-  organization_period_id?: number | null
-  period_name?: string
-  period?: string
+  nama: string
+  nim: string
+  email?: string | null
+  telepon?: string | null
+  jurusan?: string | null
+  angkatan?: string | number | null
+  status: 'active' | 'inactive' | 'alumni' | string
   user_id?: number | null
-  name: string
-  nim?: string | null
-  position: string
-  department?: string | null
-  photo?: string | null
-  photo_url?: string | null
-  status: 'active' | 'inactive'
+  catatan?: string | null
   created_at?: string
   updated_at?: string
   user?: {
@@ -204,6 +204,47 @@ export interface Committee {
     name: string
     email?: string
   } | null
+  organization?: Organization | null
+  committees?: Committee[]
+  active_committees_count?: number
+}
+
+export interface Committee {
+  id: number
+  organization_id: number
+  organization_period_id?: number | null
+  period_name?: string
+  period?: string
+  member_id?: number | null
+  user_id?: number | null
+  name: string
+  nim?: string | null
+  position: string
+  department?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  notes?: string | null
+  photo?: string | null
+  photo_url?: string | null
+  status: 'active' | 'inactive'
+  status_mode?: 'auto' | 'manual'
+  status_reason?: string | null
+  status_changed_by?: number | null
+  status_changed_at?: string | null
+  status_changed_by_user?: {
+    id: number
+    name: string
+  } | null
+  is_active_effective?: boolean
+  effective_status?: 'active' | 'inactive' | string
+  created_at?: string
+  updated_at?: string
+  user?: {
+    id: number
+    name: string
+    email?: string
+  } | null
+  member?: Member | null
   organization_period?: OrganizationPeriod | null
   organization?: Organization | null
 }
