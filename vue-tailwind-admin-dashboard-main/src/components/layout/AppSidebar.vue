@@ -19,7 +19,11 @@
         !isExpanded && !isHovered ? 'lg:justify-center' : 'justify-start',
       ]"
     >
-      <router-link to="/">
+      <router-link
+        :to="publicHomeLink"
+        :title="logoTitle"
+        class="focus:outline-hidden transition-opacity hover:opacity-90"
+      >
         <AppLogo :collapsed="!isExpanded && !isHovered && !isMobileOpen" />
       </router-link>
     </div>
@@ -237,6 +241,19 @@ interface MenuGroup {
 }
 
 const authStore = useAuthStore()
+
+const publicHomeLink = computed(() => {
+  const subdomain = authStore.user?.organization?.subdomain || authStore.organizationSubdomain
+  if (subdomain) {
+    return `/organizations/${subdomain.toLowerCase()}`
+  }
+  return '/'
+})
+
+const logoTitle = computed(() => {
+  const orgName = authStore.user?.organization?.nama
+  return orgName ? `Buka Halaman Publik ${orgName}` : 'Buka Portal Publik ORMAWA ITI'
+})
 
 const menuGroups = computed<MenuGroup[]>(() => {
   const role = authStore.role

@@ -7,16 +7,31 @@ import type { UserProfile } from '@/types/api'
 export type AuthStatus = 'AUTH_LOADING' | 'AUTHENTICATED' | 'UNAUTHENTICATED'
 
 export const useAuthStore = defineStore('auth', () => {
-  const status = ref<AuthStatus>('AUTH_LOADING')
-  const user = ref<UserProfile | null>(null)
-  const role = ref<string | null>(null)
-  const organization_id = ref<number | null>(null)
-  const token = ref<string | null>(null)
+  const getStoredUser = (): UserProfile | null => {
+    try {
+      const raw = localStorage.getItem('auth_user')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  }
+
+  const initialUser = getStoredUser()
+  const status = ref<AuthStatus>(initialUser ? 'AUTHENTICATED' : 'AUTH_LOADING')
+  const user = ref<UserProfile | null>(initialUser)
+  const role = ref<string | null>(initialUser?.role ?? localStorage.getItem('auth_role') ?? null)
+  const organization_id = ref<number | null>(
+    initialUser?.organization?.id ??
+    (localStorage.getItem('auth_organization') ? Number(localStorage.getItem('auth_organization')) : null)
+  )
+  const token = ref<string | null>(localStorage.getItem('auth_token') ?? null)
   const isLoading = ref(false)
   const isInitialized = ref(false)
   const error = ref<string | null>(null)
 
   const isAuthenticated = computed(() => status.value === 'AUTHENTICATED' && !!token.value && !!user.value)
+  const organization = computed(() => user.value?.organization ?? null)
+  const organizationSubdomain = computed(() => user.value?.organization?.subdomain ?? null)
 
   const persistAuth = (authToken: string, authUser: UserProfile) => {
     token.value = authToken
@@ -225,6 +240,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isInitialized,
     user,
+    organization,
+    organizationSubdomain,
     role,
     organization_id,
     token,
