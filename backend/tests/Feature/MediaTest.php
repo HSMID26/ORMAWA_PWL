@@ -224,3 +224,36 @@ test('public endpoint and secure download for documents with tenant isolation', 
     $crossTenantRes->assertStatus(404);
 });
 
+test('media upload rejects file exceeding 5MB size limit with 422', function () {
+    Storage::fake('public');
+
+    // Buat file gambar palsu dengan ukuran 6 MB (6144 KB)
+    $oversizeFile = UploadedFile::fake()->create('huge-poster.jpg', 6144, 'image/jpeg');
+
+    $response = $this->actingAs($this->adminOrg1, 'sanctum')
+        ->postJson('/api/upload-image', [
+            'image' => $oversizeFile,
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('status', 'error')
+        ->assertJsonPath('message', 'Ukuran file tidak boleh melebihi 5 MB.')
+        ->assertJsonStructure(['errors' => ['image']]);
+});
+
+test('media upload rejects non-image non-video MIME types with 422', function () {
+    Storage::fake('public');
+
+    $invalidFile = UploadedFile::fake()->create('malicious.php', 10, 'application/x-php');
+
+    $response = $this->actingAs($this->adminOrg1, 'sanctum')
+        ->postJson('/api/upload-image', [
+            'image' => $invalidFile,
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('status', 'error')
+        ->assertJsonPath('message', 'File yang diunggah harus berupa foto atau gambar.')
+        ->assertJsonStructure(['errors' => ['image']]);
+});
+

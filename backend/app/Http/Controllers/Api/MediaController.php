@@ -138,9 +138,18 @@ class MediaController extends Controller
             ], 422);
         }
 
-        // Validate that all files are valid image/media files
+        // Validate that all files are valid image/media files and within size limits
         foreach ($files as $file) {
-            if (!$file || !$file->isValid()) continue;
+            if (!$file || !$file->isValid()) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'File yang diunggah tidak valid atau rusak.',
+                    'errors'  => [
+                        'image' => ['File yang diunggah tidak valid atau rusak.']
+                    ]
+                ], 422);
+            }
+
             $mime = $file->getMimeType() ?: '';
             if (!str_starts_with($mime, 'image/') && !str_starts_with($mime, 'video/')) {
                 return response()->json([
@@ -148,6 +157,17 @@ class MediaController extends Controller
                     'message' => 'File yang diunggah harus berupa foto atau gambar.',
                     'errors'  => [
                         'image' => ['File yang diunggah harus berupa foto atau gambar (JPG, PNG, WebP, AVIF).']
+                    ]
+                ], 422);
+            }
+
+            // Batas ukuran berkas maksimal 5 MB (5120 KB)
+            if ($file->getSize() > 5 * 1024 * 1024) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Ukuran file tidak boleh melebihi 5 MB.',
+                    'errors'  => [
+                        'image' => ['Ukuran file tidak boleh melebihi 5 MB.']
                     ]
                 ], 422);
             }

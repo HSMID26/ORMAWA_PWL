@@ -1050,7 +1050,18 @@ class PublicController extends Controller
                 ];
             });
 
-        $currentOngoingPeriod = $org->currentPeriod();
+        $tz = config('app.timezone', 'Asia/Jakarta');
+        $today = now($tz)->toDateString();
+
+        // Cari periode yang benar-benar aktif/berjalan hari ini (ongoing)
+        $currentOngoingPeriod = $org->periods()
+            ->where('status', '!=', 'rejected')
+            ->where('status', '!=', 'pending')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->latest('start_date')
+            ->first();
+
         $selectedPeriod = null;
 
         if ($request->filled('period_id')) {
@@ -1059,6 +1070,7 @@ class PublicController extends Controller
                 abort(404, 'Periode kepengurusan yang diminta tidak ditemukan.');
             }
         } else {
+            // Pada tampilan default publik, hanya tampilkan struktur jika ada periode yang sedang berjalan (ongoing)
             $selectedPeriod = $currentOngoingPeriod;
         }
 
@@ -1074,8 +1086,24 @@ class PublicController extends Controller
                 // Untuk arsip periode lampau/mendatang, tampilkan yang tercatat aktif pada periode tersebut
                 $committeeQuery->where('status', 'active');
             }
+        } elseif ($org->periods()->doesntExist()) {
+            // Kompatibilitas organisasi baru/legacy (tanpa entitas OrganizationPeriod):
+            // Tampilkan pengurus yang aktif, tidak terikat ke anggota non-aktif,
+            // serta masa tugasnya (jika diatur) belum kedaluwarsa.
+            $tz = config('app.timezone', 'Asia/Jakarta');
+            $today = \Carbon\Carbon::today($tz)->toDateString();
+            $committeeQuery->where('status', 'active')
+                ->whereNull('organization_period_id')
+                ->where(function ($q) {
+                    $q->whereDoesntHave('member')
+                      ->orWhereHas('member', fn($qm) => $qm->where('status', 'active'));
+                })
+                ->where(function ($q) use ($today) {
+                    $q->whereNull('end_date')
+                      ->orWhereDate('end_date', '>=', $today);
+                });
         } else {
-            // Jika organisasi belum memiliki periode aktif saat ini dan tidak ada periode yang dipilih,
+            // Jika organisasi memiliki periode tapi tidak ada periode aktif saat ini dan tidak ada periode yang dipilih,
             // jangan tampilkan pengurus dari periode kedaluwarsa secara membabi-buta!
             $committeeQuery->whereRaw('1 = 0');
         }

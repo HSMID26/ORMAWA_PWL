@@ -332,7 +332,7 @@
                         :src="'https://quickchart.io/qr?text=' + encodeURIComponent(mfaSetupData.otpauth_url) + '&size=140&ecLevel=M'"
                         alt="QR Code MFA"
                         class="w-32 h-32 object-contain"
-                        @error="(e: any) => { e.target.src = 'https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&data=' + encodeURIComponent(mfaSetupData.otpauth_url) }"
+                        @error="handleQrError"
                       />
                     </div>
                     <div class="space-y-2 text-center sm:text-left flex-1 min-w-0">
@@ -590,6 +590,13 @@ const cancelMfaSetup = () => {
   mfaConfirmError.value = ''
   copiedSecret.value = false
   copiedCodes.value = false
+}
+
+const handleQrError = (event: Event) => {
+  const target = event.target as HTMLImageElement | null
+  if (target && mfaSetupData.value?.otpauth_url) {
+    target.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&data=${encodeURIComponent(mfaSetupData.value.otpauth_url)}`
+  }
 }
 
 const handleConfirmMfa = async () => {

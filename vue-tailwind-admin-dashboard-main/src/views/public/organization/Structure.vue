@@ -79,7 +79,7 @@
     <!-- Error State -->
     <div v-else-if="errorMessage" class="py-16 text-center text-xs text-rose-600 border border-dashed border-rose-300 rounded-xl bg-rose-50/50 p-6">
       <p class="font-bold mb-2">{{ errorMessage }}</p>
-      <button @click="loadStructure" class="px-4 py-1.5 bg-[#00346F] text-white rounded text-xs font-semibold hover:bg-[#002855]">
+      <button @click="() => loadStructure(selectedPeriodId ?? undefined)" class="px-4 py-1.5 bg-[#00346F] text-white rounded text-xs font-semibold hover:bg-[#002855]">
         Coba Lagi
       </button>
     </div>
