@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /organizations/
+Allow: /org/
+Allow: /api/public/
+
+Disallow: /login
+Disallow: /register
+Disallow: /dashboard
+Disallow: /super-admin/
+Disallow: /organization/
+Disallow: /activity-logs
+Disallow: /users/
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: https://ormawa.iti.ac.id/api/public/sitemap

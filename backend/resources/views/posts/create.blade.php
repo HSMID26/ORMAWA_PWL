@@ -1,0 +1,681 @@
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h2 class="font-bold text-xl text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    ✍️ {{ __('Buat Artikel / Konten Baru') }}
+                </h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Tulis dan publikasikan berita, artikel kegiatan, atau pengumuman Ormawa.
+                </p>
+            </div>
+            <a 
+                href="{{ route('posts.index') }}" 
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold transition"
+            >
+                ← Kembali ke Daftar Artikel
+            </a>
+        </div>
+    </x-slot>
+
+    <div class="py-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            
+            <form id="post-form">
+                @csrf
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- KOLOM KIRI (UTAMA: JUDUL & TIPTAP EDITOR) -->
+                    <div class="lg:col-span-2 space-y-6">
+                        
+                        <!-- Card Judul & Konten -->
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs space-y-4">
+                            
+                            <!-- Judul Input -->
+                            <div>
+                                <label for="judul" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                                    Judul Artikel <span class="text-rose-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="judul" 
+                                    name="judul"
+                                    required 
+                                    placeholder="Contoh: Pembukaan Open Recruitment Pengurus Periode 2026/2027" 
+                                    class="w-full text-base font-semibold p-3 border border-gray-200 dark:border-gray-700 rounded-xl dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition"
+                                >
+                            </div>
+
+                            <!-- TipTap WYSIWYG Editor Container -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                                    Isi Konten Artikel <span class="text-rose-500">*</span>
+                                </label>
+
+                                <!-- Toolbar TipTap Modern -->
+                                <div class="flex flex-wrap items-center gap-1 p-2 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-t-xl text-xs">
+                                    <!-- Formatting Text -->
+                                    <button type="button" id="btn-bold" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 font-bold dark:text-gray-200 transition" title="Tebal (Ctrl+B)">B</button>
+                                    <button type="button" id="btn-italic" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 italic dark:text-gray-200 transition" title="Miring (Ctrl+I)">I</button>
+                                    <button type="button" id="btn-strike" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 line-through dark:text-gray-200 transition" title="Coret">S</button>
+                                    
+                                    <span class="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1"></span>
+
+                                    <!-- Headings -->
+                                    <button type="button" id="btn-h2" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 font-bold dark:text-gray-200 transition" title="Heading 2">H2</button>
+                                    <button type="button" id="btn-h3" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 font-bold dark:text-gray-200 transition" title="Heading 3">H3</button>
+
+                                    <span class="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1"></span>
+
+                                    <!-- Lists & Quotes -->
+                                    <button type="button" id="btn-bullet" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 dark:text-gray-200 transition" title="Daftar Bullet">• List</button>
+                                    <button type="button" id="btn-ordered" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 dark:text-gray-200 transition" title="Daftar Nomor">1. List</button>
+                                    <button type="button" id="btn-quote" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 dark:text-gray-200 transition" title="Kutipan">“ Quote</button>
+                                    <button type="button" id="btn-hr" class="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border border-gray-200 dark:border-gray-700 dark:text-gray-200 transition" title="Garis Pemisah">— Garis</button>
+
+                                    <span class="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1"></span>
+
+                                    <!-- Image Insertion via Media Library -->
+                                    <button 
+                                        type="button" 
+                                        onclick="openMediaPickerForEditor()" 
+                                        class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center gap-1.5 transition text-xs shadow-xs"
+                                        title="Buka Media Library untuk memilih atau mengunggah gambar"
+                                    >
+                                        <span>🖼️ Sisipkan Gambar</span>
+                                    </button>
+                                </div>
+
+                                <!-- TipTap Editable Element -->
+                                <div 
+                                    id="editor" 
+                                    class="min-h-[350px] p-4 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-xl bg-white dark:bg-gray-900 dark:text-gray-100 prose dark:prose-invert max-w-none focus:outline-none"
+                                ></div>
+                            </div>
+
+                            <!-- Excerpt / Ringkasan Singkat -->
+                            <div>
+                                <label for="excerpt" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                                    Ringkasan Singkat (Excerpt) <span class="text-gray-400 font-normal">(Opsional)</span>
+                                </label>
+                                <textarea 
+                                    id="excerpt" 
+                                    name="excerpt" 
+                                    rows="2" 
+                                    placeholder="Tulis ringkasan singkat artikel yang akan tampil di halaman depan..." 
+                                    class="w-full text-xs p-3 border border-gray-200 dark:border-gray-700 rounded-xl dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition"
+                                ></textarea>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- KOLOM KANAN (SIDEBAR: PUBLIKASI, COVER, KATEGORI, TAG) -->
+                    <div class="space-y-6">
+
+                        <!-- 1. Card Publikasi -->
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs space-y-4">
+                            <h3 class="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                                🚀 Publikasi & Status
+                            </h3>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Status Konten</label>
+                                <select 
+                                    id="status" 
+                                    name="status" 
+                                    class="w-full p-2.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 font-medium"
+                                >
+                                    <option value="published" selected>✅ Publikasikan (Published)</option>
+                                    <option value="draft">📝 Simpan Sebagai Draf (Draft)</option>
+                                </select>
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                id="btn-submit"
+                                class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                <span>💾 Simpan Artikel</span>
+                            </button>
+                        </div>
+
+                        <!-- 2. Card Gambar Sampul (Cover Image) -->
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs space-y-3">
+                            <h3 class="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                                🖼️ Gambar Sampul (Cover)
+                            </h3>
+
+                            <input type="hidden" id="cover_image" name="cover_image" value="">
+
+                            <!-- Preview Box (Clickable to open Media Library) -->
+                            <div 
+                                id="cover-preview-box" 
+                                onclick="openMediaPickerForCover()"
+                                class="w-full aspect-video rounded-xl bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 flex flex-col items-center justify-center text-center p-3 overflow-hidden relative cursor-pointer group transition"
+                                title="Klik untuk memilih gambar dari Media Library"
+                            >
+                                <div id="cover-placeholder" class="text-gray-400 text-xs group-hover:text-indigo-500 transition">
+                                    <span class="text-3xl block mb-1">📷</span>
+                                    <span>Pilih Gambar Sampul dari Media Library</span>
+                                </div>
+                                <img id="cover-img-preview" src="" alt="Cover" class="w-full h-full object-cover hidden rounded-lg">
+                                
+                                <button 
+                                    type="button" 
+                                    id="btn-remove-cover" 
+                                    onclick="event.stopPropagation(); removeCoverImage()" 
+                                    class="hidden absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-full text-xs hover:bg-rose-700 shadow z-10"
+                                    title="Hapus Cover"
+                                >
+                                    &times;
+                                </button>
+                            </div>
+
+                            <button 
+                                type="button" 
+                                onclick="openMediaPickerForCover()" 
+                                class="w-full py-2 px-3 bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                            >
+                                <span>🖼️ Buka Media Library</span>
+                            </button>
+                        </div>
+
+                        <!-- 3. Card Kategori Konten -->
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs space-y-3">
+                            <h3 class="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                                🏷️ Kategori Konten
+                            </h3>
+
+                            <select 
+                                id="category_id" 
+                                name="category_id" 
+                                class="w-full p-2.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 font-medium"
+                            >
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach($categories ?? [] as $category)
+                                    <option value="{{ $category->id }}">{{ $category->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- 4. Card Tag Konten -->
+                        <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs space-y-3">
+                            <h3 class="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                                📌 Tag / Label
+                            </h3>
+
+                            <div class="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                                @forelse($tags ?? [] as $tag)
+                                    <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 transition">
+                                        <input type="checkbox" name="tags[]" value="{{ $tag->id }}" class="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                        <span class="text-gray-700 dark:text-gray-300">{{ $tag->nama }}</span>
+                                    </label>
+                                @empty
+                                    <span class="text-xs text-gray-400">Belum ada tag dibuat.</span>
+                                @endforelse
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- MODAL MEDIA LIBRARY LENGKAP (TAB PUSTAKA & TAB UPLOAD) -->
+    <div id="media-picker-modal" class="fixed inset-0 z-50 bg-gray-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700 flex flex-col max-h-[90vh]">
+            
+            <!-- Modal Header with Tabs -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-gray-100 dark:border-gray-700 gap-3">
+                <div>
+                    <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        🖼️ Media Library
+                    </h3>
+                    <p class="text-xs text-gray-400" id="modal-target-indicator">
+                        Pilih gambar yang tersedia atau unggah gambar baru ke Media Library.
+                    </p>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-900 p-1 rounded-xl text-xs font-semibold">
+                    <button 
+                        type="button" 
+                        id="tab-btn-library" 
+                        onclick="switchMediaTab('library')" 
+                        class="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs transition"
+                    >
+                        📁 Pustaka Media
+                    </button>
+                    <button 
+                        type="button" 
+                        id="tab-btn-upload" 
+                        onclick="switchMediaTab('upload')" 
+                        class="px-3 py-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition"
+                    >
+                        ☁️ Unggah Berkas Baru
+                    </button>
+                </div>
+
+                <button onclick="closeMediaPickerModal()" class="hidden sm:block text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">
+                    &times;
+                </button>
+            </div>
+
+            <!-- TAB 1: PUSTAKA MEDIA (LIBRARY GRID) -->
+            <div id="tab-content-library" class="flex flex-col flex-1 overflow-hidden py-4">
+                <!-- Search Filter in Library -->
+                <div class="mb-3 flex items-center gap-3">
+                    <div class="relative flex-1">
+                        <input 
+                            type="text" 
+                            id="modal-search-input" 
+                            placeholder="Cari gambar di pustaka media..." 
+                            class="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-900 dark:text-white"
+                            oninput="filterMediaPicker(this.value)"
+                        >
+                        <span class="absolute left-2.5 top-2 text-gray-400 text-xs">🔍</span>
+                    </div>
+                    <button 
+                        type="button" 
+                        onclick="switchMediaTab('upload')" 
+                        class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-xs"
+                    >
+                        + Upload Baru
+                    </button>
+                </div>
+
+                <!-- Grid Pictures -->
+                <div id="media-picker-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 overflow-y-auto flex-1 pr-1">
+                    <div class="col-span-full py-12 text-center text-xs text-gray-400">Memuat pustaka media...</div>
+                </div>
+            </div>
+
+            <!-- TAB 2: UNGGAH BERKAS BARU -->
+            <div id="tab-content-upload" class="hidden w-full flex-col items-center justify-center py-12 flex-1 my-auto text-center">
+                <div 
+                    id="modal-drop-zone"
+                    class="w-full max-w-lg mx-auto border-2 border-dashed border-indigo-300 dark:border-gray-700 hover:border-indigo-500 rounded-2xl p-10 text-center cursor-pointer bg-gray-50 dark:bg-gray-900/50 transition shadow-xs flex flex-col items-center justify-center"
+                    onclick="document.getElementById('modal-upload-input').click()"
+                >
+                    <input 
+                        type="file" 
+                        id="modal-upload-input" 
+                        class="hidden" 
+                        accept="image/*" 
+                        onchange="handleModalDirectUpload(this.files[0])"
+                    >
+                    <div class="text-5xl mb-3">☁️</div>
+                    <div class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">
+                        Tarik & Lepas gambar ke sini, atau <span class="text-indigo-600 dark:text-indigo-400 underline">Pilih Berkas</span>
+                    </div>
+                    <p class="text-xs text-gray-400 max-w-sm mx-auto">
+                        Gambar akan otomatis diunggah ke Media Library & dikompresi ke WebP.
+                    </p>
+
+                    <!-- Uploading status -->
+                    <div id="modal-upload-status" class="hidden mt-4 text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2">
+                        <span class="animate-spin">⏳</span>
+                        <span>Sedang mengunggah dan menyimpan ke Media Library...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                <div class="text-xs text-gray-400 truncate max-w-xs" id="selected-media-info">
+                    Pilih gambar untuk disisipkan.
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeMediaPickerModal()" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-lg">
+                        Batal
+                    </button>
+                    <button 
+                        type="button" 
+                        id="btn-confirm-selection" 
+                        disabled 
+                        onclick="confirmSelectedMedia()" 
+                        class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition"
+                    >
+                        Gunakan Gambar
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        #editor img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.75rem;
+            margin: 1.25rem 0;
+            display: block;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        #editor .ProseMirror:focus {
+            outline: none;
+        }
+        #editor blockquote {
+            border-left: 4px solid #6366f1;
+            padding-left: 1rem;
+            font-style: italic;
+            color: #6b7280;
+        }
+    </style>
+
+    <!-- Script TipTap Integration via ESM CDN -->
+    <script type="module">
+        import { Editor } from 'https://esm.sh/@tiptap/core';
+        import StarterKit from 'https://esm.sh/@tiptap/starter-kit';
+        import Image from 'https://esm.sh/@tiptap/extension-image';
+
+        // Inisialisasi TipTap Editor
+        const editor = new Editor({
+            element: document.querySelector('#editor'),
+            extensions: [
+                StarterKit,
+                Image.configure({
+                    inline: false,
+                    allowBase64: true,
+                }),
+            ],
+            content: '<p>Tulis konten artikel ormawa Anda di sini...</p>',
+        });
+
+        // Toolbar Events
+        document.getElementById('btn-bold').addEventListener('click', () => editor.chain().focus().toggleBold().run());
+        document.getElementById('btn-italic').addEventListener('click', () => editor.chain().focus().toggleItalic().run());
+        document.getElementById('btn-strike').addEventListener('click', () => editor.chain().focus().toggleStrike().run());
+        document.getElementById('btn-h2').addEventListener('click', () => editor.chain().focus().toggleHeading({ level: 2 }).run());
+        document.getElementById('btn-h3').addEventListener('click', () => editor.chain().focus().toggleHeading({ level: 3 }).run());
+        document.getElementById('btn-bullet').addEventListener('click', () => editor.chain().focus().toggleBulletList().run());
+        document.getElementById('btn-ordered').addEventListener('click', () => editor.chain().focus().toggleOrderedList().run());
+        document.getElementById('btn-quote').addEventListener('click', () => editor.chain().focus().toggleBlockquote().run());
+        document.getElementById('btn-hr').addEventListener('click', () => editor.chain().focus().setHorizontalRule().run());
+
+        // Expose Editor ke Window untuk Media Picker
+        window.insertImageToEditor = function(url) {
+            editor.chain().focus().setImage({ src: url }).run();
+            closeMediaPickerModal();
+        };
+
+        // Form Submit
+        document.getElementById('post-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.innerHTML = '<span>Menyimpan...</span>';
+
+            const judul = document.getElementById('judul').value;
+            const category_id = document.getElementById('category_id').value;
+            const status = document.getElementById('status').value;
+            const cover_image = document.getElementById('cover_image').value;
+            const excerpt = document.getElementById('excerpt').value;
+            const konten = editor.getHTML();
+
+            const selectedTags = Array.from(document.querySelectorAll('input[name="tags[]"]:checked'))
+                .map(el => el.value);
+
+            try {
+                const res = await fetch('{{ route("posts.store") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        judul: judul,
+                        category_id: category_id || null,
+                        status: status,
+                        cover_image: cover_image || null,
+                        excerpt: excerpt || null,
+                        konten: konten,
+                        tags: selectedTags
+                    })
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.status === 'success') {
+                    alert('Artikel berhasil disimpan!');
+                    window.location.href = '{{ route("posts.index") }}';
+                } else {
+                    alert('Gagal menyimpan artikel: ' + (data.message || JSON.stringify(data.errors || 'Validasi gagal')));
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>💾 Simpan Artikel</span>';
+                }
+            } catch (err) {
+                alert('Terjadi kesalahan jaringan.');
+                btn.disabled = false;
+                btn.innerHTML = '<span>💾 Simpan Artikel</span>';
+            }
+        });
+    </script>
+
+    <!-- Script Media Picker Modal with Upload & Library Tabs -->
+    <script>
+        let pickerTarget = 'editor'; // 'editor' or 'cover'
+        let cachedMediaItems = [];
+        let currentlySelectedUrl = null;
+
+        function openMediaPickerForEditor() {
+            pickerTarget = 'editor';
+            document.getElementById('modal-target-indicator').innerText = 'Pilih gambar untuk disisipkan ke dalam isi konten artikel.';
+            document.getElementById('btn-confirm-selection').innerText = 'Sisipkan ke Artikel';
+            openMediaModal();
+        }
+
+        function openMediaPickerForCover() {
+            pickerTarget = 'cover';
+            document.getElementById('modal-target-indicator').innerText = 'Pilih gambar untuk dijadikan Gambar Sampul (Cover).';
+            document.getElementById('btn-confirm-selection').innerText = 'Pilih Sebagai Sampul';
+            openMediaModal();
+        }
+
+        function openMediaModal() {
+            const modal = document.getElementById('media-picker-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            switchMediaTab('library');
+            loadMediaLibrary();
+        }
+
+        function closeMediaPickerModal() {
+            const modal = document.getElementById('media-picker-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            currentlySelectedUrl = null;
+            document.getElementById('btn-confirm-selection').disabled = true;
+            document.getElementById('selected-media-info').innerText = 'Pilih gambar untuk disisipkan.';
+        }
+
+        function switchMediaTab(tab) {
+            const tabLib = document.getElementById('tab-content-library');
+            const tabUpload = document.getElementById('tab-content-upload');
+            const btnLib = document.getElementById('tab-btn-library');
+            const btnUpload = document.getElementById('tab-btn-upload');
+
+            if (tab === 'library') {
+                tabLib.classList.remove('hidden');
+                tabLib.classList.add('flex');
+                tabUpload.classList.add('hidden');
+                tabUpload.classList.remove('flex');
+
+                btnLib.className = 'px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs transition';
+                btnUpload.className = 'px-3 py-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition';
+            } else {
+                tabLib.classList.add('hidden');
+                tabLib.classList.remove('flex');
+                tabUpload.classList.remove('hidden');
+                tabUpload.classList.add('flex');
+
+                btnUpload.className = 'px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs transition';
+                btnLib.className = 'px-3 py-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition';
+            }
+        }
+
+        async function loadMediaLibrary() {
+            const grid = document.getElementById('media-picker-grid');
+            grid.innerHTML = '<div class="col-span-full py-12 text-center text-xs text-gray-400">Memuat pustaka media...</div>';
+
+            try {
+                const res = await fetch('{{ route("media.picker") }}?type=image');
+                const json = await res.json();
+                if (json.status === 'success' && json.data.length > 0) {
+                    cachedMediaItems = json.data;
+                    renderMediaGrid(cachedMediaItems);
+                } else {
+                    grid.innerHTML = `
+                        <div class="col-span-full py-12 text-center text-xs text-gray-400">
+                            <div class="text-3xl mb-2">📁</div>
+                            Belum ada gambar di Media Library.<br>
+                            <button type="button" onclick="switchMediaTab('upload')" class="mt-2 text-indigo-600 dark:text-indigo-400 font-bold underline">
+                                Klik di sini untuk mengunggah gambar pertama
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                grid.innerHTML = '<div class="col-span-full py-12 text-center text-xs text-rose-500">Gagal memuat Media Library.</div>';
+            }
+        }
+
+        function renderMediaGrid(items) {
+            const grid = document.getElementById('media-picker-grid');
+            grid.innerHTML = '';
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                const isSelected = currentlySelectedUrl === item.url;
+                card.className = `aspect-square rounded-xl overflow-hidden border-2 cursor-pointer relative group transition ${
+                    isSelected ? 'border-indigo-600 ring-2 ring-indigo-500/50' : 'border-gray-200 dark:border-gray-700 hover:border-indigo-400'
+                }`;
+                card.innerHTML = `
+                    <img src="${item.url}" alt="${item.filename}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-xs p-1 text-[9px] text-white truncate text-center">
+                        ${item.filename}
+                    </div>
+                    <div class="absolute top-1 right-1 ${isSelected ? 'block' : 'hidden'} bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow">
+                        ✓
+                    </div>
+                `;
+                card.onclick = () => selectItem(item);
+                card.ondblclick = () => {
+                    selectItem(item);
+                    confirmSelectedMedia();
+                };
+                grid.appendChild(card);
+            });
+        }
+
+        function selectItem(item) {
+            currentlySelectedUrl = item.url;
+            document.getElementById('btn-confirm-selection').disabled = false;
+            document.getElementById('selected-media-info').innerText = `Dipilih: ${item.filename}`;
+            renderMediaGrid(cachedMediaItems);
+        }
+
+        function filterMediaPicker(query) {
+            const filtered = cachedMediaItems.filter(item => 
+                item.filename.toLowerCase().includes(query.toLowerCase())
+            );
+            renderMediaGrid(filtered);
+        }
+
+        function confirmSelectedMedia() {
+            if (!currentlySelectedUrl) return;
+
+            if (pickerTarget === 'editor') {
+                if (window.insertImageToEditor) {
+                    window.insertImageToEditor(currentlySelectedUrl);
+                }
+            } else if (pickerTarget === 'cover') {
+                setCoverImage(currentlySelectedUrl);
+                closeMediaPickerModal();
+            }
+        }
+
+        // Upload Direct to Media Library from Inside Modal
+        async function handleModalDirectUpload(file) {
+            if (!file) return;
+
+            const status = document.getElementById('modal-upload-status');
+            status.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const res = await fetch('/upload-image', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: formData,
+                });
+
+                const data = await res.json();
+                if (res.ok && (data.status === 'success' || data.url)) {
+                    // Refresh library and auto-select
+                    status.classList.add('hidden');
+                    currentlySelectedUrl = data.url;
+                    switchMediaTab('library');
+                    await loadMediaLibrary();
+                    document.getElementById('btn-confirm-selection').disabled = false;
+                    document.getElementById('selected-media-info').innerText = 'Gambar baru berhasil diunggah!';
+                } else {
+                    alert('Gagal mengunggah gambar ke Media Library.');
+                    status.classList.add('hidden');
+                }
+            } catch (err) {
+                alert('Terjadi kesalahan saat mengunggah.');
+                status.classList.add('hidden');
+            }
+        }
+
+        // Drag & drop on modal upload
+        const modalDropZone = document.getElementById('modal-drop-zone');
+        if (modalDropZone) {
+            ['dragenter', 'dragover'].forEach(name => {
+                modalDropZone.addEventListener(name, (e) => {
+                    e.preventDefault();
+                    modalDropZone.classList.add('border-indigo-600', 'bg-indigo-50/20');
+                });
+            });
+            ['dragleave', 'drop'].forEach(name => {
+                modalDropZone.addEventListener(name, (e) => {
+                    e.preventDefault();
+                    modalDropZone.classList.remove('border-indigo-600', 'bg-indigo-50/20');
+                });
+            });
+            modalDropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleModalDirectUpload(files[0]);
+                }
+            });
+        }
+
+        // Cover Image Setters
+        function setCoverImage(url) {
+            document.getElementById('cover_image').value = url;
+            const img = document.getElementById('cover-img-preview');
+            img.src = url;
+            img.classList.remove('hidden');
+            document.getElementById('cover-placeholder').classList.add('hidden');
+            document.getElementById('btn-remove-cover').classList.remove('hidden');
+        }
+
+        function removeCoverImage() {
+            document.getElementById('cover_image').value = '';
+            const img = document.getElementById('cover-img-preview');
+            img.src = '';
+            img.classList.add('hidden');
+            document.getElementById('cover-placeholder').classList.remove('hidden');
+            document.getElementById('btn-remove-cover').classList.add('hidden');
+        }
+    </script>
+</x-app-layout>
