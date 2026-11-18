@@ -69,11 +69,24 @@
               v-model="form.status"
               class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option v-if="canPublish" value="published">Published (Tampil di Website)</option>
-              <option value="draft">Draft (Arsip Internal)</option>
+              <option value="draft">Draft</option>
+              <option value="review">Ajukan untuk ditinjau</option>
+              <option v-if="canPublish" value="published">Setujui dan publikasikan</option>
+              <option v-if="canPublish" value="revision_requested">Minta revisi</option>
+              <option v-if="canPublish" value="rejected">Tolak</option>
+              <option v-if="!canPublish && !['draft', 'review'].includes(form.status)" :value="form.status">{{ statusLabel(form.status) }}</option>
             </select>
+            <textarea
+              v-if="canPublish && ['revision_requested', 'rejected'].includes(form.status)"
+              v-model.trim="form.review_note"
+              required
+              maxlength="2000"
+              rows="3"
+              placeholder="Tuliskan alasan penolakan atau revisi."
+              class="mt-3 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-2.5 text-xs text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white"
+            />
             <p v-if="!canPublish" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-              *Sebagai Editor, perubahan status ke Published memerlukan persetujuan Admin Organisasi.
+              Agenda yang diajukan menunggu tinjauan Admin Organisasi. Jika diminta revisi, perbarui lalu ajukan kembali.
             </p>
           </div>
         </div>
@@ -124,7 +137,8 @@ const form = ref({
   judul: '',
   tanggal_pelaksanaan: '',
   deskripsi: '',
-  status: 'draft' as 'draft' | 'published'
+  status: 'draft',
+  review_note: '',
 })
 
 const loadAgenda = async () => {
@@ -142,7 +156,8 @@ const loadAgenda = async () => {
       judul: item.judul,
       tanggal_pelaksanaan: item.tanggal_pelaksanaan.split('T')[0],
       deskripsi: item.deskripsi,
-      status: item.status === 'draft' ? 'draft' : 'published'
+      status: item.status,
+      review_note: item.review_note ?? '',
     }
   } catch (error: any) {
     toastStore.error('Gagal memuat agenda: ' + error.message)
@@ -164,7 +179,8 @@ const submitForm = async () => {
       judul: form.value.judul,
       tanggal_pelaksanaan: form.value.tanggal_pelaksanaan,
       deskripsi: form.value.deskripsi,
-      status: form.value.status
+      status: form.value.status,
+      review_note: form.value.review_note
     })
 
     toastStore.success('Agenda kegiatan berhasil diperbarui!')
@@ -175,6 +191,14 @@ const submitForm = async () => {
     isSubmitting.value = false
   }
 }
+
+const statusLabel = (status: string) => ({
+  draft: 'Draft',
+  review: 'Menunggu tinjauan',
+  published: 'Published',
+  revision_requested: 'Perlu revisi',
+  rejected: 'Ditolak',
+}[status] ?? status)
 
 onMounted(() => {
   loadAgenda()

@@ -103,11 +103,12 @@
               v-model="form.status"
               class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option v-if="canPublish" value="published">Published (Tampil di Website & Kalender)</option>
-              <option value="draft">Draft (Arsip Internal)</option>
+              <option value="draft">Draft</option>
+              <option value="review">Ajukan untuk ditinjau</option>
+              <option v-if="canPublish" value="published">Setujui dan publikasikan</option>
             </select>
             <p v-if="!canPublish" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-              *Sebagai Editor, agenda disimpan sebagai Draft internal sebelum dipublikasikan oleh Admin Organisasi.
+              Agenda yang diajukan akan menunggu tinjauan Admin Organisasi sebelum dipublikasikan.
             </p>
           </div>
         </div>
@@ -158,7 +159,7 @@ const form = ref({
   waktu: '',
   lokasi: '',
   deskripsi: '',
-  status: (canPublish.value ? 'published' : 'draft') as 'draft' | 'published'
+  status: (canPublish.value ? 'draft' : 'review') as 'draft' | 'review' | 'published'
 })
 
 const submitForm = async () => {

@@ -278,9 +278,16 @@ const menuGroups = computed<MenuGroup[]>(() => {
       {
         title: 'MONITORING',
         items: [
+          { icon: CalendarIcon, name: 'Kalender', path: '/calendar' },
           { icon: UserCircleIcon, name: 'Pengguna Global', path: '/super-admin/users' },
           { icon: ListIcon, name: 'Monitoring Konten', path: '/super-admin/content' },
           { icon: FileIcon, name: 'Activity Log', path: '/super-admin/activity-logs' },
+        ]
+      },
+      {
+        title: 'ADMINISTRASI',
+        items: [
+          { icon: MailIcon, name: 'Surat-Menyurat', path: '/organization/correspondence' },
         ]
       },
       {
@@ -299,6 +306,7 @@ const menuGroups = computed<MenuGroup[]>(() => {
       title: 'Utama',
       items: [
         { icon: LayoutGridIcon, name: 'Dashboard', path: '/organization/dashboard' },
+        { icon: CalendarIcon, name: 'Kalender', path: '/calendar' },
       ]
     }
   ]
@@ -314,6 +322,12 @@ const menuGroups = computed<MenuGroup[]>(() => {
   }
   if (authStore.hasPermission('agenda.view')) {
     contentItems.push({ icon: CalendarIcon, name: 'Agenda', path: '/organization/agenda' })
+  }
+  if (authStore.hasPermission('work_programs.view')) {
+    contentItems.push({ icon: CalendarClockIcon, name: 'Program Kerja', path: '/organization/programs' })
+  }
+  if (authStore.hasPermission('correspondence.view')) {
+    contentItems.push({ icon: MailIcon, name: 'Surat-Menyurat', path: '/organization/correspondence' })
   }
   if (authStore.hasPermission('announcements.view')) {
     contentItems.push({ icon: MessageSquareIcon, name: 'Pengumuman', path: '/organization/announcements' })

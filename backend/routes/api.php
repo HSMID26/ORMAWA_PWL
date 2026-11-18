@@ -5,6 +5,9 @@ use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\CalendarController;
+use App\Http\Controllers\Api\WorkProgramController;
+use App\Http\Controllers\Api\CorrespondenceController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\AnnouncementController;
@@ -71,6 +74,7 @@ Route::prefix('public')->group(function () {
     Route::get('/super-admin/dashboard', [\App\Http\Controllers\Api\DashboardController::class, 'superAdminSummary']);
     // Organization Admin Dashboard Summary
     Route::get('/organization/dashboard', [\App\Http\Controllers\Api\DashboardController::class, 'organizationSummary'])->name('api.organization.dashboard');
+    Route::get('/calendar/events', [CalendarController::class, 'events'])->name('api.calendar.events');
 
     // Route Manajemen Organisasi
     Route::post('/organizations/{organization}/activate', [OrganizationController::class, 'activate']);
@@ -119,6 +123,11 @@ Route::prefix('public')->group(function () {
         'update'  => 'api.activities.update',
         'destroy' => 'api.activities.destroy',
     ]);
+    Route::apiResource('work-programs', WorkProgramController::class)->names('api.work_programs');
+    Route::post('/correspondences/{id}/submit', [CorrespondenceController::class, 'submit'])->name('api.correspondences.submit');
+    Route::post('/correspondences/{id}/review', [CorrespondenceController::class, 'review'])->name('api.correspondences.review');
+    Route::get('/correspondences/{id}/attachment', [CorrespondenceController::class, 'attachment'])->name('api.correspondences.attachment');
+    Route::apiResource('correspondences', CorrespondenceController::class)->names('api.correspondences');
     Route::apiResource('posts', PostController::class)->names([
         'index'   => 'api.posts.index',
         'store'   => 'api.posts.store',

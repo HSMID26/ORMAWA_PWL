@@ -23,6 +23,9 @@ class Activity extends Model
         'end_time',
         'status',
         'published_at',
+        'review_note',
+        'reviewed_by',
+        'reviewed_at',
     ];
 
     protected $casts = [
@@ -30,6 +33,7 @@ class Activity extends Model
         'start_time'          => 'datetime',
         'end_time'            => 'datetime',
         'published_at'        => 'datetime',
+        'reviewed_at'         => 'datetime',
     ];
 
     public function user()
@@ -40,6 +44,11 @@ class Activity extends Model
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     // Accessors & Mutators for Dual Compatibility (title / judul, description / deskripsi, start_time / tanggal_pelaksanaan)

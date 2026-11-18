@@ -126,6 +126,16 @@ class Organization extends Model
         return $this->hasMany(Activity::class);
     }
 
+    public function workPrograms(): HasMany
+    {
+        return $this->hasMany(WorkProgram::class);
+    }
+
+    public function correspondences(): HasMany
+    {
+        return $this->hasMany(Correspondence::class);
+    }
+
     public function announcements(): HasMany
     {
         return $this->hasMany(Announcement::class);

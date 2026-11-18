@@ -19,5 +19,5 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
-app.use(VueApexCharts)
+app.component('apexchart', VueApexCharts)
 app.mount('#app')

@@ -101,7 +101,10 @@
             class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-xs text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           >
             <option value="">Semua Status Publikasi</option>
+            <option value="review">Menunggu tinjauan</option>
+            <option value="revision_requested">Perlu revisi</option>
             <option value="published">Published (Terbit)</option>
+            <option value="rejected">Ditolak</option>
             <option value="draft">Draft</option>
           </select>
         </div>
@@ -177,9 +180,9 @@
               <td class="px-4 py-3.5">
                 <span
                   class="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                  :class="item.status === 'published' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'"
+                  :class="statusClass(item.status)"
                 >
-                  {{ item.status === 'published' ? 'Published' : 'Draft' }}
+                  {{ statusLabel(item.status) }}
                 </span>
               </td>
 
@@ -266,10 +269,14 @@
             </div>
             <div>
               <span class="text-[10px] font-semibold text-gray-400 uppercase block">Status</span>
-              <span class="inline-block mt-0.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-100 text-emerald-700">
-                {{ selectedAgenda.status }}
+              <span class="inline-block mt-0.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase" :class="statusClass(selectedAgenda.status)">
+                {{ statusLabel(selectedAgenda.status) }}
               </span>
             </div>
+          </div>
+          <div v-if="selectedAgenda.review_note">
+            <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Catatan tinjauan</span>
+            <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">{{ selectedAgenda.review_note }}</p>
           </div>
 
           <div>
@@ -437,6 +444,22 @@ const formatDate = (dateStr: string) => {
     year: 'numeric'
   }).format(new Date(dateStr))
 }
+
+const statusLabel = (status: string) => ({
+  draft: 'Draft',
+  review: 'Menunggu tinjauan',
+  published: 'Published',
+  revision_requested: 'Perlu revisi',
+  rejected: 'Ditolak',
+}[status] ?? status)
+
+const statusClass = (status: string) => ({
+  draft: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+  review: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+  published: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+  revision_requested: 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300',
+  rejected: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+}[status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400')
 
 const getDay = (dateStr: string) => {
   if (!dateStr) return '01'

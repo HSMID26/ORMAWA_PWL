@@ -394,10 +394,10 @@
               'rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition',
               isDragging ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/20' : 'border-gray-300 dark:border-gray-700 hover:border-brand-400'
             ]"
-            @click="$refs.fileInput.click()"
+            @click="fileInputRef?.click()"
           >
             <input
-              ref="fileInput"
+              ref="fileInputRef"
               type="file"
               accept="image/*,video/*"
               class="hidden"
@@ -535,6 +535,7 @@ const isUploadModalOpen = ref(false)
 const isDragging = ref(false)
 const selectedFile = ref<File | null>(null)
 const isUploading = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const uploadForm = ref({
   title: '',
   category: 'Dokumentasi',

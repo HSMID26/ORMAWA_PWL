@@ -58,6 +58,11 @@ class Member extends Model
         return $this->hasMany(Committee::class);
     }
 
+    public function workPrograms(): HasMany
+    {
+        return $this->hasMany(WorkProgram::class, 'responsible_member_id');
+    }
+
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);

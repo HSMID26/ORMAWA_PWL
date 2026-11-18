@@ -150,6 +150,9 @@ export interface Activity {
   tempat?: string
   lokasi?: string
   status: string
+  review_note?: string | null
+  reviewed_by?: number | null
+  reviewed_at?: string | null
   user_id?: number
   organization_id?: number
   created_at?: string

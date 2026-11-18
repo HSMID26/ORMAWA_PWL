@@ -265,6 +265,12 @@ const router = createRouter({
       component: () => import('@/views/super-admin/organizations/Periods.vue'),
       meta: { requiresAuth: true, roles: ['Super Admin'], title: 'Manage Periods' },
     },
+    {
+      path: '/calendar',
+      name: 'calendar',
+      component: () => import('@/views/calendar/Calendar.vue'),
+      meta: { requiresAuth: true, title: 'Kalender Kegiatan' },
+    },
 
     // ─── Organization (Admin / Editor / Contributor) ─────────────
     {
@@ -335,6 +341,18 @@ const router = createRouter({
       name: 'organization-agenda-edit',
       component: () => import('@/views/organization/agenda/Edit.vue'),
       meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'agenda.update', title: 'Edit Agenda' },
+    },
+    {
+      path: '/organization/programs',
+      name: 'organization-programs',
+      component: () => import('@/views/organization/programs/List.vue'),
+      meta: { requiresAuth: true, roles: ['Admin Organisasi', 'Editor'], permission: 'work_programs.view', title: 'Program Kerja' },
+    },
+    {
+      path: '/organization/correspondence',
+      name: 'organization-correspondence',
+      component: () => import('@/views/organization/correspondence/List.vue'),
+      meta: { requiresAuth: true, roles: ['Super Admin', 'Admin Organisasi', 'Editor'], permission: 'correspondence.view', title: 'Surat-Menyurat' },
     },
     {
       path: '/organization/announcements',

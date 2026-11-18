@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use Illuminate\Http\Request;
 use App\Services\ActivityLogService;
+use App\Services\ActivityApprovalWorkflowService;
 
 class ActivityController extends Controller
 {
@@ -30,59 +31,28 @@ class ActivityController extends Controller
     /**
      * Tambah kegiatan baru
      */
-    public function store(Request $request)
+    public function store(Request $request, ActivityApprovalWorkflowService $workflow)
     {
         $user = $request->user();
         if (!$user || (!$user->hasRole('Super Admin') && !$user->can('agenda.create'))) {
             abort(403, 'Unauthorized. Anda tidak memiliki izin untuk membuat agenda kegiatan.');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'judul'              => 'required|string|max:255',
             'deskripsi'          => 'required|string',
             'tanggal_pelaksanaan'=> 'required|date',
             'status'             => 'nullable|in:draft,review,published,rejected',
         ]);
         
-        $status = $request->status ?? 'draft';
+        $status = $validated['status'] ?? 'draft';
 
         $canPublish = $user->hasRole('Super Admin') || $user->can('agenda.publish');
         if (in_array($status, ['published', 'rejected']) && !$canPublish) {
             $status = 'draft';
         }
-
-        $activity = Activity::create([
-            'user_id'            => $user->id,
-            // organization_id terisi otomatis via Trait BelongsToOrganization!
-            'judul'              => $request->judul,
-            'deskripsi'          => $request->deskripsi,
-            'tanggal_pelaksanaan'=> $request->tanggal_pelaksanaan,
-            'status'             => $status,
-            'published_at'       => $status === 'published' ? now() : null,
-        ]);
-
-        ActivityLogService::log('create', 'activities', 'Membuat agenda baru: ' . $activity->judul . ' (Status: ' . $activity->status . ')', $activity);
-
-        if ($status === 'review') {
-            \App\Services\NotificationService::sendToOrganizationReviewers(
-                $activity->organization_id,
-                'content_review',
-                'Konten Menunggu Review',
-                "{$user->name} mengirim Agenda '{$activity->judul}' untuk direview.",
-                '/organization/agenda',
-                ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id],
-                $user->id
-            );
-
-            \App\Services\NotificationService::send(
-                $user,
-                'content_submitted',
-                'Agenda Diajukan',
-                "Agenda '{$activity->judul}' berhasil dikirim untuk direview.",
-                '/organization/agenda',
-                ['content_id' => $activity->id, 'content_type' => 'activity']
-            );
-        }
+        $validated['status'] = $status;
+        $activity = $workflow->create($validated, $user);
 
         return response()->json([
             'status'  => 'success',
@@ -114,7 +84,7 @@ class ActivityController extends Controller
     /**
      * Update kegiatan
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, ActivityApprovalWorkflowService $workflow)
     {
         $user = $request->user();
         if (!$user || (!$user->hasRole('Super Admin') && !$user->can('agenda.update'))) {
@@ -132,7 +102,8 @@ class ActivityController extends Controller
             'judul'                => 'required|string|max:255',
             'deskripsi'            => 'required|string',
             'tanggal_pelaksanaan'  => 'required|date',
-            'status'               => 'required|in:draft,review,published,rejected',
+            'status'               => 'required|in:draft,review,published,rejected,revision_requested',
+            'review_note'          => 'required_if:status,rejected,revision_requested|nullable|string|max:2000',
         ]);
 
         $data = $request->only(['judul', 'deskripsi', 'tanggal_pelaksanaan', 'status']);
@@ -141,7 +112,8 @@ class ActivityController extends Controller
             $newStatus = $request->status;
 
             $canPublish = $user->hasRole('Super Admin') || $user->can('agenda.publish');
-            if (in_array($newStatus, ['published', 'rejected']) && !$canPublish) {
+            abort_if($newStatus === 'revision_requested' && !$canPublish, 403, 'Anda tidak memiliki izin untuk meminta revisi agenda.');
+            if (in_array($newStatus, ['published', 'rejected', 'revision_requested']) && !$canPublish) {
                 $newStatus = $activity->status;
             }
             $data['status'] = $newStatus;
@@ -149,61 +121,22 @@ class ActivityController extends Controller
             if ($newStatus === 'published' && $activity->status !== 'published') {
                 $data['published_at'] = now();
             }
-        }
-
-        $oldStatus = $activity->status;
-        $activity->update($data);
-
-        $action = 'update';
-        $desc = 'Memperbarui agenda: ' . $activity->judul;
-        if (isset($data['status'])) {
-            $action = $data['status'] === 'published' ? 'publish' : ($data['status'] === 'rejected' ? 'reject' : ($data['status'] === 'review' ? 'submit_review' : 'update'));
-            $desc .= ' (Status: ' . $data['status'] . ')';
-
-            if ($action === 'submit_review' && $oldStatus !== 'review') {
-                \App\Services\NotificationService::sendToOrganizationReviewers(
-                    $activity->organization_id,
-                    'content_review',
-                    'Konten Menunggu Review',
-                    "{$user->name} mengirim Agenda '{$activity->judul}' untuk direview.",
-                    '/organization/agenda',
-                    ['content_id' => $activity->id, 'content_type' => 'activity', 'author_id' => $user->id],
-                    $user->id
-                );
-
-                \App\Services\NotificationService::send(
-                    $user,
-                    'content_submitted',
-                    'Agenda Diajukan',
-                    "Agenda '{$activity->judul}' berhasil dikirim untuk direview.",
-                    '/organization/agenda',
-                    ['content_id' => $activity->id, 'content_type' => 'activity']
-                );
-            } elseif ($action === 'publish' && $oldStatus !== 'published' && $activity->user_id !== $user->id) {
-                if ($activity->user) {
-                    \App\Services\NotificationService::send(
-                        $activity->user,
-                        'content_published',
-                        'Agenda Dipublikasikan',
-                        "Agenda '{$activity->judul}' berhasil dipublikasikan.",
-                        '/organization/agenda',
-                        ['content_id' => $activity->id, 'content_type' => 'activity']
-                    );
+            if ($newStatus !== 'published' && $activity->status === 'published') {
+                $data['published_at'] = null;
+            }
+            if (in_array($newStatus, ['published', 'rejected', 'revision_requested'], true) && $canPublish) {
+                $data['reviewed_by'] = $user->id;
+                $data['reviewed_at'] = now();
+                $data['review_note'] = $request->input('review_note');
+                if ($newStatus !== 'published') {
+                    $data['published_at'] = null;
                 }
-            } elseif ($action === 'reject' && $oldStatus !== 'rejected' && $activity->user_id !== $user->id) {
-                if ($activity->user) {
-                    \App\Services\NotificationService::send(
-                        $activity->user,
-                        'content_rejected',
-                        'Agenda Perlu Revisi',
-                        "Agenda '{$activity->judul}' ditolak / memerlukan perbaikan.",
-                        '/organization/agenda',
-                        ['content_id' => $activity->id, 'content_type' => 'activity']
-                    );
-                }
+            } elseif ($newStatus === 'review' && $activity->status !== 'review') {
+                $data['review_note'] = null;
             }
         }
-        ActivityLogService::log($action, 'activities', $desc, $activity);
+
+        $activity = $workflow->update($activity, $data, $user);
 
         return response()->json([
             'status'  => 'success',
